@@ -150,6 +150,7 @@ export function MultimodalInput({
 
       if (response.ok) {
         const data = await response.json();
+        await saveFilePathToDatabase(chatId, data.path);
         return {
           url: data.url,
           name: data.path,
@@ -163,6 +164,25 @@ export function MultimodalInput({
     } catch (error) {
       console.error('Upload failed:', error);
       toast.error('Failed to upload file, please try again!');
+    }
+  };
+
+  const saveFilePathToDatabase = async (chatId: string, filePath: string) => {
+    try {
+      const response = await fetch(`/api/files/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ chatId, filePath }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save file path to database');
+      }
+    } catch (error) {
+      console.error('Error saving file path:', error);
+      toast.error('Failed to save file path to database');
     }
   };
 
