@@ -3,9 +3,9 @@
 import { Message } from 'ai';
 import cx from 'classnames';
 import { motion } from 'framer-motion';
-import { Dispatch, SetStateAction } from 'react';
-import Image from 'next/image';
 import { FileIcon } from 'lucide-react';
+import Image from 'next/image';
+import { Dispatch, SetStateAction } from 'react';
 
 import { Vote } from '@/lib/supabase/types';
 
@@ -52,7 +52,7 @@ export const PreviewMessage = ({
                     />
                   ) : (
                     <div className="flex items-center gap-2 p-2 border rounded-lg">
-                      <FileIcon className="h-4 w-4" />
+                      <FileIcon className="size-4" />
                       <span className="text-sm">{att.name}</span>
                     </div>
                   )}

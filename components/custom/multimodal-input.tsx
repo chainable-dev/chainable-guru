@@ -1,9 +1,8 @@
 'use client';
 
-import { Attachment, ChatRequestOptions, CreateMessage, Message } from 'ai';
 import cx from 'classnames';
 import { motion } from 'framer-motion';
-import { useParams } from 'next/navigation';
+import { X } from 'lucide-react';
 import React, {
   useRef,
   useEffect,
@@ -15,7 +14,6 @@ import React, {
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
-import { X } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
 import { sanitizeUIMessages } from '@/lib/utils';
@@ -25,7 +23,9 @@ import { PreviewAttachment } from './preview-attachment';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 
+
 import type { Attachment as SupabaseAttachment } from '@/types/supabase';
+import type { Attachment, ChatRequestOptions, CreateMessage, Message } from 'ai';
 
 const suggestedActions = [
   {
@@ -48,6 +48,21 @@ type TempAttachment = {
   path?: string;
 };
 
+interface MultimodalInputProps {
+  input: string;
+  setInput: (value: string) => void;
+  isLoading: boolean;
+  stop: () => void;
+  attachments: Attachment[];
+  setAttachments: Dispatch<SetStateAction<Attachment[]>>;
+  messages: Message[];
+  setMessages: Dispatch<SetStateAction<Message[]>>;
+  append: (message: Message | CreateMessage, chatRequestOptions?: ChatRequestOptions) => Promise<string | null | undefined>;
+  handleSubmit: (event?: { preventDefault?: () => void }, chatRequestOptions?: ChatRequestOptions) => void;
+  className?: string;
+  chatId: string;
+}
+
 export function MultimodalInput({
   input,
   setInput,
@@ -60,31 +75,10 @@ export function MultimodalInput({
   append,
   handleSubmit,
   className,
-}: {
-  input: string;
-  setInput: (value: string) => void;
-  isLoading: boolean;
-  stop: () => void;
-  attachments: Array<Attachment>;
-  setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
-  messages: Array<Message>;
-  setMessages: Dispatch<SetStateAction<Array<Message>>>;
-  append: (
-    message: Message | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions
-  ) => Promise<string | null | undefined>;
-  handleSubmit: (
-    event?: {
-      preventDefault?: () => void;
-    },
-    chatRequestOptions?: ChatRequestOptions
-  ) => void;
-  className?: string;
-}) {
+  chatId
+}: MultimodalInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
-  const params = useParams();
-  const chatId = params?.id as string;
   const supabase = createClient();
   
   const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -210,6 +204,21 @@ export function MultimodalInput({
     );
   };
 
+  // Focus management
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [messages.length]); // Refocus after new message
+
+  // Auto-focus on mount
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   return (
     <div className="relative w-full flex flex-col gap-4">
       {messages.length === 0 &&
@@ -271,7 +280,7 @@ export function MultimodalInput({
                           transition-colors"
                 aria-label="Remove attachment"
               >
-                <X className="h-3 w-3" />
+                <X className="size-3" />
               </button>
             </div>
           ))}

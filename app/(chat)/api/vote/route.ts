@@ -1,6 +1,6 @@
 import { getSession } from '@/db/cached-queries';
-import { createClient } from '@/lib/supabase/server';
 import { voteMessage } from '@/db/mutations';
+import { createClient } from '@/lib/supabase/server';
 export async function POST(request: Request) {
   try {
     const { chatId, messageId, type } = await request.json();

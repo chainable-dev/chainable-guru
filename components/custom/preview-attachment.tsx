@@ -1,5 +1,6 @@
-import Image from 'next/image';
 import { FileIcon } from 'lucide-react';
+import Image from 'next/image';
+
 import type { Attachment } from 'ai';
 
 interface PreviewAttachmentProps {
@@ -14,28 +15,29 @@ export function PreviewAttachment({
   onRemove
 }: PreviewAttachmentProps) {
   const isImage = attachment.contentType?.startsWith('image/');
+  const altText = attachment.name ?? 'File attachment';
 
   return (
     <div className="relative group">
-      <div className="relative w-20 h-20 border rounded-lg overflow-hidden bg-muted">
+      <div className="relative size-20 border rounded-lg overflow-hidden bg-muted">
         {isImage ? (
           <Image
             src={attachment.url}
-            alt={attachment.name}
+            alt={altText}
+            width={80}
+            height={80}
             className="object-cover"
-            fill
-            sizes="80px"
             priority
           />
         ) : (
           <div className="flex items-center justify-center h-full">
-            <FileIcon className="w-8 h-8 text-muted-foreground" />
+            <FileIcon className="size-8 text-muted-foreground" />
           </div>
         )}
         
         {isUploading && (
           <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            <div className="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         )}
       </div>
@@ -44,7 +46,7 @@ export function PreviewAttachment({
         <button
           onClick={() => onRemove(attachment.url)}
           className="absolute -top-2 -right-2 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
-          aria-label={`Remove ${attachment.name}`}
+          aria-label={`Remove ${altText}`}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -64,7 +66,7 @@ export function PreviewAttachment({
       )}
 
       <div className="mt-1 text-xs text-muted-foreground truncate text-center">
-        {attachment.name}
+        {altText}
       </div>
     </div>
   );

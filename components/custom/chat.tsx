@@ -1,9 +1,9 @@
 'use client';
 
-import { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
 import { AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { KeyboardIcon } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useWindowSize } from 'usehooks-ts';
 
@@ -17,6 +17,10 @@ import { Block, UIBlock } from './block';
 import { BlockStreamHandler } from './block-stream-handler';
 import { MultimodalInput } from './multimodal-input';
 import { Overview } from './overview';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+
+
+import type { Attachment, Message } from 'ai';
 
 type Vote = Database['public']['Tables']['votes']['Row'];
 
@@ -78,6 +82,23 @@ export function Chat({
 
   console.log(messages);
 
+  // Add keyboard navigation
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + / to focus input
+      if ((e.metaKey || e.ctrlKey) && e.key === '/') {
+        e.preventDefault();
+        const input = document.querySelector('textarea');
+        if (input) {
+          (input as HTMLTextAreaElement).focus();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
   return (
     <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
@@ -115,7 +136,13 @@ export function Chat({
             className="shrink-0 min-w-[24px] min-h-[24px]"
           />
         </div>
-        <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
+        <form 
+          className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit(e);
+          }}
+        >
           <MultimodalInput
             chatId={id}
             input={input}
@@ -154,6 +181,23 @@ export function Chat({
       </AnimatePresence>
 
       <BlockStreamHandler streamingData={streamingData} setBlock={setBlock} />
+
+      <div className="fixed bottom-4 right-4 opacity-50 hover:opacity-100 transition-opacity">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button className="p-2 rounded-full bg-muted">
+              <KeyboardIcon className="size-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="text-sm">
+              <p>⌘ / to focus input</p>
+              <p>⌘ K to clear chat</p>
+              <p>ESC to stop generation</p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </div>
     </>
   );
 }
