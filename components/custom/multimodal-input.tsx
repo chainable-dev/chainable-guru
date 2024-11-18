@@ -15,6 +15,7 @@ import React, {
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
+import { X } from 'lucide-react';
 
 import { createClient } from '@/lib/supabase/client';
 import { sanitizeUIMessages } from '@/lib/utils';
@@ -130,142 +131,78 @@ export function MultimodalInput({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadQueue, setUploadQueue] = useState<string[]>([]);
 
-  const submitForm = useCallback(() => {
-    if (chatId) {
-      // Normal flow with database
-      handleSubmit(undefined, {
+  const submitForm = useCallback(async () => {
+    if (!input && attachments.length === 0) return;
+
+    // Create message content that includes both text and attachments
+    const messageContent = {
+      text: input,
+      attachments: attachments.map(att => ({
+        url: att.url,
+        name: att.name,
+        type: att.contentType,
+      }))
+    };
+
+    try {
+      await append({
+        role: 'user',
+        content: JSON.stringify(messageContent), // Store as JSON string
+      }, {
         experimental_attachments: attachments,
       });
-    } else {
-      // Create new chat with temp attachments
-      createNewChat({
-        message: input,
-        attachments: attachments,
-      });
-    }
 
-    setAttachments([]);
-    setLocalStorageInput('');
-  }, [chatId, attachments, input]);
-
-  const createNewChat = async ({
-    message,
-    attachments
-  }: {
-    message: string,
-    attachments: Array<Attachment | TempAttachment>
-  }) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const sessionId = session?.user?.id;
-
-      if (!sessionId) {
-        throw new Error('No session found');
-      }
-
-      const response = await fetch('/api/chat/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message,
-          attachments,
-          sessionId
-        })
-      });
-
-      if (response.ok) {
-        const { chatId } = await response.json();
-        window.history.pushState({}, '', `/chat/${chatId}`);
-      }
+      // Clear input and attachments after successful send
+      setInput('');
+      setAttachments([]);
+      setLocalStorageInput('');
     } catch (error) {
-      toast.error('Failed to create chat');
+      console.error('Error sending message:', error);
+      toast.error('Failed to send message');
     }
-  };
-
-  const uploadFile = async (file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('chatId', chatId);
-
-    try {
-      const response = await fetch('/api/files/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        return {
-          name: file.name,
-          url: data.url,
-          contentType: file.type,
-          path: data.path
-        };
-      } else {
-        const { error } = await response.json();
-        throw new Error(error);
-      }
-    } catch (error) {
-      console.error('Upload failed:', error);
-      toast.error('Failed to upload file');
-      throw error;
-    }
-  };
-
-  const saveFilePathToDatabase = async (chatId: string, filePath: string) => {
-    try {
-      const response = await fetch(`/api/files/save`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ chatId, filePath }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to save file path to database');
-      }
-    } catch (error) {
-      console.error('Error saving file path:', error);
-      toast.error('Failed to save file path to database');
-    }
-  };
+  }, [input, attachments, append, setInput, setLocalStorageInput]);
 
   const handleFileChange = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
-    if (!chatId) {
-      toast.error('Please start a chat before uploading files');
-      return;
-    }
-
     const files = Array.from(event.target.files || []);
     setUploadQueue(files.map(file => file.name));
 
     try {
-      const uploadPromises = files.map(file => uploadFile(file));
-      const uploadedAttachments = await Promise.all(uploadPromises);
-      
-      const successfulAttachments = uploadedAttachments.filter((attachment): attachment is NonNullable<typeof attachment> => 
-        attachment !== undefined && attachment.contentType !== undefined
-      );
+      const uploadPromises = files.map(async (file) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('chatId', chatId);
 
-      setAttachments(current => [...current, ...successfulAttachments]);
-      
-      if (successfulAttachments.length > 0) {
-        toast.success('Files uploaded successfully');
-      }
+        const response = await fetch('/api/files/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Upload failed');
+        }
+
+        const data = await response.json();
+        return {
+          url: data.url,
+          name: file.name,
+          contentType: file.type,
+          path: data.path
+        };
+      });
+
+      const uploadedFiles = await Promise.all(uploadPromises);
+      setAttachments(current => [...current, ...uploadedFiles]);
+      toast.success('Files uploaded successfully');
     } catch (error) {
       console.error('Error uploading files:', error);
       toast.error('Failed to upload one or more files');
     } finally {
       setUploadQueue([]);
       if (fileInputRef.current) {
-        fileInputRef.current.value = ''; // Reset file input
+        fileInputRef.current.value = '';
       }
     }
-  }, [chatId, setAttachments]);
+  }, [chatId]);
 
   const removeAttachment = (url: string) => {
     setAttachments((currentAttachments) =>
@@ -322,23 +259,34 @@ export function MultimodalInput({
       {(attachments.length > 0 || uploadQueue.length > 0) && (
         <div className="flex flex-row gap-4 overflow-x-auto pb-2">
           {attachments.map((attachment) => (
-            <PreviewAttachment
-              key={attachment.url}
-              attachment={attachment}
-              onRemove={removeAttachment}
-            />
+            <div key={attachment.url} className="relative group">
+              <PreviewAttachment
+                attachment={attachment}
+                onRemove={removeAttachment}
+              />
+              <button
+                onClick={() => removeAttachment(attachment.url)}
+                className="absolute -top-2 -right-2 p-1 rounded-full bg-background border shadow-sm 
+                          hover:bg-destructive hover:text-destructive-foreground
+                          transition-colors"
+                aria-label="Remove attachment"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
           ))}
           
           {uploadQueue.map((filename) => (
-            <PreviewAttachment
-              key={filename}
-              attachment={{
-                url: '',
-                name: filename,
-                contentType: '',
-              }}
-              isUploading={true}
-            />
+            <div key={filename} className="relative">
+              <PreviewAttachment
+                attachment={{
+                  url: '',
+                  name: filename,
+                  contentType: '',
+                }}
+                isUploading={true}
+              />
+            </div>
           ))}
         </div>
       )}

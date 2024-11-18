@@ -4,6 +4,8 @@ import { Message } from 'ai';
 import cx from 'classnames';
 import { motion } from 'framer-motion';
 import { Dispatch, SetStateAction } from 'react';
+import Image from 'next/image';
+import { FileIcon } from 'lucide-react';
 
 import { Vote } from '@/lib/supabase/types';
 
@@ -30,6 +32,41 @@ export const PreviewMessage = ({
   vote: Vote | undefined;
   isLoading: boolean;
 }) => {
+  const renderContent = () => {
+    try {
+      const content = JSON.parse(message.content);
+      return (
+        <div className="space-y-2">
+          {content.text && <p className="whitespace-pre-wrap">{content.text}</p>}
+          {content.attachments && content.attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {content.attachments.map((att: any, index: number) => (
+                <div key={index}>
+                  {att.type.startsWith('image/') ? (
+                    <Image
+                      src={att.url}
+                      alt={att.name}
+                      width={200}
+                      height={200}
+                      className="rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2 p-2 border rounded-lg">
+                      <FileIcon className="h-4 w-4" />
+                      <span className="text-sm">{att.name}</span>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    } catch {
+      return <p className="whitespace-pre-wrap">{message.content}</p>;
+    }
+  };
+
   return (
     <motion.div
       className="w-full mx-auto max-w-3xl px-4 group/message"
@@ -49,8 +86,8 @@ export const PreviewMessage = ({
         )}
 
         <div className="flex flex-col gap-2 w-full">
-          <div className="prose dark:prose-invert group-data-[role=user]/message:text-primary-foreground">
-            <Markdown>{message.content}</Markdown>
+          <div className="prose dark:prose-invert max-w-none">
+            {renderContent()}
           </div>
 
           {message.toolInvocations && message.toolInvocations.length > 0 && (
@@ -115,17 +152,6 @@ export const PreviewMessage = ({
                   );
                 }
               })}
-            </div>
-          )}
-
-          {message.experimental_attachments && (
-            <div className="flex flex-row gap-2">
-              {message.experimental_attachments.map((attachment) => (
-                <PreviewAttachment
-                  key={attachment.url}
-                  attachment={attachment}
-                />
-              ))}
             </div>
           )}
 
