@@ -83,7 +83,7 @@ export function MultimodalInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
   const params = useParams();
-  const chatId = params?.chatId as string;
+  const chatId = params?.id as string;
   const supabase = createClient();
   
   const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -128,7 +128,7 @@ export function MultimodalInput({
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
+  const [uploadQueue, setUploadQueue] = useState<string[]>([]);
 
   const submitForm = useCallback(() => {
     if (chatId) {
@@ -187,36 +187,31 @@ export function MultimodalInput({
   const uploadFile = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    if (chatId) {
-      formData.append('chatId', chatId);
-    }
+    formData.append('chatId', chatId);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        throw new Error('No session found');
-      }
-
       const response = await fetch('/api/files/upload', {
         method: 'POST',
         body: formData,
       });
 
       if (response.ok) {
-        const attachment = await response.json();
+        const data = await response.json();
         
-        if (chatId) {
-          await saveFilePathToDatabase(chatId, attachment.path);
-        }
-        
-        return attachment;
+        return {
+          name: file.name,
+          url: data.url,
+          contentType: file.type,
+          path: data.path
+        };
       } else {
         const { error } = await response.json();
         throw new Error(error);
       }
     } catch (error) {
       console.error('Upload failed:', error);
-      toast.error('Failed to upload file, please try again!');
+      toast.error('Failed to upload file');
+      throw error;
     }
   };
 
@@ -239,32 +234,38 @@ export function MultimodalInput({
     }
   };
 
-  const handleFileChange = useCallback(
-    async (event: ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(event.target.files || []);
-      setUploadQueue(files.map((file) => file.name));
+  const handleFileChange = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
+    if (!chatId) {
+      toast.error('Please start a chat before uploading files');
+      return;
+    }
 
-      try {
-        const uploadPromises = files.map((file) => uploadFile(file));
-        const uploadedAttachments = await Promise.all(uploadPromises);
-        const successfullyUploadedAttachments = uploadedAttachments.filter(
-          (attachment): attachment is NonNullable<typeof attachment> =>
-            attachment !== undefined
-        );
+    const files = Array.from(event.target.files || []);
+    setUploadQueue(files.map(file => file.name));
 
-        setAttachments((currentAttachments) => [
-          ...currentAttachments,
-          ...successfullyUploadedAttachments,
-        ]);
-      } catch (error) {
-        console.error('Error uploading files:', error);
-        toast.error('Failed to upload one or more files. Please try again.');
-      } finally {
-        setUploadQueue([]);
+    try {
+      const uploadPromises = files.map(file => uploadFile(file));
+      const uploadedAttachments = await Promise.all(uploadPromises);
+      
+      const successfulAttachments = uploadedAttachments.filter((attachment): attachment is NonNullable<typeof attachment> => 
+        attachment !== undefined && attachment.contentType !== undefined
+      );
+
+      setAttachments(current => [...current, ...successfulAttachments]);
+      
+      if (successfulAttachments.length > 0) {
+        toast.success('Files uploaded successfully');
       }
-    },
-    [setAttachments]
-  );
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      toast.error('Failed to upload one or more files');
+    } finally {
+      setUploadQueue([]);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''; // Reset file input
+      }
+    }
+  }, [chatId, setAttachments]);
 
   const removeAttachment = (url: string) => {
     setAttachments((currentAttachments) =>
@@ -319,20 +320,15 @@ export function MultimodalInput({
       />
 
       {(attachments.length > 0 || uploadQueue.length > 0) && (
-        <div className="flex flex-row gap-2 overflow-x-scroll items-end">
+        <div className="flex flex-row gap-4 overflow-x-auto pb-2">
           {attachments.map((attachment) => (
-            <div key={attachment.url} className="relative">
-              <PreviewAttachment attachment={attachment} />
-              <button
-                aria-label={`Remove ${attachment.name}`}
-                onClick={() => removeAttachment(attachment.url)}
-                className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
-              >
-                X
-              </button>
-            </div>
+            <PreviewAttachment
+              key={attachment.url}
+              attachment={attachment}
+              onRemove={removeAttachment}
+            />
           ))}
-
+          
           {uploadQueue.map((filename) => (
             <PreviewAttachment
               key={filename}

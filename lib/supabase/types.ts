@@ -77,31 +77,30 @@ export type Database = {
       };
       file_uploads: {
         Row: {
-          bucket_id: string;
-          chat_id: string;
-          content_type: string;
-          created_at: string;
-          filename: string;
           id: string;
-          original_name: string;
-          size: number;
-          storage_path: string;
-          url: string;
           user_id: string;
+          chat_id: string | null;
+          bucket_id: string;
+          storage_path: string;
+          filename: string;
+          original_name: string;
+          content_type: string;
+          size: number;
+          url: string;
           version: number;
+          created_at: string;
+          updated_at: string;
         };
         Insert: {
-          bucket_id?: string;
-          chat_id: string;
-          content_type: string;
-          created_at?: string;
-          filename: string;
-          id?: string;
-          original_name: string;
-          size: number;
-          storage_path: string;
-          url: string;
           user_id: string;
+          chat_id?: string | null;
+          bucket_id: string;
+          storage_path: string;
+          filename: string;
+          original_name: string;
+          content_type: string;
+          size: number;
+          url: string;
           version?: number;
         };
         Update: {

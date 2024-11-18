@@ -1,43 +1,71 @@
-import { Attachment } from 'ai';
+import Image from 'next/image';
+import { FileIcon } from 'lucide-react';
+import type { Attachment } from 'ai';
 
-import { LoaderIcon } from './icons';
-
-export const PreviewAttachment = ({
-  attachment,
-  isUploading = false,
-}: {
+interface PreviewAttachmentProps {
   attachment: Attachment;
   isUploading?: boolean;
-}) => {
-  const { name, url, contentType } = attachment;
+  onRemove?: (url: string) => void;
+}
+
+export function PreviewAttachment({ 
+  attachment, 
+  isUploading = false,
+  onRemove
+}: PreviewAttachmentProps) {
+  const isImage = attachment.contentType?.startsWith('image/');
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="w-20 aspect-video bg-muted rounded-md relative flex flex-col items-center justify-center">
-        {contentType ? (
-          contentType.startsWith('image') ? (
-            // NOTE: it is recommended to use next/image for images
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={url}
-              src={url}
-              alt={name ?? 'An image attachment'}
-              className="rounded-md size-full object-cover"
-            />
-          ) : (
-            <div className=""></div>
-          )
+    <div className="relative group">
+      <div className="relative w-20 h-20 border rounded-lg overflow-hidden bg-muted">
+        {isImage ? (
+          <Image
+            src={attachment.url}
+            alt={attachment.name}
+            className="object-cover"
+            fill
+            sizes="80px"
+            priority
+          />
         ) : (
-          <div className=""></div>
+          <div className="flex items-center justify-center h-full">
+            <FileIcon className="w-8 h-8 text-muted-foreground" />
+          </div>
         )}
-
+        
         {isUploading && (
-          <div className="animate-spin absolute text-zinc-500">
-            <LoaderIcon />
+          <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         )}
       </div>
-      <div className="text-xs text-zinc-500 max-w-16 truncate">{name}</div>
+
+      {onRemove && (
+        <button
+          onClick={() => onRemove(attachment.url)}
+          className="absolute -top-2 -right-2 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+          aria-label={`Remove ${attachment.name}`}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M18 6 6 18" />
+            <path d="m6 6 12 12" />
+          </svg>
+        </button>
+      )}
+
+      <div className="mt-1 text-xs text-muted-foreground truncate text-center">
+        {attachment.name}
+      </div>
     </div>
   );
-};
+}
