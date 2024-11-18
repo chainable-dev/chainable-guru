@@ -141,7 +141,7 @@ export async function POST(request: Request) {
 
     if (!chat) {
       const title = await generateTitleFromUserMessage({
-        message: userMessage,
+        message: userMessage as unknown as { role: 'user'; content: string },
       });
       await saveChat({ id, userId: user.id, title });
     } else if (chat.user_id !== user.id) {
