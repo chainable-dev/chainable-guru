@@ -3,6 +3,7 @@
 import { Attachment, ChatRequestOptions, CreateMessage, Message } from 'ai';
 import cx from 'classnames';
 import { motion } from 'framer-motion';
+import { useParams } from 'next/navigation';
 import React, {
   useRef,
   useEffect,
@@ -15,12 +16,15 @@ import React, {
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
 
+import { createClient } from '@/lib/supabase/client';
 import { sanitizeUIMessages } from '@/lib/utils';
 
 import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
+
+import type { Attachment as SupabaseAttachment } from '@/types/supabase';
 
 const suggestedActions = [
   {
@@ -35,8 +39,15 @@ const suggestedActions = [
   },
 ];
 
+// Add type for temp attachments
+type TempAttachment = {
+  url: string;
+  name: string;
+  contentType: string;
+  path?: string;
+};
+
 export function MultimodalInput({
-  chatId,
   input,
   setInput,
   isLoading,
@@ -49,7 +60,6 @@ export function MultimodalInput({
   handleSubmit,
   className,
 }: {
-  chatId: string;
   input: string;
   setInput: (value: string) => void;
   isLoading: boolean;
@@ -72,6 +82,11 @@ export function MultimodalInput({
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
+  const params = useParams();
+  const chatId = params?.chatId as string;
+  const supabase = createClient();
+  
+  const [uploadProgress, setUploadProgress] = useState<number>(0);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -116,50 +131,88 @@ export function MultimodalInput({
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
 
   const submitForm = useCallback(() => {
-    window.history.replaceState({}, '', `/chat/${chatId}`);
-
-    handleSubmit(undefined, {
-      experimental_attachments: attachments,
-    });
+    if (chatId) {
+      // Normal flow with database
+      handleSubmit(undefined, {
+        experimental_attachments: attachments,
+      });
+    } else {
+      // Create new chat with temp attachments
+      createNewChat({
+        message: input,
+        attachments: attachments,
+      });
+    }
 
     setAttachments([]);
     setLocalStorageInput('');
+  }, [chatId, attachments, input]);
 
-    if (width && width > 768) {
-      textareaRef.current?.focus();
+  const createNewChat = async ({
+    message,
+    attachments
+  }: {
+    message: string,
+    attachments: Array<Attachment | TempAttachment>
+  }) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const sessionId = session?.user?.id;
+
+      if (!sessionId) {
+        throw new Error('No session found');
+      }
+
+      const response = await fetch('/api/chat/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message,
+          attachments,
+          sessionId
+        })
+      });
+
+      if (response.ok) {
+        const { chatId } = await response.json();
+        window.history.pushState({}, '', `/chat/${chatId}`);
+      }
+    } catch (error) {
+      toast.error('Failed to create chat');
     }
-  }, [
-    attachments,
-    handleSubmit,
-    setAttachments,
-    setLocalStorageInput,
-    width,
-    chatId,
-  ]);
+  };
 
-  const uploadFile = async (file: File, chatId: string) => {
+  const uploadFile = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('chatId', chatId);
+    if (chatId) {
+      formData.append('chatId', chatId);
+    }
 
     try {
-      const response = await fetch(`/api/files/upload`, {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error('No session found');
+      }
+
+      const response = await fetch('/api/files/upload', {
         method: 'POST',
         body: formData,
       });
 
       if (response.ok) {
-        const data = await response.json();
-        await saveFilePathToDatabase(chatId, data.path);
-        return {
-          url: data.url,
-          name: data.path,
-          contentType: file.type,
-        };
+        const attachment = await response.json();
+        
+        if (chatId) {
+          await saveFilePathToDatabase(chatId, attachment.path);
+        }
+        
+        return attachment;
       } else {
-        const { error, details } = await response.json();
-        console.error('Upload error:', { error, details });
-        toast.error(error);
+        const { error } = await response.json();
+        throw new Error(error);
       }
     } catch (error) {
       console.error('Upload failed:', error);
@@ -192,7 +245,7 @@ export function MultimodalInput({
       setUploadQueue(files.map((file) => file.name));
 
       try {
-        const uploadPromises = files.map((file) => uploadFile(file, chatId));
+        const uploadPromises = files.map((file) => uploadFile(file));
         const uploadedAttachments = await Promise.all(uploadPromises);
         const successfullyUploadedAttachments = uploadedAttachments.filter(
           (attachment): attachment is NonNullable<typeof attachment> =>
@@ -210,7 +263,7 @@ export function MultimodalInput({
         setUploadQueue([]);
       }
     },
-    [setAttachments, chatId]
+    [setAttachments]
   );
 
   const removeAttachment = (url: string) => {
