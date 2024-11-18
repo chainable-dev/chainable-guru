@@ -189,7 +189,6 @@ export function MultimodalInput({
   const handleFileChange = useCallback(
     async (event: ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(event.target.files || []);
-
       setUploadQueue(files.map((file) => file.name));
 
       try {
@@ -206,13 +205,19 @@ export function MultimodalInput({
         ]);
       } catch (error) {
         console.error('Error uploading files:', error);
-        toast.error('Failed to upload one or more files');
+        toast.error('Failed to upload one or more files. Please try again.');
       } finally {
         setUploadQueue([]);
       }
     },
     [setAttachments, chatId]
   );
+
+  const removeAttachment = (url: string) => {
+    setAttachments((currentAttachments) =>
+      currentAttachments.filter((attachment) => attachment.url !== url)
+    );
+  };
 
   return (
     <div className="relative w-full flex flex-col gap-4">
@@ -263,7 +268,16 @@ export function MultimodalInput({
       {(attachments.length > 0 || uploadQueue.length > 0) && (
         <div className="flex flex-row gap-2 overflow-x-scroll items-end">
           {attachments.map((attachment) => (
-            <PreviewAttachment key={attachment.url} attachment={attachment} />
+            <div key={attachment.url} className="relative">
+              <PreviewAttachment attachment={attachment} />
+              <button
+                aria-label={`Remove ${attachment.name}`}
+                onClick={() => removeAttachment(attachment.url)}
+                className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1"
+              >
+                X
+              </button>
+            </div>
           ))}
 
           {uploadQueue.map((filename) => (
