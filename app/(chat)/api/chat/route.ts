@@ -190,14 +190,28 @@ const getWalletBalance = {
   }
 };
 
-// Add proper type for tool parameters
-interface ToolParameters {
-  latitude: number;
-  longitude: number;
+// Add interfaces for tool parameters
+interface CreateDocumentParams {
   title: string;
+}
+
+interface UpdateDocumentParams {
   id: string;
   description: string;
+}
+
+interface RequestSuggestionsParams {
   documentId: string;
+}
+
+interface WeatherParams {
+  latitude: number;
+  longitude: number;
+}
+
+interface WalletBalanceParams {
+  address: string;
+  chainId: number;
 }
 
 // Update the tools object with proper typing
@@ -208,7 +222,7 @@ const tools = {
       latitude: z.number(),
       longitude: z.number(),
     }),
-    execute: async ({ latitude, longitude }: Pick<ToolParameters, 'latitude' | 'longitude'>) => {
+    execute: async ({ latitude, longitude }: WeatherParams) => {
       const response = await fetch(
         `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&hourly=temperature_2m&daily=sunrise,sunset&timezone=auto`
       );
@@ -222,18 +236,19 @@ const tools = {
     parameters: z.object({
       title: z.string(),
     }),
-    execute: async ({ title }) => {
+    execute: async ({ title }: CreateDocumentParams) => {
       const id = generateUUID();
       let draftText: string = '';
+      const data = new StreamData();
 
       // Stream UI updates immediately for better UX
-      streamingData.append({ type: 'id', content: id });
-      streamingData.append({ type: 'title', content: title });
-      streamingData.append({ type: 'clear', content: '' });
+      data.append({ type: 'id', content: id });
+      data.append({ type: 'title', content: title });
+      data.append({ type: 'clear', content: '' });
 
       // Generate content
       const { fullStream } = await streamText({
-        model: customModel(model.apiIdentifier),
+        model: customModel(modelId),
         system:
           'Write about the given topic. Markdown is supported. Use headings wherever appropriate.',
         prompt: title,
@@ -245,65 +260,22 @@ const tools = {
         if (type === 'text-delta') {
           draftText += delta.textDelta;
           // Stream content updates in real-time
-          streamingData.append({
+          data.append({
             type: 'text-delta',
             content: delta.textDelta,
           });
         }
       }
 
-      // Try to save with retries
-      // let attempts = 0;
-      // const maxAttempts = 3;
-      // let savedId: string | null = null;
+      data.append({ type: 'finish', content: '' });
 
-      // while (attempts < maxAttempts && !savedId) {
-      //   try {
-      //     await saveDocument({
-      //       id,
-      //       title,
-      //       content: draftText,
-      //       userId: user.id,
-      //     });
-      //     savedId = id;
-      //     break;
-      //   } catch (error) {
-      //     attempts++;
-      //     if (attempts === maxAttempts) {
-      //       // If original ID fails, try with a new ID
-      //       const newId = generateUUID();
-      //       try {
-      //         await saveDocument({
-      //           id: newId,
-      //           title,
-      //           content: draftText,
-      //           userId: user.id,
-      //         });
-      //         // Update the ID in the UI
-      //         streamingData.append({ type: 'id', content: newId });
-      //         savedId = newId;
-      //       } catch (finalError) {
-      //         console.error('Final attempt failed:', finalError);
-      //         return {
-      //           error:
-      //             'Failed to create document after multiple attempts',
-      //         };
-      //       }
-      //     }
-      //     await new Promise((resolve) =>
-      //       setTimeout(resolve, 100 * attempts)
-      //     );
-      //   }
-      // }
-
-      streamingData.append({ type: 'finish', content: '' });
-
-      if (user && user.id) {
+      const currentUser = await getUser();
+      if (currentUser?.id) {
         await saveDocument({
           id,
           title,
           content: draftText,
-          userId: user.id,
+          userId: currentUser.id,
         });
       }
 
@@ -318,12 +290,11 @@ const tools = {
     description: 'Update a document with the given description',
     parameters: z.object({
       id: z.string().describe('The ID of the document to update'),
-      description: z
-        .string()
-        .describe('The description of changes that need to be made'),
+      description: z.string().describe('The description of changes that need to be made'),
     }),
-    execute: async ({ id, description }) => {
+    execute: async ({ id, description }: UpdateDocumentParams) => {
       const document = await getDocumentById(id);
+      const data = new StreamData();
 
       if (!document) {
         return {
@@ -334,13 +305,13 @@ const tools = {
       const { content: currentContent } = document;
       let draftText: string = '';
 
-      streamingData.append({
+      data.append({
         type: 'clear',
         content: document.title,
       });
 
       const { fullStream } = await streamText({
-        model: customModel(model.apiIdentifier),
+        model: customModel(modelId),
         system:
           'You are a helpful writing assistant. Based on the description, please update the piece of writing.',
         experimental_providerMetadata: {
@@ -365,23 +336,23 @@ const tools = {
 
         if (type === 'text-delta') {
           const { textDelta } = delta;
-
           draftText += textDelta;
-          streamingData.append({
+          data.append({
             type: 'text-delta',
             content: textDelta,
           });
         }
       }
 
-      streamingData.append({ type: 'finish', content: '' });
+      data.append({ type: 'finish', content: '' });
 
-      if (user && user.id) {
+      const currentUser = await getUser();
+      if (currentUser?.id) {
         await saveDocument({
           id,
           title: document.title,
           content: draftText,
-          userId: user.id,
+          userId: currentUser.id,
         });
       }
 
@@ -395,12 +366,11 @@ const tools = {
   requestSuggestions: {
     description: 'Request suggestions for a document',
     parameters: z.object({
-      documentId: z
-        .string()
-        .describe('The ID of the document to request edits'),
+      documentId: z.string().describe('The ID of the document to request edits'),
     }),
-    execute: async ({ documentId }) => {
+    execute: async ({ documentId }: RequestSuggestionsParams) => {
       const document = await getDocumentById(documentId);
+      const data = new StreamData();
 
       if (!document || !document.content) {
         return {
@@ -418,19 +388,15 @@ const tools = {
       }> = [];
 
       const { elementStream } = await streamObject({
-        model: customModel(model.apiIdentifier),
+        model: customModel(modelId),
         system:
           'You are a help writing assistant. Given a piece of writing, please offer suggestions to improve the piece of writing and describe the change. It is very important for the edits to contain full sentences instead of just words. Max 5 suggestions.',
         prompt: document.content,
         output: 'array',
         schema: z.object({
           originalSentence: z.string().describe('The original sentence'),
-          suggestedSentence: z
-            .string()
-            .describe('The suggested sentence'),
-          description: z
-            .string()
-            .describe('The description of the suggestion'),
+          suggestedSentence: z.string().describe('The suggested sentence'),
+          description: z.string().describe('The description of the suggestion'),
         }),
       });
 
@@ -444,7 +410,7 @@ const tools = {
           isResolved: false,
         };
 
-        streamingData.append({
+        data.append({
           type: 'suggestion',
           content: suggestion,
         });
@@ -452,31 +418,17 @@ const tools = {
         suggestions.push(suggestion);
       }
 
-      if (user && user.id) {
-        const userId = user.id;
-
+      const currentUser = await getUser();
+      if (currentUser?.id) {
         await saveSuggestions({
           suggestions: suggestions.map((suggestion) => ({
             ...suggestion,
-            userId,
+            userId: currentUser.id,
             createdAt: new Date(),
             documentCreatedAt: document.created_at,
           })),
         });
       }
-
-      // if (user && user.id) {
-      //   for (const suggestion of suggestions) {
-      //     await saveSuggestions({
-      //       documentId: suggestion.documentId,
-      //       documentCreatedAt: document.created_at,
-      //       originalText: suggestion.originalText,
-      //       suggestedText: suggestion.suggestedText,
-      //       description: suggestion.description,
-      //       userId: user.id,
-      //     });
-      //   }
-      // }
 
       return {
         id: documentId,
