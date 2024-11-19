@@ -14,7 +14,7 @@ import React, {
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
-import { useAccount, useNetwork } from 'wagmi';
+import { useAccount, useChainId } from 'wagmi';
 
 import { createClient } from '@/lib/supabase/client';
 import { sanitizeUIMessages } from '@/lib/utils';
@@ -41,9 +41,9 @@ const suggestedActions = [
   },
   //balance of my connected crypto wallet
   { 
-    title: 'What is the balance of my connected crypto wallet?',
+    title: 'What is the balance of my  crypto wallet?',
     label: '',
-    action: 'What is the balance of my connected crypto wallet?',
+    action: 'Using the information from my connected crypto wallet, what is the balance of my wallet?',
   },
 ];
 
@@ -95,7 +95,7 @@ export function MultimodalInput({
   const { width } = useWindowSize();
   const supabase = createClient();
   const { address } = useAccount();
-  const { chain } = useNetwork();
+  const chainId = useChainId();
   
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
@@ -183,8 +183,10 @@ export function MultimodalInput({
         type: att.contentType,
       })),
       walletAddress: address,
-      chainId: chain?.id,
-      network: chain?.network
+      chainId: chainId,
+      network: chainId === 8453 ? 'base-mainnet' : 
+               chainId === 84532 ? 'base-sepolia' : 
+               'unknown'
     };
 
     try {
@@ -203,7 +205,7 @@ export function MultimodalInput({
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
     }
-  }, [input, attachments, append, setInput, setLocalStorageInput, address, chain]);
+  }, [input, attachments, append, setInput, setLocalStorageInput, address, chainId]);
 
   const handleFileChange = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);

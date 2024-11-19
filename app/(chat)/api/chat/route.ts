@@ -135,32 +135,34 @@ const getWalletBalance = {
   description: 'Get the balance of the connected wallet',
   parameters: z.object({
     address: z.string().describe('The wallet address to check'),
-    network: z.string().optional().describe('The network to check'),
-    chainId: z.number().optional().describe('The chain ID')
+    chainId: z.number().describe('The chain ID of the connected wallet')
   }),
-  execute: async ({ address, network, chainId }: { 
-    address: string; 
-    network?: string;
-    chainId?: number;
+  execute: async ({ address, chainId }: { 
+    address: string;
+    chainId: number;
   }) => {
     try {
-      // Determine the RPC URL based on chainId or network
+      // Get RPC URL based on chainId
       let rpcUrl: string;
+      let networkName: string;
       
-      // Handle Base networks
-      if (chainId === 8453) {
-        rpcUrl = 'https://mainnet.base.org';
-      } else if (chainId === 84532) {
-        rpcUrl = 'https://sepolia.base.org';
-      } else {
-        // Default to Base Sepolia if chain is not recognized
-        rpcUrl = 'https://sepolia.base.org';
+      switch (chainId) {
+        case 8453: // Base Mainnet
+          rpcUrl = 'https://mainnet.base.org';
+          networkName = 'Base Mainnet';
+          break;
+        case 84532: // Base Sepolia
+          rpcUrl = 'https://sepolia.base.org';
+          networkName = 'Base Sepolia';
+          break;
+        default:
+          throw new Error(`Unsupported chain ID: ${chainId}. Please connect to Base Mainnet or Base Sepolia.`);
       }
 
       const provider = new ethers.JsonRpcProvider(rpcUrl);
       const balance = await provider.getBalance(address);
       
-      // Get USDC address based on the network
+      // Get USDC contract address based on chainId
       const usdcAddress = chainId === 8453
         ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' // Base Mainnet USDC
         : '0x036CbD53842c5426634e7929541eC2318f3dCF7e'; // Base Sepolia USDC
@@ -171,7 +173,7 @@ const getWalletBalance = {
       
       return {
         address,
-        network: network || (chainId === 8453 ? 'base-mainnet' : 'base-sepolia'),
+        network: networkName,
         chainId,
         balances: {
           eth: ethers.formatEther(balance),
@@ -514,23 +516,38 @@ export async function POST(request: Request) {
       return new Response('No user message found', { status: 400 });
     }
 
-    // Parse the message content to get wallet and chain info
+    // Parse the message content to get wallet info
     let walletInfo: WalletMessageContent = { text: '' };
     try {
       if (typeof userMessage.content === 'string') {
         walletInfo = JSON.parse(userMessage.content);
+        
+        // Validate chainId
+        if (!walletInfo.chainId || ![8453, 84532].includes(walletInfo.chainId)) {
+          return new Response(
+            JSON.stringify({ 
+              error: 'Please connect to Base Mainnet (8453) or Base Sepolia (84532)' 
+            }), 
+            { status: 400 }
+          );
+        }
       }
     } catch (e) {
       console.error('Error parsing message content:', e);
     }
 
-    // Add wallet and chain info to the context
-    const contextWithWallet = {
-      ...coreMessages,
-      walletAddress: walletInfo.walletAddress,
-      chainId: walletInfo.chainId,
-      network: walletInfo.network
-    };
+    // Create messages with wallet context
+    const messagesWithContext = coreMessages.map(msg => {
+      if (msg.role === 'user' && msg === userMessage) {
+        return {
+          ...msg,
+          content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+          walletAddress: walletInfo.walletAddress,
+          chainId: walletInfo.chainId // Make sure chainId is passed
+        };
+      }
+      return msg;
+    });
 
     try {
       const chat = await getChatById(id);
@@ -562,7 +579,7 @@ export async function POST(request: Request) {
       const result = await streamText({
         model: customModel(model.apiIdentifier),
         system: systemPrompt,
-        messages: contextWithWallet,
+        messages: messagesWithContext, // Use the updated messages array
         maxSteps: 5,
         experimental_activeTools: allTools,
         tools,
@@ -634,7 +651,7 @@ export async function POST(request: Request) {
         const result = await streamText({
           model: customModel(model.apiIdentifier),
           system: systemPrompt,
-          messages: contextWithWallet,
+          messages: messagesWithContext, // Use the updated messages array
           maxSteps: 5,
           experimental_activeTools: allTools,
           tools,
