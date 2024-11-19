@@ -14,10 +14,10 @@ import React, {
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
-import { useAccount, useChainId } from 'wagmi';
 
 import { createClient } from '@/lib/supabase/client';
 import { sanitizeUIMessages } from '@/lib/utils';
+import { useWalletState } from '@/hooks/useWalletState';
 
 import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
@@ -39,8 +39,8 @@ const suggestedActions = [
     label: 'about Silicon Valley',
     action: 'Help me draft a short essay about Silicon Valley',
   },
-  //balance of my connected crypto wallet
-  { 
+  //balance of my connected crypto wallet base chain and the wallet ath tis connected 
+  {
     title: 'What is the balance of my  crypto wallet?',
     label: '',
     action: 'Using the information from my connected crypto wallet, what is the balance of my wallet?',
@@ -94,9 +94,14 @@ export function MultimodalInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
   const supabase = createClient();
-  const { address } = useAccount();
-  const chainId = useChainId();
-  
+  const { 
+    address, 
+    isConnected, 
+    chainId, 
+    networkInfo, 
+    isCorrectNetwork 
+  } = useWalletState();
+
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
 
@@ -174,8 +179,21 @@ export function MultimodalInput({
   const submitForm = useCallback(async () => {
     if (!input && attachments.length === 0) return;
 
-    // Create message content that includes both text and attachments
-    const messageContent = {
+    const isWalletQuery = input.toLowerCase().includes('wallet') || 
+                         input.toLowerCase().includes('balance');
+
+    if (isWalletQuery) {
+      if (!isConnected) {
+        toast.error('Please connect your wallet first');
+        return;
+      }
+      if (!isCorrectNetwork) {
+        toast.error('Please switch to Base Mainnet or Base Sepolia');
+        return;
+      }
+    }
+
+    const messageContent = isWalletQuery ? {
       text: input,
       attachments: attachments.map(att => ({
         url: att.url,
@@ -183,10 +201,17 @@ export function MultimodalInput({
         type: att.contentType,
       })),
       walletAddress: address,
-      chainId: chainId,
-      network: chainId === 8453 ? 'base-mainnet' : 
-               chainId === 84532 ? 'base-sepolia' : 
-               'unknown'
+      chainId,
+      network: networkInfo?.name,
+      isWalletConnected: isConnected,
+      isCorrectNetwork
+    } : {
+      text: input,
+      attachments: attachments.map(att => ({
+        url: att.url,
+        name: att.name,
+        type: att.contentType,
+      }))
     };
 
     try {
@@ -197,7 +222,6 @@ export function MultimodalInput({
         experimental_attachments: attachments,
       });
 
-      // Clear input and attachments after successful send
       setInput('');
       setAttachments([]);
       setLocalStorageInput('');
@@ -205,7 +229,38 @@ export function MultimodalInput({
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
     }
-  }, [input, attachments, append, setInput, setLocalStorageInput, address, chainId]);
+  }, [
+    input,
+    attachments,
+    append,
+    setInput,
+    setLocalStorageInput,
+    address,
+    chainId,
+    setAttachments,
+    isConnected,
+    isCorrectNetwork,
+    networkInfo
+  ]);
+
+  const handleSuggestedAction = useCallback((action: string) => {
+    const isWalletAction = action.toLowerCase().includes('wallet') || 
+                          action.toLowerCase().includes('balance');
+    
+    if (isWalletAction) {
+      if (!isConnected) {
+        toast.error('Please connect your wallet first');
+        return;
+      }
+      if (!isCorrectNetwork) {
+        toast.error('Please switch to Base Mainnet or Base Sepolia');
+        return;
+      }
+    }
+
+    setInput(action);
+    submitForm();
+  }, [isConnected, isCorrectNetwork, setInput, submitForm]);
 
   const handleFileChange = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -299,14 +354,7 @@ export function MultimodalInput({
               >
                 <Button
                   variant="ghost"
-                  onClick={async () => {
-                    window.history.replaceState({}, '', `/chat/${chatId}`);
-
-                    append({
-                      role: 'user',
-                      content: suggestedAction.action,
-                    });
-                  }}
+                  onClick={() => handleSuggestedAction(suggestedAction.action)}
                   className="text-left border rounded-xl px-4 py-3.5 text-sm flex-1 gap-1 sm:flex-col w-full h-auto justify-start items-start"
                 >
                   <span className="font-medium">{suggestedAction.title}</span>

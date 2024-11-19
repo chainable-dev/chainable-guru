@@ -1,5 +1,3 @@
-import { ethers } from 'ethers';
-import { z } from 'zod';
 import {
   CoreMessage,
   Message,
@@ -8,6 +6,8 @@ import {
   streamObject,
   streamText,
 } from 'ai';
+import { ethers } from 'ethers';
+import { z } from 'zod';
 
 import { customModel } from '@/ai';
 import { models } from '@/ai/models';
@@ -32,12 +32,39 @@ import { generateTitleFromUserMessage } from '../../actions';
 
 export const maxDuration = 60;
 
+interface WeatherParams {
+  latitude: number;
+  longitude: number;
+}
+
+interface CreateDocumentParams {
+  title: string;
+  modelId: string;
+}
+
+interface UpdateDocumentParams {
+  id: string;
+  description: string;
+  modelId: string;
+}
+
+interface RequestSuggestionsParams {
+  documentId: string;
+  modelId: string;
+}
+
+interface WalletStateParams {
+  address?: string;
+  chainId?: number;
+}
+
 type AllowedTools =
   | 'createDocument'
   | 'updateDocument'
   | 'requestSuggestions'
   | 'getWeather'
-  | 'getWalletBalance';
+  | 'getWalletBalance'
+  | 'checkWalletState';
 
 const blocksTools: AllowedTools[] = [
   'createDocument',
@@ -47,7 +74,7 @@ const blocksTools: AllowedTools[] = [
 
 const weatherTools: AllowedTools[] = ['getWeather'];
 
-const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, 'getWalletBalance'];
+const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, 'getWalletBalance', 'checkWalletState'];
 
 async function getUser() {
   const supabase = await createClient();
@@ -123,6 +150,7 @@ interface WalletMessageContent {
   walletAddress?: string;
   chainId?: number;
   network?: string;
+  isWalletConnected?: boolean;
   attachments?: Array<{
     url: string;
     name: string;
@@ -130,91 +158,7 @@ interface WalletMessageContent {
   }>;
 }
 
-// Update the getWalletBalance tool
-const getWalletBalance = {
-  description: 'Get the balance of the connected wallet',
-  parameters: z.object({
-    address: z.string().describe('The wallet address to check'),
-    chainId: z.number().describe('The chain ID of the connected wallet')
-  }),
-  execute: async ({ address, chainId }: { 
-    address: string;
-    chainId: number;
-  }) => {
-    try {
-      // Get RPC URL based on chainId
-      let rpcUrl: string;
-      let networkName: string;
-      
-      switch (chainId) {
-        case 8453: // Base Mainnet
-          rpcUrl = 'https://mainnet.base.org';
-          networkName = 'Base Mainnet';
-          break;
-        case 84532: // Base Sepolia
-          rpcUrl = 'https://sepolia.base.org';
-          networkName = 'Base Sepolia';
-          break;
-        default:
-          throw new Error(`Unsupported chain ID: ${chainId}. Please connect to Base Mainnet or Base Sepolia.`);
-      }
-
-      const provider = new ethers.JsonRpcProvider(rpcUrl);
-      const balance = await provider.getBalance(address);
-      
-      // Get USDC contract address based on chainId
-      const usdcAddress = chainId === 8453
-        ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' // Base Mainnet USDC
-        : '0x036CbD53842c5426634e7929541eC2318f3dCF7e'; // Base Sepolia USDC
-
-      const usdcAbi = ['function balanceOf(address) view returns (uint256)'];
-      const usdcContract = new ethers.Contract(usdcAddress, usdcAbi, provider);
-      const usdcBalance = await usdcContract.balanceOf(address);
-      
-      return {
-        address,
-        network: networkName,
-        chainId,
-        balances: {
-          eth: ethers.formatEther(balance),
-          usdc: (Number(usdcBalance) / 1e6).toString()
-        }
-      };
-    } catch (error) {
-      console.error('Error fetching wallet balance:', error);
-      return {
-        error: 'Failed to fetch wallet balance',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      };
-    }
-  }
-};
-
-// Add interfaces for tool parameters
-interface CreateDocumentParams {
-  title: string;
-}
-
-interface UpdateDocumentParams {
-  id: string;
-  description: string;
-}
-
-interface RequestSuggestionsParams {
-  documentId: string;
-}
-
-interface WeatherParams {
-  latitude: number;
-  longitude: number;
-}
-
-interface WalletBalanceParams {
-  address: string;
-  chainId: number;
-}
-
-// Update the tools object with proper typing
+// Update the tools object to properly handle tool results
 const tools = {
   getWeather: {
     description: 'Get the current weather at a location',
@@ -236,22 +180,19 @@ const tools = {
     parameters: z.object({
       title: z.string(),
     }),
-    execute: async ({ title }: CreateDocumentParams) => {
+    execute: async (params: CreateDocumentParams) => {
       const id = generateUUID();
       let draftText: string = '';
       const data = new StreamData();
 
-      // Stream UI updates immediately for better UX
       data.append({ type: 'id', content: id });
-      data.append({ type: 'title', content: title });
+      data.append({ type: 'title', content: params.title });
       data.append({ type: 'clear', content: '' });
 
-      // Generate content
       const { fullStream } = await streamText({
-        model: customModel(modelId),
-        system:
-          'Write about the given topic. Markdown is supported. Use headings wherever appropriate.',
-        prompt: title,
+        model: customModel(params.modelId),
+        system: 'Write about the given topic. Markdown is supported. Use headings wherever appropriate.',
+        prompt: params.title,
       });
 
       for await (const delta of fullStream) {
@@ -273,7 +214,7 @@ const tools = {
       if (currentUser?.id) {
         await saveDocument({
           id,
-          title,
+          title: params.title,
           content: draftText,
           userId: currentUser.id,
         });
@@ -281,7 +222,7 @@ const tools = {
 
       return {
         id,
-        title,
+        title: params.title,
         content: `A document was created and is now visible to the user.`,
       };
     },
@@ -289,17 +230,15 @@ const tools = {
   updateDocument: {
     description: 'Update a document with the given description',
     parameters: z.object({
-      id: z.string().describe('The ID of the document to update'),
-      description: z.string().describe('The description of changes that need to be made'),
+      id: z.string(),
+      description: z.string(),
     }),
-    execute: async ({ id, description }: UpdateDocumentParams) => {
-      const document = await getDocumentById(id);
+    execute: async (params: UpdateDocumentParams) => {
+      const document = await getDocumentById(params.id);
       const data = new StreamData();
 
       if (!document) {
-        return {
-          error: 'Document not found',
-        };
+        return { error: 'Document not found' };
       }
 
       const { content: currentContent } = document;
@@ -311,23 +250,19 @@ const tools = {
       });
 
       const { fullStream } = await streamText({
-        model: customModel(modelId),
-        system:
-          'You are a helpful writing assistant. Based on the description, please update the piece of writing.',
+        model: customModel(params.modelId),
+        system: 'You are a helpful writing assistant. Based on the description, please update the piece of writing.',
         experimental_providerMetadata: {
           openai: {
             prediction: {
               type: 'content',
-              content: currentContent,
+              content: currentContent || '',
             },
           },
         },
         messages: [
-          {
-            role: 'user',
-            content: description,
-          },
-          { role: 'user', content: currentContent },
+          { role: 'user', content: params.description },
+          { role: 'user', content: currentContent || '' },
         ],
       });
 
@@ -349,7 +284,7 @@ const tools = {
       const currentUser = await getUser();
       if (currentUser?.id) {
         await saveDocument({
-          id,
+          id: params.id,
           title: document.title,
           content: draftText,
           userId: currentUser.id,
@@ -357,7 +292,7 @@ const tools = {
       }
 
       return {
-        id,
+        id: params.id,
         title: document.title,
         content: 'The document has been updated successfully.',
       };
@@ -366,19 +301,12 @@ const tools = {
   requestSuggestions: {
     description: 'Request suggestions for a document',
     parameters: z.object({
-      documentId: z.string().describe('The ID of the document to request edits'),
+      documentId: z.string(),
     }),
-    execute: async ({ documentId }: RequestSuggestionsParams) => {
-      const document = await getDocumentById(documentId);
+    execute: async (params: RequestSuggestionsParams) => {
+      const document = await getDocumentById(params.documentId);
       const data = new StreamData();
-
-      if (!document || !document.content) {
-        return {
-          error: 'Document not found',
-        };
-      }
-
-      let suggestions: Array<{
+      const suggestions: Array<{
         originalText: string;
         suggestedText: string;
         description: string;
@@ -387,10 +315,13 @@ const tools = {
         isResolved: boolean;
       }> = [];
 
+      if (!document || !document.content) {
+        return { error: 'Document not found' };
+      }
+
       const { elementStream } = await streamObject({
-        model: customModel(modelId),
-        system:
-          'You are a help writing assistant. Given a piece of writing, please offer suggestions to improve the piece of writing and describe the change. It is very important for the edits to contain full sentences instead of just words. Max 5 suggestions.',
+        model: customModel(params.modelId),
+        system: 'You are a help writing assistant. Given a piece of writing, please offer suggestions to improve the piece of writing and describe the change. It is very important for the edits to contain full sentences instead of just words. Max 5 suggestions.',
         prompt: document.content,
         output: 'array',
         schema: z.object({
@@ -406,7 +337,7 @@ const tools = {
           suggestedText: element.suggestedSentence,
           description: element.description,
           id: generateUUID(),
-          documentId: documentId,
+          documentId: params.documentId,
           isResolved: false,
         };
 
@@ -414,7 +345,6 @@ const tools = {
           type: 'suggestion',
           content: suggestion,
         });
-
         suggestions.push(suggestion);
       }
 
@@ -431,13 +361,133 @@ const tools = {
       }
 
       return {
-        id: documentId,
+        id: params.documentId,
         title: document.title,
         message: 'Suggestions have been added to the document',
       };
     },
   },
-  getWalletBalance
+  getWalletBalance: {
+    description: 'Get the balance of the connected wallet',
+    parameters: z.object({
+      address: z.string().describe('The wallet address to check'),
+      chainId: z.number().describe('The chain ID of the connected wallet')
+    }),
+    execute: async ({ address, chainId }: { 
+      address: string;
+      chainId: number;
+    }) => {
+      try {
+        // Validate wallet connection
+        if (!address) {
+          return {
+            type: 'tool-result',
+            result: {
+              error: 'No wallet address provided',
+              details: 'Please connect your wallet first'
+            }
+          };
+        }
+
+        // Get RPC URL based on chainId
+        let rpcUrl: string;
+        let networkName: string;
+        
+        switch (chainId) {
+          case 8453: // Base Mainnet
+            rpcUrl = 'https://mainnet.base.org';
+            networkName = 'Base Mainnet';
+            break;
+          case 84532: // Base Sepolia
+            rpcUrl = 'https://sepolia.base.org';
+            networkName = 'Base Sepolia';
+            break;
+          default:
+            return {
+              type: 'tool-result',
+              result: {
+                error: `Unsupported chain ID: ${chainId}`,
+                details: 'Please connect to Base Mainnet or Base Sepolia.'
+              }
+            };
+        }
+
+        try {
+          const provider = new ethers.JsonRpcProvider(rpcUrl);
+          await provider.getNetwork();
+          const balance = await provider.getBalance(address);
+          
+          const usdcAddress = chainId === 8453
+            ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+            : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+
+          const usdcAbi = ['function balanceOf(address) view returns (uint256)'];
+          const usdcContract = new ethers.Contract(usdcAddress, usdcAbi, provider);
+          const usdcBalance = await usdcContract.balanceOf(address);
+          
+          return {
+            type: 'tool-result',
+            result: {
+              address,
+              network: networkName,
+              chainId,
+              balances: {
+                eth: ethers.formatEther(balance),
+                usdc: (Number(usdcBalance) / 1e6).toString()
+              },
+              timestamp: new Date().toISOString()
+            }
+          };
+        } catch (providerError) {
+          console.error('Provider error:', providerError);
+          return {
+            type: 'tool-result',
+            result: {
+              error: 'Failed to connect to network',
+              details: 'Please check your network connection and try again',
+              chainId,
+              network: networkName
+            }
+          };
+        }
+      } catch (error) {
+        console.error('Error fetching wallet balance:', error);
+        return {
+          type: 'tool-result',
+          result: {
+            error: 'Failed to fetch wallet balance',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          }
+        };
+      }
+    }
+  },
+  checkWalletState: {
+    description: 'Check the current state of the connected wallet',
+    parameters: z.object({
+      address: z.string().optional().describe('The wallet address to check'),
+      chainId: z.number().optional().describe('The chain ID to check')
+    }),
+    execute: async ({ address, chainId }: WalletStateParams) => {
+      return {
+        type: 'tool-result',
+        result: {
+          isConnected: !!address,
+          address: address || null,
+          chainId: chainId || null,
+          network: chainId === 8453 ? 'Base Mainnet' : 
+                  chainId === 84532 ? 'Base Sepolia' : 
+                  'Unknown Network',
+          isSupported: chainId ? [8453, 84532].includes(chainId) : false,
+          supportedNetworks: [
+            { name: 'Base Mainnet', chainId: 8453 },
+            { name: 'Base Sepolia', chainId: 84532 }
+          ],
+          timestamp: new Date().toISOString()
+        }
+      };
+    }
+  }
 };
 
 export async function POST(request: Request) {
@@ -468,51 +518,75 @@ export async function POST(request: Request) {
       return new Response('No user message found', { status: 400 });
     }
 
-    // Parse the message content to get wallet info
+    // Parse the message content and create context
     let walletInfo: WalletMessageContent = { text: '' };
     try {
       if (typeof userMessage.content === 'string') {
-        walletInfo = JSON.parse(userMessage.content);
-        
-        // Validate chainId
-        if (!walletInfo.chainId || ![8453, 84532].includes(walletInfo.chainId)) {
-          return new Response(
-            JSON.stringify({ 
-              error: 'Please connect to Base Mainnet (8453) or Base Sepolia (84532)' 
-            }), 
-            { status: 400 }
-          );
+        try {
+          walletInfo = JSON.parse(userMessage.content);
+        } catch {
+          walletInfo = { text: userMessage.content };
         }
       }
     } catch (e) {
-      console.error('Error parsing message content:', e);
+      console.error('Error processing message content:', e);
+      walletInfo = { 
+        text: typeof userMessage.content === 'string' ? userMessage.content : '' 
+      };
     }
 
-    // Create messages with wallet context
+    // Create messages with enhanced wallet context
     const messagesWithContext = coreMessages.map(msg => {
       if (msg.role === 'user' && msg === userMessage) {
-        return {
+        const baseMessage = {
           ...msg,
-          content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
-          walletAddress: walletInfo.walletAddress,
-          chainId: walletInfo.chainId // Make sure chainId is passed
+          content: walletInfo.text || (typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content))
+        };
+
+        if (walletInfo.walletAddress && walletInfo.chainId !== undefined) {
+          return {
+            ...baseMessage,
+            walletAddress: walletInfo.walletAddress,
+            chainId: walletInfo.chainId,
+            isWalletConnected: true,
+            lastChecked: new Date().toISOString()
+          };
+        }
+
+        return {
+          ...baseMessage,
+          isWalletConnected: false,
+          lastChecked: new Date().toISOString()
         };
       }
       return msg;
     });
 
+    // Initialize streaming data
+    const streamingData = new StreamData();
+
     try {
+      // Try to get existing chat
       const chat = await getChatById(id);
 
+      // If chat doesn't exist, create it
       if (!chat) {
         const title = await generateTitleFromUserMessage({
           message: userMessage as unknown as { role: 'user'; content: string },
         });
-        await saveChat({ id, userId: user.id, title });
+        try {
+          await saveChat({ id, userId: user.id, title });
+        } catch (error) {
+          // Ignore duplicate chat error, continue with message saving
+          if (!(error instanceof Error && error.message === 'Chat ID already exists')) {
+            throw error;
+          }
+        }
       } else if (chat.user_id !== user.id) {
         return new Response('Unauthorized', { status: 401 });
       }
 
+      // Save the user message
       await saveMessages({
         chatId: id,
         messages: [
@@ -526,15 +600,28 @@ export async function POST(request: Request) {
         ],
       });
 
-      const streamingData = new StreamData();
-
+      // Process the message with AI
       const result = await streamText({
         model: customModel(model.apiIdentifier),
         system: systemPrompt,
-        messages: messagesWithContext, // Use the updated messages array
+        messages: messagesWithContext,
         maxSteps: 5,
         experimental_activeTools: allTools,
-        tools,
+        tools: {
+          ...tools,
+          createDocument: {
+            ...tools.createDocument,
+            execute: (params) => tools.createDocument.execute({ ...params, modelId: model.apiIdentifier }),
+          },
+          updateDocument: {
+            ...tools.updateDocument,
+            execute: (params) => tools.updateDocument.execute({ ...params, modelId: model.apiIdentifier }),
+          },
+          requestSuggestions: {
+            ...tools.requestSuggestions,
+            execute: (params) => tools.requestSuggestions.execute({ ...params, modelId: model.apiIdentifier }),
+          },
+        },
         onFinish: async ({ responseMessages }) => {
           if (user && user.id) {
             try {
@@ -546,13 +633,11 @@ export async function POST(request: Request) {
                 messages: responseMessagesWithoutIncompleteToolCalls.map(
                   (message) => {
                     const messageId = generateUUID();
-
                     if (message.role === 'assistant') {
                       streamingData.appendMessageAnnotation({
                         messageIdFromServer: messageId,
                       });
                     }
-
                     return {
                       id: messageId,
                       chat_id: id,
@@ -567,7 +652,6 @@ export async function POST(request: Request) {
               console.error('Failed to save chat:', error);
             }
           }
-
           streamingData.close();
         },
         experimental_telemetry: {
@@ -579,81 +663,9 @@ export async function POST(request: Request) {
       return result.toDataStreamResponse({
         data: streamingData,
       });
+
     } catch (error) {
       console.error('Error in chat route:', error);
-      
-      // Handle the duplicate chat ID case
-      if (error instanceof Error && error.message === 'Chat ID already exists') {
-        // If chat already exists, save the message and continue
-        await saveMessages({
-          chatId: id,
-          messages: [
-            {
-              id: generateUUID(),
-              chat_id: id,
-              role: userMessage.role as MessageRole,
-              content: formatMessageContent(userMessage),
-              created_at: new Date().toISOString(),
-            },
-          ],
-        });
-        
-        // Create new streaming data and continue with the chat
-        const streamingData = new StreamData();
-        const result = await streamText({
-          model: customModel(model.apiIdentifier),
-          system: systemPrompt,
-          messages: messagesWithContext, // Use the updated messages array
-          maxSteps: 5,
-          experimental_activeTools: allTools,
-          tools,
-          onFinish: async ({ responseMessages }) => {
-            if (user && user.id) {
-              try {
-                const responseMessagesWithoutIncompleteToolCalls =
-                  sanitizeResponseMessages(responseMessages);
-
-                await saveMessages({
-                  chatId: id,
-                  messages: responseMessagesWithoutIncompleteToolCalls.map(
-                    (message) => {
-                      const messageId = generateUUID();
-
-                      if (message.role === 'assistant') {
-                        streamingData.appendMessageAnnotation({
-                          messageIdFromServer: messageId,
-                        });
-                      }
-
-                      return {
-                        id: messageId,
-                        chat_id: id,
-                        role: message.role as MessageRole,
-                        content: formatMessageContent(message),
-                        created_at: new Date().toISOString(),
-                      };
-                    }
-                  ),
-                });
-              } catch (error) {
-                console.error('Failed to save chat:', error);
-              }
-            }
-
-            streamingData.close();
-          },
-          experimental_telemetry: {
-            isEnabled: true,
-            functionId: 'stream-text',
-          },
-        });
-
-        return result.toDataStreamResponse({
-          data: streamingData,
-        });
-      }
-      
-      // Handle other errors
       return new Response(
         JSON.stringify({ error: 'Internal server error' }), 
         { status: 500 }
