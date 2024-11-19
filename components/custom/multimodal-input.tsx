@@ -29,23 +29,36 @@ import type { Attachment, ChatRequestOptions, CreateMessage, Message } from 'ai'
 
 const suggestedActions = [
   {
-    title: 'What is the weather',
-    label: 'in San Francisco?',
-    action: 'What is the weather in San Francisco?',
+    title: 'Create a new document',
+    label: 'with the title "My New Document"',
+    action: 'Create a new document with the title "My New Document"',
   },
   {
-    title: 'Help me draft an essay',
-    label: 'about Silicon Valley',
-    action: 'Help me draft a short essay about Silicon Valley',
+    title: 'Update an existing document',
+    label: 'with the description "Add more details"',
+    action: 'Update the document with ID "123" with the description "Add more details"',
   },
-  //balance of my connected crypto wallet base chain and the wallet ath tis connected 
   {
-    title: 'What is the balance of my  crypto wallet?',
-    label: '',
-    action: 'Using the information from my connected crypto wallet, what is the balance of my wallet?',
+    title: 'Request suggestions for a document',
+    label: 'with ID "123"',
+    action: 'Request suggestions for the document with ID "123"',
+  },
+  {
+    title: 'Get the current weather',
+    label: 'in San Francisco',
+    action: 'Get the current weather in San Francisco',
+  },
+  {
+    title: 'Check wallet balance',
+    label: 'for my connected wallet',
+    action: 'Check the balance of my connected wallet',
+  },
+  {
+    title: 'Check wallet state',
+    label: 'for my connected wallet',
+    action: 'Check the state of my connected wallet',
   },
 ];
-
 // Add type for temp attachments
 type TempAttachment = {
   url: string;
@@ -94,12 +107,12 @@ export function MultimodalInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
   const supabase = createClient();
-  const { 
-    address, 
-    isConnected, 
-    chainId, 
-    networkInfo, 
-    isCorrectNetwork 
+  const {
+    address,
+    isConnected,
+    chainId,
+    networkInfo,
+    isCorrectNetwork
   } = useWalletState();
 
   const [uploadProgress, setUploadProgress] = useState<number>(0);
@@ -179,7 +192,7 @@ export function MultimodalInput({
   const submitForm = useCallback(async () => {
     if (!input && attachments.length === 0) return;
 
-    const isWalletQuery = input.toLowerCase().includes('wallet') || 
+    const isWalletQuery = input.toLowerCase().includes('wallet') ||
                          input.toLowerCase().includes('balance');
 
     if (isWalletQuery) {
@@ -244,9 +257,9 @@ export function MultimodalInput({
   ]);
 
   const handleSuggestedAction = useCallback((action: string) => {
-    const isWalletAction = action.toLowerCase().includes('wallet') || 
+    const isWalletAction = action.toLowerCase().includes('wallet') ||
                           action.toLowerCase().includes('balance');
-    
+
     if (isWalletAction) {
       if (!isConnected) {
         toast.error('Please connect your wallet first');
@@ -264,7 +277,7 @@ export function MultimodalInput({
 
   const handleFileChange = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    
+
     // Create staged files with blob URLs
     const newStagedFiles = files.map(createStagedFile);
     setStagedFiles(prev => [...prev, ...newStagedFiles]);
@@ -272,7 +285,7 @@ export function MultimodalInput({
     try {
       // Upload each file
       for (const stagedFile of newStagedFiles) {
-        setStagedFiles(prev => 
+        setStagedFiles(prev =>
           prev.map(f => f.id === stagedFile.id ? { ...f, status: 'uploading' } : f)
         );
 
@@ -288,7 +301,7 @@ export function MultimodalInput({
         if (!response.ok) throw new Error('Upload failed');
 
         const data = await response.json();
-        
+
         // Add to attachments on successful upload
         setAttachments(current => [...current, {
           url: data.url,
@@ -298,7 +311,7 @@ export function MultimodalInput({
         }]);
 
         // Mark as complete and remove from staged files
-        setStagedFiles(prev => 
+        setStagedFiles(prev =>
           prev.map(f => f.id === stagedFile.id ? { ...f, status: 'complete' } : f)
         );
         setTimeout(() => removeStagedFile(stagedFile.id), 500);
@@ -308,10 +321,10 @@ export function MultimodalInput({
     } catch (error) {
       console.error('Error uploading files:', error);
       toast.error('Failed to upload one or more files');
-      
+
       // Mark failed files
       newStagedFiles.forEach(file => {
-        setStagedFiles(prev => 
+        setStagedFiles(prev =>
           prev.map(f => f.id === file.id ? { ...f, status: 'error' } : f)
         );
       });
@@ -402,7 +415,7 @@ export function MultimodalInput({
               <PreviewAttachment
                 attachment={attachment}
                 onRemove={() => {
-                  setAttachments(current => 
+                  setAttachments(current =>
                     current.filter(a => a.url !== attachment.url)
                   );
                 }}
