@@ -1,12 +1,13 @@
+import { ethers } from 'ethers';
+import { z } from 'zod';
 import {
-  convertToCoreMessages,
   CoreMessage,
   Message,
   StreamData,
+  convertToCoreMessages,
   streamObject,
   streamText,
 } from 'ai';
-import { z } from 'zod';
 
 import { customModel } from '@/ai';
 import { models } from '@/ai/models';
@@ -28,7 +29,6 @@ import {
 } from '@/lib/utils';
 
 import { generateTitleFromUserMessage } from '../../actions';
-import { Cdp, Wallet } from 'cdp-sdk';
 
 export const maxDuration = 60;
 
@@ -111,434 +111,439 @@ function formatMessageContent(message: CoreMessage): string {
   return '';
 }
 
-export async function POST(request: Request) {
-  const {
-    id,
-    messages,
-    modelId,
-  }: { id: string; messages: Array<Message>; modelId: string } =
-    await request.json();
+// Add type for wallet balance parameters
+interface WalletBalanceParams {
+  address: string;
+  network?: string;
+}
 
-  const user = await getUser();
+// Add interface for wallet message content
+interface WalletMessageContent {
+  text: string;
+  walletAddress?: string;
+  chainId?: number;
+  network?: string;
+  attachments?: Array<{
+    url: string;
+    name: string;
+    type: string;
+  }>;
+}
 
-  if (!user) {
-    return new Response('Unauthorized', { status: 401 });
+// Update the getWalletBalance tool
+const getWalletBalance = {
+  description: 'Get the balance of the connected wallet',
+  parameters: z.object({
+    address: z.string().describe('The wallet address to check'),
+    network: z.string().optional().describe('The network to check'),
+    chainId: z.number().optional().describe('The chain ID')
+  }),
+  execute: async ({ address, network, chainId }: { 
+    address: string; 
+    network?: string;
+    chainId?: number;
+  }) => {
+    try {
+      // Determine the RPC URL based on chainId or network
+      let rpcUrl: string;
+      
+      // Handle Base networks
+      if (chainId === 8453) {
+        rpcUrl = 'https://mainnet.base.org';
+      } else if (chainId === 84532) {
+        rpcUrl = 'https://sepolia.base.org';
+      } else {
+        // Default to Base Sepolia if chain is not recognized
+        rpcUrl = 'https://sepolia.base.org';
+      }
+
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      const balance = await provider.getBalance(address);
+      
+      // Get USDC address based on the network
+      const usdcAddress = chainId === 8453
+        ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' // Base Mainnet USDC
+        : '0x036CbD53842c5426634e7929541eC2318f3dCF7e'; // Base Sepolia USDC
+
+      const usdcAbi = ['function balanceOf(address) view returns (uint256)'];
+      const usdcContract = new ethers.Contract(usdcAddress, usdcAbi, provider);
+      const usdcBalance = await usdcContract.balanceOf(address);
+      
+      return {
+        address,
+        network: network || (chainId === 8453 ? 'base-mainnet' : 'base-sepolia'),
+        chainId,
+        balances: {
+          eth: ethers.formatEther(balance),
+          usdc: (Number(usdcBalance) / 1e6).toString()
+        }
+      };
+    } catch (error) {
+      console.error('Error fetching wallet balance:', error);
+      return {
+        error: 'Failed to fetch wallet balance',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
+};
 
-  const model = models.find((model) => model.id === modelId);
+// Add proper type for tool parameters
+interface ToolParameters {
+  latitude: number;
+  longitude: number;
+  title: string;
+  id: string;
+  description: string;
+  documentId: string;
+}
 
-  if (!model) {
-    return new Response('Model not found', { status: 404 });
-  }
+// Update the tools object with proper typing
+const tools = {
+  getWeather: {
+    description: 'Get the current weather at a location',
+    parameters: z.object({
+      latitude: z.number(),
+      longitude: z.number(),
+    }),
+    execute: async ({ latitude, longitude }: Pick<ToolParameters, 'latitude' | 'longitude'>) => {
+      const response = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&hourly=temperature_2m&daily=sunrise,sunset&timezone=auto`
+      );
 
-  const coreMessages = convertToCoreMessages(messages);
-  const userMessage = getMostRecentUserMessage(coreMessages);
+      const weatherData = await response.json();
+      return weatherData;
+    }
+  },
+  createDocument: {
+    description: 'Create a document for a writing activity',
+    parameters: z.object({
+      title: z.string(),
+    }),
+    execute: async ({ title }) => {
+      const id = generateUUID();
+      let draftText: string = '';
 
-  if (!userMessage) {
-    return new Response('No user message found', { status: 400 });
-  }
+      // Stream UI updates immediately for better UX
+      streamingData.append({ type: 'id', content: id });
+      streamingData.append({ type: 'title', content: title });
+      streamingData.append({ type: 'clear', content: '' });
 
-  try {
-    const chat = await getChatById(id);
-
-    if (!chat) {
-      const title = await generateTitleFromUserMessage({
-        message: userMessage as unknown as { role: 'user'; content: string },
+      // Generate content
+      const { fullStream } = await streamText({
+        model: customModel(model.apiIdentifier),
+        system:
+          'Write about the given topic. Markdown is supported. Use headings wherever appropriate.',
+        prompt: title,
       });
-      await saveChat({ id, userId: user.id, title });
-    } else if (chat.user_id !== user.id) {
+
+      for await (const delta of fullStream) {
+        const { type } = delta;
+
+        if (type === 'text-delta') {
+          draftText += delta.textDelta;
+          // Stream content updates in real-time
+          streamingData.append({
+            type: 'text-delta',
+            content: delta.textDelta,
+          });
+        }
+      }
+
+      // Try to save with retries
+      // let attempts = 0;
+      // const maxAttempts = 3;
+      // let savedId: string | null = null;
+
+      // while (attempts < maxAttempts && !savedId) {
+      //   try {
+      //     await saveDocument({
+      //       id,
+      //       title,
+      //       content: draftText,
+      //       userId: user.id,
+      //     });
+      //     savedId = id;
+      //     break;
+      //   } catch (error) {
+      //     attempts++;
+      //     if (attempts === maxAttempts) {
+      //       // If original ID fails, try with a new ID
+      //       const newId = generateUUID();
+      //       try {
+      //         await saveDocument({
+      //           id: newId,
+      //           title,
+      //           content: draftText,
+      //           userId: user.id,
+      //         });
+      //         // Update the ID in the UI
+      //         streamingData.append({ type: 'id', content: newId });
+      //         savedId = newId;
+      //       } catch (finalError) {
+      //         console.error('Final attempt failed:', finalError);
+      //         return {
+      //           error:
+      //             'Failed to create document after multiple attempts',
+      //         };
+      //       }
+      //     }
+      //     await new Promise((resolve) =>
+      //       setTimeout(resolve, 100 * attempts)
+      //     );
+      //   }
+      // }
+
+      streamingData.append({ type: 'finish', content: '' });
+
+      if (user && user.id) {
+        await saveDocument({
+          id,
+          title,
+          content: draftText,
+          userId: user.id,
+        });
+      }
+
+      return {
+        id,
+        title,
+        content: `A document was created and is now visible to the user.`,
+      };
+    },
+  },
+  updateDocument: {
+    description: 'Update a document with the given description',
+    parameters: z.object({
+      id: z.string().describe('The ID of the document to update'),
+      description: z
+        .string()
+        .describe('The description of changes that need to be made'),
+    }),
+    execute: async ({ id, description }) => {
+      const document = await getDocumentById(id);
+
+      if (!document) {
+        return {
+          error: 'Document not found',
+        };
+      }
+
+      const { content: currentContent } = document;
+      let draftText: string = '';
+
+      streamingData.append({
+        type: 'clear',
+        content: document.title,
+      });
+
+      const { fullStream } = await streamText({
+        model: customModel(model.apiIdentifier),
+        system:
+          'You are a helpful writing assistant. Based on the description, please update the piece of writing.',
+        experimental_providerMetadata: {
+          openai: {
+            prediction: {
+              type: 'content',
+              content: currentContent,
+            },
+          },
+        },
+        messages: [
+          {
+            role: 'user',
+            content: description,
+          },
+          { role: 'user', content: currentContent },
+        ],
+      });
+
+      for await (const delta of fullStream) {
+        const { type } = delta;
+
+        if (type === 'text-delta') {
+          const { textDelta } = delta;
+
+          draftText += textDelta;
+          streamingData.append({
+            type: 'text-delta',
+            content: textDelta,
+          });
+        }
+      }
+
+      streamingData.append({ type: 'finish', content: '' });
+
+      if (user && user.id) {
+        await saveDocument({
+          id,
+          title: document.title,
+          content: draftText,
+          userId: user.id,
+        });
+      }
+
+      return {
+        id,
+        title: document.title,
+        content: 'The document has been updated successfully.',
+      };
+    },
+  },
+  requestSuggestions: {
+    description: 'Request suggestions for a document',
+    parameters: z.object({
+      documentId: z
+        .string()
+        .describe('The ID of the document to request edits'),
+    }),
+    execute: async ({ documentId }) => {
+      const document = await getDocumentById(documentId);
+
+      if (!document || !document.content) {
+        return {
+          error: 'Document not found',
+        };
+      }
+
+      let suggestions: Array<{
+        originalText: string;
+        suggestedText: string;
+        description: string;
+        id: string;
+        documentId: string;
+        isResolved: boolean;
+      }> = [];
+
+      const { elementStream } = await streamObject({
+        model: customModel(model.apiIdentifier),
+        system:
+          'You are a help writing assistant. Given a piece of writing, please offer suggestions to improve the piece of writing and describe the change. It is very important for the edits to contain full sentences instead of just words. Max 5 suggestions.',
+        prompt: document.content,
+        output: 'array',
+        schema: z.object({
+          originalSentence: z.string().describe('The original sentence'),
+          suggestedSentence: z
+            .string()
+            .describe('The suggested sentence'),
+          description: z
+            .string()
+            .describe('The description of the suggestion'),
+        }),
+      });
+
+      for await (const element of elementStream) {
+        const suggestion = {
+          originalText: element.originalSentence,
+          suggestedText: element.suggestedSentence,
+          description: element.description,
+          id: generateUUID(),
+          documentId: documentId,
+          isResolved: false,
+        };
+
+        streamingData.append({
+          type: 'suggestion',
+          content: suggestion,
+        });
+
+        suggestions.push(suggestion);
+      }
+
+      if (user && user.id) {
+        const userId = user.id;
+
+        await saveSuggestions({
+          suggestions: suggestions.map((suggestion) => ({
+            ...suggestion,
+            userId,
+            createdAt: new Date(),
+            documentCreatedAt: document.created_at,
+          })),
+        });
+      }
+
+      // if (user && user.id) {
+      //   for (const suggestion of suggestions) {
+      //     await saveSuggestions({
+      //       documentId: suggestion.documentId,
+      //       documentCreatedAt: document.created_at,
+      //       originalText: suggestion.originalText,
+      //       suggestedText: suggestion.suggestedText,
+      //       description: suggestion.description,
+      //       userId: user.id,
+      //     });
+      //   }
+      // }
+
+      return {
+        id: documentId,
+        title: document.title,
+        message: 'Suggestions have been added to the document',
+      };
+    },
+  },
+  getWalletBalance
+};
+
+export async function POST(request: Request) {
+  try {
+    const {
+      id,
+      messages,
+      modelId,
+    }: { id: string; messages: Array<Message>; modelId: string } =
+      await request.json();
+
+    const user = await getUser();
+
+    if (!user) {
       return new Response('Unauthorized', { status: 401 });
     }
 
-    await saveMessages({
-      chatId: id,
-      messages: [
-        {
-          id: generateUUID(),
-          chat_id: id,
-          role: userMessage.role as MessageRole,
-          content: formatMessageContent(userMessage),
-          created_at: new Date().toISOString(),
-        },
-      ],
-    });
+    const model = models.find((model) => model.id === modelId);
 
-    const streamingData = new StreamData();
+    if (!model) {
+      return new Response('Model not found', { status: 404 });
+    }
 
-    const result = await streamText({
-      model: customModel(model.apiIdentifier),
-      system: systemPrompt,
-      messages: coreMessages,
-      maxSteps: 5,
-      experimental_activeTools: allTools,
-      tools: {
-        getWeather: {
-          description: 'Get the current weather at a location',
-          parameters: z.object({
-            latitude: z.number(),
-            longitude: z.number(),
-          }),
-          execute: async ({ latitude, longitude }) => {
-            const response = await fetch(
-              `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&hourly=temperature_2m&daily=sunrise,sunset&timezone=auto`
-            );
+    const coreMessages = convertToCoreMessages(messages);
+    const userMessage = getMostRecentUserMessage(coreMessages);
 
-            const weatherData = await response.json();
-            return weatherData;
-          },
-        },
-        createDocument: {
-          description: 'Create a document for a writing activity',
-          parameters: z.object({
-            title: z.string(),
-          }),
-          execute: async ({ title }) => {
-            const id = generateUUID();
-            let draftText: string = '';
+    if (!userMessage) {
+      return new Response('No user message found', { status: 400 });
+    }
 
-            // Stream UI updates immediately for better UX
-            streamingData.append({ type: 'id', content: id });
-            streamingData.append({ type: 'title', content: title });
-            streamingData.append({ type: 'clear', content: '' });
+    // Parse the message content to get wallet and chain info
+    let walletInfo: WalletMessageContent = { text: '' };
+    try {
+      if (typeof userMessage.content === 'string') {
+        walletInfo = JSON.parse(userMessage.content);
+      }
+    } catch (e) {
+      console.error('Error parsing message content:', e);
+    }
 
-            // Generate content
-            const { fullStream } = await streamText({
-              model: customModel(model.apiIdentifier),
-              system:
-                'Write about the given topic. Markdown is supported. Use headings wherever appropriate.',
-              prompt: title,
-            });
+    // Add wallet and chain info to the context
+    const contextWithWallet = {
+      ...coreMessages,
+      walletAddress: walletInfo.walletAddress,
+      chainId: walletInfo.chainId,
+      network: walletInfo.network
+    };
 
-            for await (const delta of fullStream) {
-              const { type } = delta;
+    try {
+      const chat = await getChatById(id);
 
-              if (type === 'text-delta') {
-                draftText += delta.textDelta;
-                // Stream content updates in real-time
-                streamingData.append({
-                  type: 'text-delta',
-                  content: delta.textDelta,
-                });
-              }
-            }
+      if (!chat) {
+        const title = await generateTitleFromUserMessage({
+          message: userMessage as unknown as { role: 'user'; content: string },
+        });
+        await saveChat({ id, userId: user.id, title });
+      } else if (chat.user_id !== user.id) {
+        return new Response('Unauthorized', { status: 401 });
+      }
 
-            // Try to save with retries
-            // let attempts = 0;
-            // const maxAttempts = 3;
-            // let savedId: string | null = null;
-
-            // while (attempts < maxAttempts && !savedId) {
-            //   try {
-            //     await saveDocument({
-            //       id,
-            //       title,
-            //       content: draftText,
-            //       userId: user.id,
-            //     });
-            //     savedId = id;
-            //     break;
-            //   } catch (error) {
-            //     attempts++;
-            //     if (attempts === maxAttempts) {
-            //       // If original ID fails, try with a new ID
-            //       const newId = generateUUID();
-            //       try {
-            //         await saveDocument({
-            //           id: newId,
-            //           title,
-            //           content: draftText,
-            //           userId: user.id,
-            //         });
-            //         // Update the ID in the UI
-            //         streamingData.append({ type: 'id', content: newId });
-            //         savedId = newId;
-            //       } catch (finalError) {
-            //         console.error('Final attempt failed:', finalError);
-            //         return {
-            //           error:
-            //             'Failed to create document after multiple attempts',
-            //         };
-            //       }
-            //     }
-            //     await new Promise((resolve) =>
-            //       setTimeout(resolve, 100 * attempts)
-            //     );
-            //   }
-            // }
-
-            streamingData.append({ type: 'finish', content: '' });
-
-            if (user && user.id) {
-              await saveDocument({
-                id,
-                title,
-                content: draftText,
-                userId: user.id,
-              });
-            }
-
-            return {
-              id,
-              title,
-              content: `A document was created and is now visible to the user.`,
-            };
-          },
-        },
-        updateDocument: {
-          description: 'Update a document with the given description',
-          parameters: z.object({
-            id: z.string().describe('The ID of the document to update'),
-            description: z
-              .string()
-              .describe('The description of changes that need to be made'),
-          }),
-          execute: async ({ id, description }) => {
-            const document = await getDocumentById(id);
-
-            if (!document) {
-              return {
-                error: 'Document not found',
-              };
-            }
-
-            const { content: currentContent } = document;
-            let draftText: string = '';
-
-            streamingData.append({
-              type: 'clear',
-              content: document.title,
-            });
-
-            const { fullStream } = await streamText({
-              model: customModel(model.apiIdentifier),
-              system:
-                'You are a helpful writing assistant. Based on the description, please update the piece of writing.',
-              experimental_providerMetadata: {
-                openai: {
-                  prediction: {
-                    type: 'content',
-                    content: currentContent,
-                  },
-                },
-              },
-              messages: [
-                {
-                  role: 'user',
-                  content: description,
-                },
-                { role: 'user', content: currentContent },
-              ],
-            });
-
-            for await (const delta of fullStream) {
-              const { type } = delta;
-
-              if (type === 'text-delta') {
-                const { textDelta } = delta;
-
-                draftText += textDelta;
-                streamingData.append({
-                  type: 'text-delta',
-                  content: textDelta,
-                });
-              }
-            }
-
-            streamingData.append({ type: 'finish', content: '' });
-
-            if (user && user.id) {
-              await saveDocument({
-                id,
-                title: document.title,
-                content: draftText,
-                userId: user.id,
-              });
-            }
-
-            return {
-              id,
-              title: document.title,
-              content: 'The document has been updated successfully.',
-            };
-          },
-        },
-        requestSuggestions: {
-          description: 'Request suggestions for a document',
-          parameters: z.object({
-            documentId: z
-              .string()
-              .describe('The ID of the document to request edits'),
-          }),
-          execute: async ({ documentId }) => {
-            const document = await getDocumentById(documentId);
-
-            if (!document || !document.content) {
-              return {
-                error: 'Document not found',
-              };
-            }
-
-            let suggestions: Array<{
-              originalText: string;
-              suggestedText: string;
-              description: string;
-              id: string;
-              documentId: string;
-              isResolved: boolean;
-            }> = [];
-
-            const { elementStream } = await streamObject({
-              model: customModel(model.apiIdentifier),
-              system:
-                'You are a help writing assistant. Given a piece of writing, please offer suggestions to improve the piece of writing and describe the change. It is very important for the edits to contain full sentences instead of just words. Max 5 suggestions.',
-              prompt: document.content,
-              output: 'array',
-              schema: z.object({
-                originalSentence: z.string().describe('The original sentence'),
-                suggestedSentence: z
-                  .string()
-                  .describe('The suggested sentence'),
-                description: z
-                  .string()
-                  .describe('The description of the suggestion'),
-              }),
-            });
-
-            for await (const element of elementStream) {
-              const suggestion = {
-                originalText: element.originalSentence,
-                suggestedText: element.suggestedSentence,
-                description: element.description,
-                id: generateUUID(),
-                documentId: documentId,
-                isResolved: false,
-              };
-
-              streamingData.append({
-                type: 'suggestion',
-                content: suggestion,
-              });
-
-              suggestions.push(suggestion);
-            }
-
-            if (user && user.id) {
-              const userId = user.id;
-
-              await saveSuggestions({
-                suggestions: suggestions.map((suggestion) => ({
-                  ...suggestion,
-                  userId,
-                  createdAt: new Date(),
-                  documentCreatedAt: document.created_at,
-                })),
-              });
-            }
-
-            // if (user && user.id) {
-            //   for (const suggestion of suggestions) {
-            //     await saveSuggestions({
-            //       documentId: suggestion.documentId,
-            //       documentCreatedAt: document.created_at,
-            //       originalText: suggestion.originalText,
-            //       suggestedText: suggestion.suggestedText,
-            //       description: suggestion.description,
-            //       userId: user.id,
-            //     });
-            //   }
-            // }
-
-            return {
-              id: documentId,
-              title: document.title,
-              message: 'Suggestions have been added to the document',
-            };
-          },
-        },
-        getWalletBalance: {
-          description: 'Get the balance of the connected wallet',
-          parameters: z.object({
-            address: z.string().describe('The wallet address to check'),
-            network: z.string().optional().describe('The network to check (default: base-sepolia)'),
-          }),
-          execute: async ({ address, network = 'base-sepolia' }) => {
-            try {
-              // Configure CDP SDK
-              Cdp.configure(process.env.CDP_API_KEY_NAME!, process.env.CDP_API_KEY_PRIVATE_KEY!);
-              
-              // Create external address object
-              const externalAddress = new ExternalAddress(network, address);
-              
-              // Get balances
-              const balances = await externalAddress.balances();
-              
-              return {
-                address,
-                network,
-                balances: {
-                  eth: balances.eth?.toString() || '0',
-                  usdc: balances.usdc?.toString() || '0',
-                  // Add other tokens as needed
-                }
-              };
-            } catch (error) {
-              console.error('Error fetching wallet balance:', error);
-              return {
-                error: 'Failed to fetch wallet balance',
-                details: error instanceof Error ? error.message : 'Unknown error'
-              };
-            }
-          }
-        },
-      },
-      onFinish: async ({ responseMessages }) => {
-        if (user && user.id) {
-          try {
-            const responseMessagesWithoutIncompleteToolCalls =
-              sanitizeResponseMessages(responseMessages);
-
-            await saveMessages({
-              chatId: id,
-              messages: responseMessagesWithoutIncompleteToolCalls.map(
-                (message) => {
-                  const messageId = generateUUID();
-
-                  if (message.role === 'assistant') {
-                    streamingData.appendMessageAnnotation({
-                      messageIdFromServer: messageId,
-                    });
-                  }
-
-                  return {
-                    id: messageId,
-                    chat_id: id,
-                    role: message.role as MessageRole,
-                    content: formatMessageContent(message),
-                    created_at: new Date().toISOString(),
-                  };
-                }
-              ),
-            });
-          } catch (error) {
-            console.error('Failed to save chat:', error);
-          }
-        }
-
-        streamingData.close();
-      },
-      experimental_telemetry: {
-        isEnabled: true,
-        functionId: 'stream-text',
-      },
-    });
-
-    return result.toDataStreamResponse({
-      data: streamingData,
-    });
-  } catch (error) {
-    console.error('Error in chat route:', error);
-    if (error instanceof Error && error.message === 'Chat ID already exists') {
-      // If chat already exists, just continue with the message saving
       await saveMessages({
         chatId: id,
         messages: [
@@ -551,9 +556,146 @@ export async function POST(request: Request) {
           },
         ],
       });
-    } else {
-      throw error; // Re-throw other errors
+
+      const streamingData = new StreamData();
+
+      const result = await streamText({
+        model: customModel(model.apiIdentifier),
+        system: systemPrompt,
+        messages: contextWithWallet,
+        maxSteps: 5,
+        experimental_activeTools: allTools,
+        tools,
+        onFinish: async ({ responseMessages }) => {
+          if (user && user.id) {
+            try {
+              const responseMessagesWithoutIncompleteToolCalls =
+                sanitizeResponseMessages(responseMessages);
+
+              await saveMessages({
+                chatId: id,
+                messages: responseMessagesWithoutIncompleteToolCalls.map(
+                  (message) => {
+                    const messageId = generateUUID();
+
+                    if (message.role === 'assistant') {
+                      streamingData.appendMessageAnnotation({
+                        messageIdFromServer: messageId,
+                      });
+                    }
+
+                    return {
+                      id: messageId,
+                      chat_id: id,
+                      role: message.role as MessageRole,
+                      content: formatMessageContent(message),
+                      created_at: new Date().toISOString(),
+                    };
+                  }
+                ),
+              });
+            } catch (error) {
+              console.error('Failed to save chat:', error);
+            }
+          }
+
+          streamingData.close();
+        },
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'stream-text',
+        },
+      });
+
+      return result.toDataStreamResponse({
+        data: streamingData,
+      });
+    } catch (error) {
+      console.error('Error in chat route:', error);
+      
+      // Handle the duplicate chat ID case
+      if (error instanceof Error && error.message === 'Chat ID already exists') {
+        // If chat already exists, save the message and continue
+        await saveMessages({
+          chatId: id,
+          messages: [
+            {
+              id: generateUUID(),
+              chat_id: id,
+              role: userMessage.role as MessageRole,
+              content: formatMessageContent(userMessage),
+              created_at: new Date().toISOString(),
+            },
+          ],
+        });
+        
+        // Create new streaming data and continue with the chat
+        const streamingData = new StreamData();
+        const result = await streamText({
+          model: customModel(model.apiIdentifier),
+          system: systemPrompt,
+          messages: contextWithWallet,
+          maxSteps: 5,
+          experimental_activeTools: allTools,
+          tools,
+          onFinish: async ({ responseMessages }) => {
+            if (user && user.id) {
+              try {
+                const responseMessagesWithoutIncompleteToolCalls =
+                  sanitizeResponseMessages(responseMessages);
+
+                await saveMessages({
+                  chatId: id,
+                  messages: responseMessagesWithoutIncompleteToolCalls.map(
+                    (message) => {
+                      const messageId = generateUUID();
+
+                      if (message.role === 'assistant') {
+                        streamingData.appendMessageAnnotation({
+                          messageIdFromServer: messageId,
+                        });
+                      }
+
+                      return {
+                        id: messageId,
+                        chat_id: id,
+                        role: message.role as MessageRole,
+                        content: formatMessageContent(message),
+                        created_at: new Date().toISOString(),
+                      };
+                    }
+                  ),
+                });
+              } catch (error) {
+                console.error('Failed to save chat:', error);
+              }
+            }
+
+            streamingData.close();
+          },
+          experimental_telemetry: {
+            isEnabled: true,
+            functionId: 'stream-text',
+          },
+        });
+
+        return result.toDataStreamResponse({
+          data: streamingData,
+        });
+      }
+      
+      // Handle other errors
+      return new Response(
+        JSON.stringify({ error: 'Internal server error' }), 
+        { status: 500 }
+      );
     }
+  } catch (error) {
+    console.error('Error parsing request:', error);
+    return new Response(
+      JSON.stringify({ error: 'Invalid request' }), 
+      { status: 400 }
+    );
   }
 }
 

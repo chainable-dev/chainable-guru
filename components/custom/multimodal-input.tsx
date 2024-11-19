@@ -14,7 +14,7 @@ import React, {
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
-import { useAccount } from 'wagmi';
+import { useAccount, useNetwork } from 'wagmi';
 
 import { createClient } from '@/lib/supabase/client';
 import { sanitizeUIMessages } from '@/lib/utils';
@@ -95,6 +95,7 @@ export function MultimodalInput({
   const { width } = useWindowSize();
   const supabase = createClient();
   const { address } = useAccount();
+  const { chain } = useNetwork();
   
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
@@ -181,7 +182,9 @@ export function MultimodalInput({
         name: att.name,
         type: att.contentType,
       })),
-      walletAddress: address
+      walletAddress: address,
+      chainId: chain?.id,
+      network: chain?.network
     };
 
     try {
@@ -200,7 +203,7 @@ export function MultimodalInput({
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
     }
-  }, [input, attachments, append, setInput, setLocalStorageInput, address]);
+  }, [input, attachments, append, setInput, setLocalStorageInput, address, chain]);
 
   const handleFileChange = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
