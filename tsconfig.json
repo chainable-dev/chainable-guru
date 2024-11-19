@@ -23,7 +23,9 @@
     },
     "types": [
       "node",
-      "@types/react"
+      "@types/react",
+      "@types/react-dom",
+      "vitest"
     ]
   },
   "include": [
