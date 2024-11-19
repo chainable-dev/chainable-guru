@@ -28,6 +28,7 @@ import {
 } from '@/lib/utils';
 
 import { generateTitleFromUserMessage } from '../../actions';
+import { Cdp, Wallet } from 'cdp-sdk';
 
 export const maxDuration = 60;
 
@@ -35,7 +36,8 @@ type AllowedTools =
   | 'createDocument'
   | 'updateDocument'
   | 'requestSuggestions'
-  | 'getWeather';
+  | 'getWeather'
+  | 'getWalletBalance';
 
 const blocksTools: AllowedTools[] = [
   'createDocument',
@@ -45,7 +47,7 @@ const blocksTools: AllowedTools[] = [
 
 const weatherTools: AllowedTools[] = ['getWeather'];
 
-const allTools: AllowedTools[] = [...blocksTools, ...weatherTools];
+const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, 'getWalletBalance'];
 
 async function getUser() {
   const supabase = await createClient();
@@ -452,6 +454,41 @@ export async function POST(request: Request) {
               message: 'Suggestions have been added to the document',
             };
           },
+        },
+        getWalletBalance: {
+          description: 'Get the balance of the connected wallet',
+          parameters: z.object({
+            address: z.string().describe('The wallet address to check'),
+            network: z.string().optional().describe('The network to check (default: base-sepolia)'),
+          }),
+          execute: async ({ address, network = 'base-sepolia' }) => {
+            try {
+              // Configure CDP SDK
+              Cdp.configure(process.env.CDP_API_KEY_NAME!, process.env.CDP_API_KEY_PRIVATE_KEY!);
+              
+              // Create external address object
+              const externalAddress = new ExternalAddress(network, address);
+              
+              // Get balances
+              const balances = await externalAddress.balances();
+              
+              return {
+                address,
+                network,
+                balances: {
+                  eth: balances.eth?.toString() || '0',
+                  usdc: balances.usdc?.toString() || '0',
+                  // Add other tokens as needed
+                }
+              };
+            } catch (error) {
+              console.error('Error fetching wallet balance:', error);
+              return {
+                error: 'Failed to fetch wallet balance',
+                details: error instanceof Error ? error.message : 'Unknown error'
+              };
+            }
+          }
         },
       },
       onFinish: async ({ responseMessages }) => {
