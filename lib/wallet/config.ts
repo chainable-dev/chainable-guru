@@ -1,7 +1,7 @@
 import '@rainbow-me/rainbowkit/styles.css';
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { base, baseSepolia } from 'viem/chains';
 import { http } from 'viem';
+import { base, baseSepolia } from 'viem/chains';
 import { createConfig } from 'wagmi';
 
 // Get project ID from env

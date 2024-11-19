@@ -15,15 +15,14 @@ import React, {
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
 
+import { useWalletState } from '@/hooks/useWalletState';
 import { createClient } from '@/lib/supabase/client';
 import { sanitizeUIMessages } from '@/lib/utils';
-import { useWalletState } from '@/hooks/useWalletState';
 
 import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
-
 
 import type { Attachment as SupabaseAttachment } from '@/types/supabase';
 import type { Attachment, ChatRequestOptions, CreateMessage, Message } from 'ai';
@@ -55,6 +54,14 @@ type TempAttachment = {
   path?: string;
 };
 
+// Add type for staged files
+interface StagedFile {
+  id: string;
+  file: File;
+  previewUrl: string;
+  status: 'staging' | 'uploading' | 'complete' | 'error';
+}
+
 interface MultimodalInputProps {
   input: string;
   setInput: (value: string) => void;
@@ -68,13 +75,6 @@ interface MultimodalInputProps {
   handleSubmit: (event?: { preventDefault?: () => void }, chatRequestOptions?: ChatRequestOptions) => void;
   className?: string;
   chatId: string;
-}
-
-interface StagedFile {
-  id: string;
-  file: File;
-  previewUrl: string;
-  status: 'staging' | 'uploading' | 'complete' | 'error';
 }
 
 export function MultimodalInput({
