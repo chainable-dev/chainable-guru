@@ -34,15 +34,29 @@ const suggestedActions = [
     action: 'What is the weather in San Francisco?',
   },
   {
-    title: 'Help me draft an essay',
-    label: 'about Silicon Valley',
-    action: 'Help me draft a short essay about Silicon Valley',
+    title: 'Check Wallet Balance',
+    label: 'on Base Chain',
+    action: 'What is my current wallet balance on Base Chain?',
   },
-  //balance of my connected crypto wallet base chain and the wallet ath tis connected 
   {
-    title: 'What is the balance of my  crypto wallet?',
-    label: '',
-    action: 'Using the information from my connected crypto wallet, what is the balance of my wallet?',
+    title: 'Deploy Smart Contract',
+    label: 'ERC-20 Token',
+    action: 'Help me deploy an ERC-20 token smart contract on Base Chain',
+  },
+  {
+    title: 'Transfer Tokens',
+    label: 'to another wallet',
+    action: 'I want to transfer tokens to another wallet address on Base Chain',
+  },
+  {
+    title: 'Trade Assets',
+    label: 'on Base Chain',
+    action: 'Help me trade assets on Base Chain',
+  },
+  {
+    title: 'NFT Operations',
+    label: 'mint/transfer',
+    action: 'I want to perform NFT operations like minting or transferring on Base Chain',
   },
 ];
 
