@@ -64,7 +64,9 @@
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.15",
+    "@testing-library/jest-dom": "^6.6.3",
     "@types/d3-scale": "^4.0.8",
+    "@types/jest": "^29.5.14",
     "@types/node": "^20",
     "@types/pdf-parse": "^1.1.4",
     "@types/react": "^18",
