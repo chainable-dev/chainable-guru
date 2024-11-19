@@ -63,6 +63,13 @@ interface MultimodalInputProps {
   chatId: string;
 }
 
+interface StagedFile {
+  id: string;
+  file: File;
+  previewUrl: string;
+  status: 'staging' | 'uploading' | 'complete' | 'error';
+}
+
 export function MultimodalInput({
   input,
   setInput,
@@ -82,6 +89,7 @@ export function MultimodalInput({
   const supabase = createClient();
   
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -123,7 +131,36 @@ export function MultimodalInput({
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [uploadQueue, setUploadQueue] = useState<string[]>([]);
+
+  // Create blob URLs for file previews
+  const createStagedFile = useCallback((file: File): StagedFile => {
+    return {
+      id: crypto.randomUUID(),
+      file,
+      previewUrl: URL.createObjectURL(file),
+      status: 'staging'
+    };
+  }, []);
+
+  // Clean up blob URLs when files are removed
+  const removeStagedFile = useCallback((fileId: string) => {
+    setStagedFiles(prev => {
+      const file = prev.find(f => f.id === fileId);
+      if (file) {
+        URL.revokeObjectURL(file.previewUrl);
+      }
+      return prev.filter(f => f.id !== fileId);
+    });
+  }, []);
+
+  // Clean up all blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      stagedFiles.forEach(file => {
+        URL.revokeObjectURL(file.previewUrl);
+      });
+    };
+  }, [stagedFiles]);
 
   const submitForm = useCallback(async () => {
     if (!input && attachments.length === 0) return;
@@ -158,12 +195,20 @@ export function MultimodalInput({
 
   const handleFileChange = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    setUploadQueue(files.map(file => file.name));
+    
+    // Create staged files with blob URLs
+    const newStagedFiles = files.map(createStagedFile);
+    setStagedFiles(prev => [...prev, ...newStagedFiles]);
 
     try {
-      const uploadPromises = files.map(async (file) => {
+      // Upload each file
+      for (const stagedFile of newStagedFiles) {
+        setStagedFiles(prev => 
+          prev.map(f => f.id === stagedFile.id ? { ...f, status: 'uploading' } : f)
+        );
+
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', stagedFile.file);
         formData.append('chatId', chatId);
 
         const response = await fetch('/api/files/upload', {
@@ -171,38 +216,42 @@ export function MultimodalInput({
           body: formData,
         });
 
-        if (!response.ok) {
-          throw new Error('Upload failed');
-        }
+        if (!response.ok) throw new Error('Upload failed');
 
         const data = await response.json();
-        return {
+        
+        // Add to attachments on successful upload
+        setAttachments(current => [...current, {
           url: data.url,
-          name: file.name,
-          contentType: file.type,
+          name: stagedFile.file.name,
+          contentType: stagedFile.file.type,
           path: data.path
-        };
-      });
+        }]);
 
-      const uploadedFiles = await Promise.all(uploadPromises);
-      setAttachments(current => [...current, ...uploadedFiles]);
+        // Mark as complete and remove from staged files
+        setStagedFiles(prev => 
+          prev.map(f => f.id === stagedFile.id ? { ...f, status: 'complete' } : f)
+        );
+        setTimeout(() => removeStagedFile(stagedFile.id), 500);
+      }
+
       toast.success('Files uploaded successfully');
     } catch (error) {
       console.error('Error uploading files:', error);
       toast.error('Failed to upload one or more files');
+      
+      // Mark failed files
+      newStagedFiles.forEach(file => {
+        setStagedFiles(prev => 
+          prev.map(f => f.id === file.id ? { ...f, status: 'error' } : f)
+        );
+      });
     } finally {
-      setUploadQueue([]);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
     }
-  }, [chatId]);
-
-  const removeAttachment = (url: string) => {
-    setAttachments((currentAttachments) =>
-      currentAttachments.filter((attachment) => attachment.url !== url)
-    );
-  };
+  }, [chatId, createStagedFile, removeStagedFile, setAttachments]);
 
   // Focus management
   useEffect(() => {
@@ -223,7 +272,7 @@ export function MultimodalInput({
     <div className="relative w-full flex flex-col gap-4">
       {messages.length === 0 &&
         attachments.length === 0 &&
-        uploadQueue.length === 0 && (
+        stagedFiles.length === 0 && (
           <div className="grid sm:grid-cols-2 gap-2 w-full">
             {suggestedActions.map((suggestedAction, index) => (
               <motion.div
@@ -265,35 +314,36 @@ export function MultimodalInput({
         tabIndex={-1}
       />
 
-      {(attachments.length > 0 || uploadQueue.length > 0) && (
+      {(attachments.length > 0 || stagedFiles.length > 0) && (
         <div className="flex flex-row gap-4 overflow-x-auto pb-2">
+          {stagedFiles.map((stagedFile) => (
+            <div key={stagedFile.id} className="relative group">
+              <PreviewAttachment
+                attachment={{
+                  url: stagedFile.previewUrl,
+                  name: stagedFile.file.name,
+                  contentType: stagedFile.file.type,
+                }}
+                isUploading={stagedFile.status === 'uploading'}
+                onRemove={() => removeStagedFile(stagedFile.id)}
+              />
+              {stagedFile.status === 'error' && (
+                <div className="absolute inset-0 bg-destructive/20 flex items-center justify-center rounded-lg">
+                  <span className="text-xs text-destructive">Upload failed</span>
+                </div>
+              )}
+            </div>
+          ))}
+
           {attachments.map((attachment) => (
             <div key={attachment.url} className="relative group">
               <PreviewAttachment
                 attachment={attachment}
-                onRemove={removeAttachment}
-              />
-              <button
-                onClick={() => removeAttachment(attachment.url)}
-                className="absolute -top-2 -right-2 p-1 rounded-full bg-background border shadow-sm 
-                          hover:bg-destructive hover:text-destructive-foreground
-                          transition-colors"
-                aria-label="Remove attachment"
-              >
-                <X className="size-3" />
-              </button>
-            </div>
-          ))}
-          
-          {uploadQueue.map((filename) => (
-            <div key={filename} className="relative">
-              <PreviewAttachment
-                attachment={{
-                  url: '',
-                  name: filename,
-                  contentType: '',
+                onRemove={() => {
+                  setAttachments(current => 
+                    current.filter(a => a.url !== attachment.url)
+                  );
                 }}
-                isUploading={true}
               />
             </div>
           ))}
@@ -342,7 +392,7 @@ export function MultimodalInput({
             event.preventDefault();
             submitForm();
           }}
-          disabled={input.length === 0 || uploadQueue.length > 0}
+          disabled={input.length === 0 || stagedFiles.length > 0}
         >
           <ArrowUpIcon size={14} />
         </Button>

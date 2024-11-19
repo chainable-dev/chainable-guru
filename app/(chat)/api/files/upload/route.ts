@@ -1,82 +1,61 @@
+import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 
-import { upload } from '@/db/storage';
 import { createClient } from '@/lib/supabase/server';
+import { generateUUID } from '@/lib/utils';
 
-function sanitizeFileName(fileName: string): string {
-  return fileName.replace(/[^a-zA-Z0-9.-]/g, '_').toLowerCase();
-}
-
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<NextResponse> {
   try {
-    const formData = await req.formData();
-    const file = formData.get('file') as File;
-    const chatId = formData.get('chatId') as string;
+    // Get form data
+    const data = await req.formData();
+    const file = data.get('file') as File;
+    const chatId = data.get('chatId') as string;
 
     if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-    }
-
-    if (!chatId) {
-      return NextResponse.json({ error: 'Chat ID is required' }, { status: 400 });
-    }
-
-    const supabase = await createClient();
-    
-    const { data: { session }, error: authError } = await supabase.auth.getSession();
-    
-    if (authError || !session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const userId = session.user.id;
-
-    try {
-      const sanitizedFileName = sanitizeFileName(file.name);
-      const filePath = [userId, chatId, sanitizedFileName];
-
-      const publicUrl = await upload(supabase, {
-        file,
-        path: filePath,
-      });
-
-      const { error: dbError } = await supabase.from('file_uploads').insert({
-        user_id: userId,
-        chat_id: chatId,
-        bucket_id: 'chat_attachments',
-        storage_path: filePath.join('/'),
-        filename: sanitizedFileName,
-        original_name: file.name,
-        content_type: file.type,
-        size: file.size,
-        url: publicUrl,
-      });
-
-      if (dbError) {
-        console.error('Database insert error:', dbError);
-        throw dbError;
-      }
-
-      return NextResponse.json({
-        url: publicUrl,
-        path: filePath.join('/'),
-      });
-
-    } catch (uploadError: any) {
-      console.error('Upload error:', uploadError);
       return NextResponse.json(
-        {
-          error: 'File upload failed',
-          details: uploadError.message,
-        },
-        { status: 500 }
+        { error: 'No file provided' },
+        { status: 400 }
       );
     }
-  } catch (error: any) {
-    console.error('Request handler error:', error);
+
+    // Get authenticated user - fix the client creation
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Generate unique path for blob storage
+    const blobPath = `${user.id}/${generateUUID()}/${file.name}`;
+
+    // Upload to blob storage
+    const blob = await put(blobPath, file, {
+      access: 'public',
+      addRandomSuffix: true,
+    });
+
+    // Return the blob URL immediately
+    return NextResponse.json({
+      url: blob.url,
+      path: blob.url,
+      success: true
+    });
+
+  } catch (error) {
+    console.error('Upload error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Upload failed' },
       { status: 500 }
     );
   }
 }
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};

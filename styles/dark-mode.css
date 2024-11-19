@@ -1,0 +1,11 @@
+/* Suppress dark reader styles */
+[data-darkreader-inline-fill],
+[data-darkreader-inline-stroke],
+[data-darkreader-inline-color],
+[data-darkreader-inline-bgcolor],
+[data-darkreader-inline-border],
+[data-darkreader-inline-boxshadow],
+[data-darkreader-inline-outline],
+[data-darkreader-inline-stopcolor] {
+  forced-color-adjust: none !important;
+} 
