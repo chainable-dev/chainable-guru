@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
-
-import { RootProvider } from '@/components/providers/root-provider';
+import RootProvider from '@/components/providers/RootProvider';
 
 import './globals.css';
 import '../styles/dark-mode.css';
