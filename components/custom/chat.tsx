@@ -15,7 +15,7 @@ import { fetcher } from '@/lib/utils';
 
 import { Block, UIBlock } from './block';
 import { BlockStreamHandler } from './block-stream-handler';
-import { MultimodalInput } from './multimodal-input';
+import { MultimodalInput } from '@/components/custom/MultimodalInput';
 import { Overview } from './overview';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 

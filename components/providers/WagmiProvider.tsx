@@ -1,19 +1,20 @@
 "use client";
 
 import React from 'react';
-import { WagmiConfig, createClient } from 'wagmi';
+import { WagmiConfig, createConfig } from 'wagmi';
+import { base } from 'wagmi/chains';
 
-const client = createClient({
-    autoConnect: true,
-    // Add your provider configuration here
-});
+import { config } from '@/config/wagmi';
 
 const WagmiProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    return (
-        <WagmiConfig client={client}>
-            {children}
-        </WagmiConfig>
-    );
+
+
+
+  return (
+    <WagmiConfig config={config}>
+      {children}
+    </WagmiConfig>
+  );
 };
 
-export default WagmiProvider; 
+export default WagmiProvider;

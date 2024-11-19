@@ -27,7 +27,7 @@ import { DocumentSkeleton } from './document-skeleton';
 import { Editor } from './editor';
 import { CopyIcon, CrossIcon, DeltaIcon, RedoIcon, UndoIcon } from './icons';
 import { PreviewMessage } from './message';
-import { MultimodalInput } from './multimodal-input';
+import { MultimodalInput } from '@/components/custom/MultimodalInput';
 import { Toolbar } from './toolbar';
 import { useScrollToBottom } from './use-scroll-to-bottom';
 import { VersionFooter } from './version-footer';
