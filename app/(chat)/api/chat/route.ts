@@ -11,7 +11,7 @@ import { z } from 'zod';
 
 import { customModel } from '@/ai';
 import { models } from '@/ai/models';
-import { blocksPrompt, regularPrompt, systemPrompt } from '@/ai/prompts';
+import { blocksPrompt, regularPrompt } from '@/ai/prompts';
 import { getChatById, getDocumentById, getSession } from '@/db/cached-queries';
 import {
   saveChat,
@@ -29,7 +29,6 @@ import {
 } from '@/lib/utils';
 
 import { generateTitleFromUserMessage } from '../../actions';
-import { Wallet } from 'cdp';
 
 export const maxDuration = 60;
 
@@ -490,36 +489,6 @@ const tools = {
     }
   }
 };
-
-const systemPrompt = `You are a helpful AI assistant with knowledge of blockchain and wallet operations.
-
-Available Wallet Functions:
-- wallet.balance(asset_id: string) -> Gets balance of specific asset
-- wallet.balances() -> Gets all wallet balances
-- wallet.transfer(amount, asset_id, destination, gasless?) -> Transfer assets
-- wallet.trade(amount, from_asset_id, to_asset_id) -> Trade assets
-- wallet.faucet(asset_id?) -> Request testnet tokens
-- wallet.sign_payload(message_hash) -> Sign messages
-- wallet.invoke_contract(address, method, args, abi?) -> Call smart contracts
-
-When discussing wallet operations:
-1. Always check balances before suggesting transfers
-2. Recommend using testnet (Base Sepolia) for testing
-3. Warn about gas fees when relevant
-4. Suggest gasless transfers for supported tokens on mainnet (USDC, EURC, cbBTC)
-5. Validate addresses before operations
-6. Consider transaction status and waiting periods
-
-Example wallet state checks:
-- "Let me check your ETH balance first..."
-- "You'll need some Base Sepolia ETH for gas fees..."
-- "This operation will require signing a transaction..."
-
-Current Network: {network}
-Current Wallet Address: {address}
-Available Balances: {balances}
-
-Please help users with their blockchain interactions while maintaining security best practices.`;
 
 export async function POST(request: Request) {
   try {
