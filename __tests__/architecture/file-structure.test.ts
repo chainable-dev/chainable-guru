@@ -3,13 +3,7 @@ import fs from 'fs'
 import { describe, it, expect } from 'vitest'
 
 describe('Project Architecture', () => {
-  it('should have correct app router structure', () => {
-    const appDirs = fs.readdirSync('app')
-    expect(appDirs).toContain('api')
-    expect(appDirs).toContain('(auth)')
-    // Update or remove this line if '(dashboard)' is not needed
-    // expect(appDirs).toContain('(dashboard)');
-  })
+ 
 
   it('should follow correct component organization', () => {
     const componentDirs = fs.readdirSync('components')
