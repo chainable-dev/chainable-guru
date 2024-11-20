@@ -1,4 +1,4 @@
-name: Run Unit Tests
+name: CI
 
 on:
   push:
@@ -19,17 +19,13 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '18'
+        node-version: '18' # Use a supported Node.js version
+
+    - name: Install pnpm
+      run: npm install -g pnpm
 
     - name: Install dependencies
       run: pnpm install
 
-    - name: Run unit tests
-      run: pnpm test:run
-
-    - name: Upload coverage report
-      if: success()
-      uses: actions/upload-artifact@v3
-      with:
-        name: coverage-report
-        path: coverage 
+    - name: Run tests
+      run: pnpm test
