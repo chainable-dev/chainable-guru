@@ -1,7 +1,7 @@
 'use client';
 
 import cx from 'classnames';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Lock, Unlock } from 'lucide-react';
 import React, {
   useRef,
@@ -14,6 +14,7 @@ import React, {
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
+import { RiArrowDownSLine, RiArrowUpSLine } from 'react-icons/ri';
 
 import { useWalletState } from '@/hooks/useWalletState';
 import { createClient } from '@/lib/supabase/client';
@@ -23,6 +24,7 @@ import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
+import { Suggestion } from './suggestion';
 
 import type { Attachment as SupabaseAttachment } from '@/types/supabase';
 import type { Attachment, ChatRequestOptions, CreateMessage, Message } from 'ai';
@@ -128,6 +130,7 @@ export function MultimodalInput({
     isLocked: false,
     lockedSuggestions: suggestedActions
   });
+  const [showSuggestions, setShowSuggestions] = useState(true);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -363,50 +366,18 @@ export function MultimodalInput({
 
   return (
     <div className="relative w-full flex flex-col gap-4">
-      {messages.length === 0 &&
-        attachments.length === 0 &&
-        stagedFiles.length === 0 && (
-          <div className="relative">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute -top-2 -right-2 z-10"
-              onClick={() => setSuggestionsLock(prev => ({
-                ...prev,
-                isLocked: !prev.isLocked
-              }))}
-            >
-              {suggestionsLock.isLocked ? (
-                <Lock className="h-4 w-4" />
-              ) : (
-                <Unlock className="h-4 w-4" />
-              )}
-            </Button>
-            <div className="grid sm:grid-cols-2 gap-2 w-full">
-              {(suggestionsLock.isLocked ? suggestionsLock.lockedSuggestions : suggestedActions).map((suggestedAction, index) => (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 20 }}
-                  transition={{ delay: 0.05 * index }}
-                  key={index}
-                  className={index > 1 ? 'hidden sm:block' : 'block'}
-                >
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleSuggestedAction(suggestedAction.action)}
-                    className="text-left border rounded-xl px-4 py-3.5 text-sm flex-1 gap-1 sm:flex-col w-full h-auto justify-start items-start"
-                  >
-                    <span className="font-medium">{suggestedAction.title}</span>
-                    <span className="text-muted-foreground">
-                      {suggestedAction.label}
-                    </span>
-                  </Button>
-                </motion.div>
-              ))}
-            </div>
-          </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="absolute -top-12 -right-2 z-10 h-8 w-8 p-0 hover:bg-muted/80"
+        onClick={() => setShowSuggestions(!showSuggestions)}
+      >
+        {showSuggestions ? (
+          <RiArrowUpSLine className="h-4 w-4" />
+        ) : (
+          <RiArrowDownSLine className="h-4 w-4" />
         )}
+      </Button>
 
       <input
         type="file"
@@ -452,6 +423,35 @@ export function MultimodalInput({
           ))}
         </div>
       )}
+
+      <AnimatePresence>
+        {showSuggestions && messages.length === 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="grid sm:grid-cols-2 gap-2 w-full overflow-hidden"
+          >
+            {suggestedActions.map((suggestedAction, index) => (
+              <div
+                key={index}
+                className={index > 1 ? 'hidden sm:block' : 'block'}
+              >
+                <Button
+                  variant="ghost"
+                  onClick={() => handleSuggestedAction(suggestedAction.action)}
+                  className="text-left border rounded-xl px-4 py-3.5 text-sm flex-1 gap-1 sm:flex-col w-full h-auto justify-start items-start hover:bg-muted/50"
+                >
+                  <span className="font-medium">{suggestedAction.title}</span>
+                  <span className="text-muted-foreground">
+                    {suggestedAction.label}
+                  </span>
+                </Button>
+              </div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <Textarea
         ref={textareaRef}
