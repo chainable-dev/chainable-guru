@@ -7,8 +7,6 @@ import {
   streamText,
 } from 'ai';
 import { ethers } from 'ethers';
-import { createPublicClient, http, formatEther } from 'viem';
-import { mainnet, baseSepolia, base } from 'viem/chains';
 import { z } from 'zod';
 
 import { customModel } from '@/ai';
@@ -31,6 +29,7 @@ import {
 } from '@/lib/utils';
 
 import { generateTitleFromUserMessage } from '../../actions';
+import { Wallet } from 'cdp';
 
 export const maxDuration = 60;
 
@@ -159,12 +158,6 @@ interface WalletMessageContent {
     type: string;
   }>;
 }
-
-// Add client configuration
-const publicClient = createPublicClient({
-  chain: base,
-  transport: http()
-})
 
 // Update the tools object to properly handle tool results
 const tools = {
@@ -386,45 +379,87 @@ const tools = {
       chainId: number;
     }) => {
       try {
-        // Create a client for the specific chain
-        const client = createPublicClient({
-          chain: chainId === 8453 ? base : 
-                 chainId === 84532 ? baseSepolia :
-                 mainnet,
-          transport: http()
-        })
+        // Validate wallet connection
+        if (!address) {
+          return {
+            type: 'tool-result',
+            result: {
+              error: 'No wallet address provided',
+              details: 'Please connect your wallet first'
+            }
+          };
+        }
 
-        // Get the balance using viem directly
-        const balance = await client.getBalance({
-          address: address as `0x${string}`
-        })
+        // Get RPC URL based on chainId
+        let rpcUrl: string;
+        let networkName: string;
+        
+        switch (chainId) {
+          case 8453: // Base Mainnet
+            rpcUrl = 'https://mainnet.base.org';
+            networkName = 'Base Mainnet';
+            break;
+          case 84532: // Base Sepolia
+            rpcUrl = 'https://sepolia.base.org';
+            networkName = 'Base Sepolia';
+            break;
+          default:
+            return {
+              type: 'tool-result',
+              result: {
+                error: `Unsupported chain ID: ${chainId}`,
+                details: 'Please connect to Base Mainnet or Base Sepolia.'
+              }
+            };
+        }
 
-        return {
-          type: 'tool-result',
-          result: {
-            address,
-            chainId,
-            balance: {
-              formatted: formatEther(balance),
-              value: balance.toString(),
-              symbol: chainId === 8453 || chainId === 84532 ? 'ETH' : 'ETH'
-            },
-            status: 'success',
-            timestamp: new Date().toISOString()
-          }
+        try {
+          const provider = new ethers.JsonRpcProvider(rpcUrl);
+          await provider.getNetwork();
+          const balance = await provider.getBalance(address);
+          
+          const usdcAddress = chainId === 8453
+            ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+            : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+
+          const usdcAbi = ['function balanceOf(address) view returns (uint256)'];
+          const usdcContract = new ethers.Contract(usdcAddress, usdcAbi, provider);
+          const usdcBalance = await usdcContract.balanceOf(address);
+          
+          return {
+            type: 'tool-result',
+            result: {
+              address,
+              network: networkName,
+              chainId,
+              balances: {
+                eth: ethers.formatEther(balance),
+                usdc: (Number(usdcBalance) / 1e6).toString()
+              },
+              timestamp: new Date().toISOString()
+            }
+          };
+        } catch (providerError) {
+          console.error('Provider error:', providerError);
+          return {
+            type: 'tool-result',
+            result: {
+              error: 'Failed to connect to network',
+              details: 'Please check your network connection and try again',
+              chainId,
+              network: networkName
+            }
+          };
         }
       } catch (error) {
+        console.error('Error fetching wallet balance:', error);
         return {
           type: 'tool-result',
           result: {
-            address,
-            chainId,
-            balance: null,
-            status: 'error',
-            error: error instanceof Error ? error.message : 'Unknown error',
-            timestamp: new Date().toISOString()
+            error: 'Failed to fetch wallet balance',
+            details: error instanceof Error ? error.message : 'Unknown error'
           }
-        }
+        };
       }
     }
   },
@@ -455,6 +490,36 @@ const tools = {
     }
   }
 };
+
+const systemPrompt = `You are a helpful AI assistant with knowledge of blockchain and wallet operations.
+
+Available Wallet Functions:
+- wallet.balance(asset_id: string) -> Gets balance of specific asset
+- wallet.balances() -> Gets all wallet balances
+- wallet.transfer(amount, asset_id, destination, gasless?) -> Transfer assets
+- wallet.trade(amount, from_asset_id, to_asset_id) -> Trade assets
+- wallet.faucet(asset_id?) -> Request testnet tokens
+- wallet.sign_payload(message_hash) -> Sign messages
+- wallet.invoke_contract(address, method, args, abi?) -> Call smart contracts
+
+When discussing wallet operations:
+1. Always check balances before suggesting transfers
+2. Recommend using testnet (Base Sepolia) for testing
+3. Warn about gas fees when relevant
+4. Suggest gasless transfers for supported tokens on mainnet (USDC, EURC, cbBTC)
+5. Validate addresses before operations
+6. Consider transaction status and waiting periods
+
+Example wallet state checks:
+- "Let me check your ETH balance first..."
+- "You'll need some Base Sepolia ETH for gas fees..."
+- "This operation will require signing a transaction..."
+
+Current Network: {network}
+Current Wallet Address: {address}
+Available Balances: {balances}
+
+Please help users with their blockchain interactions while maintaining security best practices.`;
 
 export async function POST(request: Request) {
   try {
