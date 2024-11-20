@@ -76,6 +76,20 @@ const weatherTools: AllowedTools[] = ['getWeather'];
 
 const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, 'getWalletBalance', 'checkWalletState'];
 
+const walletSystemPrompt = `You are a helpful AI assistant with knowledge of blockchain and cryptocurrency. You can help users check their wallet balances, verify wallet connections, and provide guidance about Base network operations. When users ask about their wallet, always check their wallet state first using the checkWalletState tool.
+
+For Base network operations:
+- Base Mainnet (Chain ID: 8453)
+- Base Sepolia Testnet (Chain ID: 84532)
+
+You can:
+1. Check wallet connection status
+2. Get wallet balances (ETH and USDC)
+3. Verify network compatibility
+4. Guide users through network switching if needed
+
+Always be security-conscious and remind users to verify transactions carefully.`;
+
 async function getUser() {
   const supabase = await createClient();
   const {
@@ -191,7 +205,7 @@ const tools = {
 
       const { fullStream } = await streamText({
         model: customModel(params.modelId),
-        system: 'Write about the given topic. Markdown is supported. Use headings wherever appropriate.',
+        system: walletSystemPrompt,
         prompt: params.title,
       });
 
@@ -251,7 +265,7 @@ const tools = {
 
       const { fullStream } = await streamText({
         model: customModel(params.modelId),
-        system: 'You are a helpful writing assistant. Based on the description, please update the piece of writing.',
+        system: walletSystemPrompt,
         experimental_providerMetadata: {
           openai: {
             prediction: {
@@ -321,7 +335,7 @@ const tools = {
 
       const { elementStream } = await streamObject({
         model: customModel(params.modelId),
-        system: 'You are a help writing assistant. Given a piece of writing, please offer suggestions to improve the piece of writing and describe the change. It is very important for the edits to contain full sentences instead of just words. Max 5 suggestions.',
+        system: walletSystemPrompt,
         prompt: document.content,
         output: 'array',
         schema: z.object({
