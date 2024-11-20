@@ -1,23 +1,28 @@
 import '@rainbow-me/rainbowkit/styles.css';
-import { getDefaultConfig } from '@rainbow-me/rainbowkit';
+import { getDefaultWallets } from '@rainbow-me/rainbowkit';
 import { http } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
-import { createConfig } from 'wagmi';
+import { createConfig, type Config } from 'wagmi';
 
-// Get project ID from env
+if (!process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID) {
+  throw new Error('Missing NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID');
+}
+
 const projectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID;
-if (!projectId) throw new Error('Missing NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID');
+const supportedChains = [base, baseSepolia] as const;
 
-// Create wagmi config with RainbowKit
-export const config = getDefaultConfig({
-  appName: 'AI Chatbot',
-  projectId,
-  chains: [base, baseSepolia],
-  transports: {
-    [base.id]: http(),
-    [baseSepolia.id]: http(),
-  },
+const { connectors } = getDefaultWallets({
+  appName: 'AI Chat',
+  projectId
 });
 
-// Export the default chain for reference elsewhere
-export const defaultChain = base; 
+export const config = createConfig({
+  chains: supportedChains,
+  transports: {
+    [base.id]: http(),
+    [baseSepolia.id]: http()
+  },
+  connectors
+});
+
+export type WagmiConfig = typeof config; 

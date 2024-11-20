@@ -7,6 +7,8 @@ import {
   streamText,
 } from 'ai';
 import { ethers } from 'ethers';
+import { createPublicClient, http, formatEther } from 'viem';
+import { mainnet, baseSepolia, base } from 'viem/chains';
 import { z } from 'zod';
 
 import { customModel } from '@/ai';
@@ -157,6 +159,12 @@ interface WalletMessageContent {
     type: string;
   }>;
 }
+
+// Add client configuration
+const publicClient = createPublicClient({
+  chain: base,
+  transport: http()
+})
 
 // Update the tools object to properly handle tool results
 const tools = {
@@ -378,87 +386,45 @@ const tools = {
       chainId: number;
     }) => {
       try {
-        // Validate wallet connection
-        if (!address) {
-          return {
-            type: 'tool-result',
-            result: {
-              error: 'No wallet address provided',
-              details: 'Please connect your wallet first'
-            }
-          };
-        }
+        // Create a client for the specific chain
+        const client = createPublicClient({
+          chain: chainId === 8453 ? base : 
+                 chainId === 84532 ? baseSepolia :
+                 mainnet,
+          transport: http()
+        })
 
-        // Get RPC URL based on chainId
-        let rpcUrl: string;
-        let networkName: string;
-        
-        switch (chainId) {
-          case 8453: // Base Mainnet
-            rpcUrl = 'https://mainnet.base.org';
-            networkName = 'Base Mainnet';
-            break;
-          case 84532: // Base Sepolia
-            rpcUrl = 'https://sepolia.base.org';
-            networkName = 'Base Sepolia';
-            break;
-          default:
-            return {
-              type: 'tool-result',
-              result: {
-                error: `Unsupported chain ID: ${chainId}`,
-                details: 'Please connect to Base Mainnet or Base Sepolia.'
-              }
-            };
-        }
+        // Get the balance using viem directly
+        const balance = await client.getBalance({
+          address: address as `0x${string}`
+        })
 
-        try {
-          const provider = new ethers.JsonRpcProvider(rpcUrl);
-          await provider.getNetwork();
-          const balance = await provider.getBalance(address);
-          
-          const usdcAddress = chainId === 8453
-            ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-            : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
-
-          const usdcAbi = ['function balanceOf(address) view returns (uint256)'];
-          const usdcContract = new ethers.Contract(usdcAddress, usdcAbi, provider);
-          const usdcBalance = await usdcContract.balanceOf(address);
-          
-          return {
-            type: 'tool-result',
-            result: {
-              address,
-              network: networkName,
-              chainId,
-              balances: {
-                eth: ethers.formatEther(balance),
-                usdc: (Number(usdcBalance) / 1e6).toString()
-              },
-              timestamp: new Date().toISOString()
-            }
-          };
-        } catch (providerError) {
-          console.error('Provider error:', providerError);
-          return {
-            type: 'tool-result',
-            result: {
-              error: 'Failed to connect to network',
-              details: 'Please check your network connection and try again',
-              chainId,
-              network: networkName
-            }
-          };
-        }
-      } catch (error) {
-        console.error('Error fetching wallet balance:', error);
         return {
           type: 'tool-result',
           result: {
-            error: 'Failed to fetch wallet balance',
-            details: error instanceof Error ? error.message : 'Unknown error'
+            address,
+            chainId,
+            balance: {
+              formatted: formatEther(balance),
+              value: balance.toString(),
+              symbol: chainId === 8453 || chainId === 84532 ? 'ETH' : 'ETH'
+            },
+            status: 'success',
+            timestamp: new Date().toISOString()
           }
-        };
+        }
+      } catch (error) {
+        return {
+          type: 'tool-result',
+          result: {
+            address,
+            chainId,
+            balance: null,
+            status: 'error',
+            error: error instanceof Error ? error.message : 'Unknown error',
+            timestamp: new Date().toISOString()
+          }
+        }
       }
     }
   },
