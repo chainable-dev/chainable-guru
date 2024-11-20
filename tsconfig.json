@@ -19,21 +19,34 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./src/*"],
+      "@tests/*": ["./__tests__/*"]
     },
     "types": [
       "node",
       "@types/react",
       "@types/react-dom",
-      "vitest"
+      "vitest",
+      "vitest/globals",
+      "@testing-library/jest-dom"
     ]
   },
   "include": [
-    "next-env.d.ts",
+    "src",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    "next.config.js"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "__tests__",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "vitest.config.ts",
+    "vitest.setup.ts",
+    ".next",
+    "coverage",
+    "dist"
+  ]
 }
