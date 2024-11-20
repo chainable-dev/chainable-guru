@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import Link from 'next/link';
-
-import { MessageIcon, SupabaseIcon, VercelIcon } from './icons';
 
 export const Overview = () => {
   return (
@@ -14,55 +13,39 @@ export const Overview = () => {
       transition={{ delay: 0.5 }}
     >
       <div className="rounded-xl p-6 flex flex-col gap-8 leading-relaxed text-center max-w-xl">
-        <p className="flex flex-row justify-center gap-4 items-center">
-          <VercelIcon size={32} />
-          <span>+</span>
-          <SupabaseIcon />
-          <span>+</span>
-          <MessageIcon size={32} />
+        <div className="flex flex-row justify-center gap-4 items-center">
+          <Image 
+            src="/logos/favi.ico"
+            alt="App Logo"
+            width={40}
+            height={40}
+          />
+        </div>
+        <p>
+          Welcome to Chainable - bridging the gap between Web3 and AI. Our platform
+          represents the next evolution in blockchain interaction, where complex
+          crypto operations become as intuitive as having a conversation.
         </p>
         <p>
-          This is an{' '}
-          <Link
-            className="font-medium underline underline-offset-4"
-            href="https://github.com/vercel/ai-chatbot"
-            target="_blank"
-          >
-            open source
-          </Link>{' '}
-          chatbot template built with Next.js, the AI SDK by Vercel, and
-          Supabase. It uses the{' '}
-          <code className="rounded-md bg-muted px-1 py-0.5">streamText</code>{' '}
-          function in the server and the{' '}
-          <code className="rounded-md bg-muted px-1 py-0.5">useChat</code> hook
-          on the client to create a seamless chat experience, with{' '}
-          <Link
-            className="font-medium underline underline-offset-4"
-            href="https://supabase.com"
-            target="_blank"
-          >
-            Supabase
-          </Link>{' '}
-          providing real-time data storage and authentication.
+          Built with Next.js and powered by advanced AI capabilities, Chainable seamlessly
+          integrates natural language processing with blockchain technology. Our mission
+          is to make Web3 accessible to everyone by translating technical blockchain
+          operations into simple, conversational commands. Whether you&apos;re managing
+          wallets, executing trades, or deploying smart contracts, our AI assistant
+          guides you through each step.
         </p>
         <p>
-          Learn more about the{' '}
+          Join us at{' '}
           <Link
             className="font-medium underline underline-offset-4"
-            href="https://sdk.vercel.ai/docs"
+            href="https://chainable.co"
             target="_blank"
           >
-            AI SDK
+            Chainable
           </Link>{' '}
-          and{' '}
-          <Link
-            className="font-medium underline underline-offset-4"
-            href="https://supabase.com/docs"
-            target="_blank"
-          >
-            Supabase
-          </Link>{' '}
-          in their respective documentation.
+          as we reshape the future of Web3 interaction. Experience how AI can transform
+          blockchain complexity into conversational simplicity, making crypto
+          accessible for both newcomers and experienced users alike.
         </p>
       </div>
     </motion.div>

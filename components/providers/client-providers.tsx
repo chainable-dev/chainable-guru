@@ -15,15 +15,14 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider
           appInfo={{
-            appName: 'Chatbot',
-            learnMoreUrl: 'https://chatbot.com',
+            appName: 'Chainable',
+            learnMoreUrl: 'https://chainable.ai',
           }}
           theme={darkTheme({
-            accentColor: '#ff79c6',
-            accentColorForeground: '#282a36',
+            accentColor: '#3EB8B3', // Primary teal color
+            accentColorForeground: '#FFFFFF', // High contrast white
             borderRadius: 'small',
-            fontStack: 'system',
-            overlayBlur: 'small',
+            fontStack: 'rounded', // Brand font
           })}
         >
           {children}
@@ -31,4 +30,4 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
       </QueryClientProvider>
     </WagmiProvider>
   );
-} 
+}

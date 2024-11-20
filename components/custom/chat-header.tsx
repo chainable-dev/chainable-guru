@@ -12,6 +12,7 @@ import { BetterTooltip } from '@/components/ui/tooltip';
 
 import { PlusIcon } from './icons';
 import { useSidebar } from '../ui/sidebar';
+import Image from 'next/image';
 
 export function ChatHeader({ selectedModelId }: { selectedModelId: string }) {
   const router = useRouter();
@@ -50,6 +51,7 @@ export function ChatHeader({ selectedModelId }: { selectedModelId: string }) {
           }}
         />
       </div>
+      <h1>Welcome to AI Chat</h1>
     </header>
   );
 }

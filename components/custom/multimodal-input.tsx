@@ -2,7 +2,7 @@
 
 import cx from 'classnames';
 import { motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X, Lock, Unlock } from 'lucide-react';
 import React, {
   useRef,
   useEffect,
@@ -38,13 +38,33 @@ const suggestedActions = [
     label: 'about Silicon Valley',
     action: 'Help me draft a short essay about Silicon Valley',
   },
-  //balance of my connected crypto wallet base chain and the wallet ath tis connected 
   {
-    title: 'What is the balance of my  crypto wallet?',
-    label: '',
+    title: 'Check my wallet balance',
+    label: 'on Base chain',
     action: 'Using the information from my connected crypto wallet, what is the balance of my wallet?',
   },
+  {
+    title: 'Deploy a smart contract',
+    label: 'on Base Sepolia',
+    action: 'Help me deploy a basic ERC20 token smart contract on Base Sepolia testnet',
+  },
+  {
+    title: 'Analyze my NFTs', 
+    label: 'in my wallet',
+    action: 'Show me all NFTs in my connected wallet and analyze their rarity',
+  },
+  {
+    title: 'Track gas prices',
+    label: 'on Base',
+    action: 'What are the current gas prices on Base network and when is the best time to transact?',
+  }
 ];
+
+// Add type for suggestions lock state
+type SuggestionsLockState = {
+  isLocked: boolean;
+  lockedSuggestions: typeof suggestedActions;
+};
 
 // Add type for temp attachments
 type TempAttachment = {
@@ -104,6 +124,10 @@ export function MultimodalInput({
 
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
+  const [suggestionsLock, setSuggestionsLock] = useLocalStorage<SuggestionsLockState>('suggestions-lock', {
+    isLocked: false,
+    lockedSuggestions: suggestedActions
+  });
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -342,28 +366,45 @@ export function MultimodalInput({
       {messages.length === 0 &&
         attachments.length === 0 &&
         stagedFiles.length === 0 && (
-          <div className="grid sm:grid-cols-2 gap-2 w-full">
-            {suggestedActions.map((suggestedAction, index) => (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ delay: 0.05 * index }}
-                key={index}
-                className={index > 1 ? 'hidden sm:block' : 'block'}
-              >
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSuggestedAction(suggestedAction.action)}
-                  className="text-left border rounded-xl px-4 py-3.5 text-sm flex-1 gap-1 sm:flex-col w-full h-auto justify-start items-start"
+          <div className="relative">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute -top-2 -right-2 z-10"
+              onClick={() => setSuggestionsLock(prev => ({
+                ...prev,
+                isLocked: !prev.isLocked
+              }))}
+            >
+              {suggestionsLock.isLocked ? (
+                <Lock className="h-4 w-4" />
+              ) : (
+                <Unlock className="h-4 w-4" />
+              )}
+            </Button>
+            <div className="grid sm:grid-cols-2 gap-2 w-full">
+              {(suggestionsLock.isLocked ? suggestionsLock.lockedSuggestions : suggestedActions).map((suggestedAction, index) => (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 20 }}
+                  transition={{ delay: 0.05 * index }}
+                  key={index}
+                  className={index > 1 ? 'hidden sm:block' : 'block'}
                 >
-                  <span className="font-medium">{suggestedAction.title}</span>
-                  <span className="text-muted-foreground">
-                    {suggestedAction.label}
-                  </span>
-                </Button>
-              </motion.div>
-            ))}
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSuggestedAction(suggestedAction.action)}
+                    className="text-left border rounded-xl px-4 py-3.5 text-sm flex-1 gap-1 sm:flex-col w-full h-auto justify-start items-start"
+                  >
+                    <span className="font-medium">{suggestedAction.title}</span>
+                    <span className="text-muted-foreground">
+                      {suggestedAction.label}
+                    </span>
+                  </Button>
+                </motion.div>
+              ))}
+            </div>
           </div>
         )}
 
