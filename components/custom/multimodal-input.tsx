@@ -2,7 +2,7 @@
 
 import cx from 'classnames';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Lock, Unlock } from 'lucide-react';
+import { X, Lock, Unlock, Wallet } from 'lucide-react';
 import React, {
   useRef,
   useEffect,
@@ -15,6 +15,8 @@ import React, {
 import { RiArrowDownSLine, RiArrowUpSLine } from 'react-icons/ri';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
+import { useWallet } from '@/hooks/useWallet'
+import { Wallet } from 'lucide-react'
 
 import { useWalletState } from '@/hooks/useWalletState';
 import { createClient } from '@/lib/supabase/client';
@@ -131,6 +133,13 @@ export function MultimodalInput({
     lockedSuggestions: suggestedActions
   });
   const [showSuggestions, setShowSuggestions] = useState(true);
+
+  const {
+    isConnected: walletIsConnected,
+    truncatedAddress,
+    isWrongNetwork,
+    chain
+  } = useWallet()
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -452,6 +461,33 @@ export function MultimodalInput({
           </motion.div>
         )}
       </AnimatePresence>
+
+      <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-lg text-sm">
+          <div className={cx(
+            "h-2 w-2 rounded-full",
+            walletIsConnected ? "bg-green-500" : "bg-red-500"
+          )} />
+          <Wallet className="h-4 w-4" />
+          <span className="text-muted-foreground">
+            {walletIsConnected ? (
+              <>
+                {truncatedAddress}
+                {isWrongNetwork && (
+                  <span className="ml-2 text-destructive">
+                    ⚠️ Wrong Network
+                  </span>
+                )}
+                <span className="ml-2 text-muted-foreground">
+                  ({chain?.name})
+                </span>
+              </>
+            ) : (
+              'Not Connected'
+            )}
+          </span>
+        </div>
+      </div>
 
       <Textarea
         ref={textareaRef}
