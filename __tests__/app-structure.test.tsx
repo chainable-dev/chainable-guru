@@ -2,11 +2,17 @@ import fs from 'fs';
 import path from 'path';
 
 import { describe, it, expect } from 'vitest';
+import { cleanup } from '@testing-library/react';
+import '@__tests__/setup';
 
 describe('Next.js App Router Structure', () => {
-  const srcDir = path.join(process.cwd(), 'src');
-  const appDir = path.join(srcDir, 'app');
-  const componentsDir = path.join(srcDir, 'components');
+  afterEach(() => {
+    cleanup();
+  });
+
+  const rootDir = process.cwd();
+  const componentsDir = path.join(rootDir, 'components');
+  const appDir = path.join(rootDir, 'app');
 
   it('has correct directory structure', () => {
     // Check app directory exists
@@ -28,7 +34,7 @@ describe('Next.js App Router Structure', () => {
   });
 
   it('does not use pages directory', () => {
-    const pagesDir = path.join(srcDir, 'pages');
+    const pagesDir = path.join(rootDir, 'pages');
     expect(fs.existsSync(pagesDir)).toBe(false);
   });
 }); 

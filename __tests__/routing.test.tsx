@@ -2,8 +2,14 @@ import fs from 'fs';
 import path from 'path';
 
 import { describe, it, expect } from 'vitest';
+import { cleanup } from '@testing-library/react';
+import '@__tests__/setup';
 
 describe('Next.js Routing', () => {
+  afterEach(() => {
+    cleanup();
+  });
+
   const appDir = path.join(process.cwd(), 'app');
   
   it('uses kebab-case for static routes', () => {
@@ -11,11 +17,10 @@ describe('Next.js Routing', () => {
       .filter(dirent => dirent.isDirectory())
       .map(dirent => dirent.name);
 
-    // Check if any non-dynamic routes use kebab-case
     const staticRoutes = dirs.filter(dir => 
-      !dir.startsWith('[') && // not dynamic
-      !dir.startsWith('(') && // not route group
-      !dir.startsWith('_')    // not private
+      !dir.startsWith('[') && 
+      !dir.startsWith('(') && 
+      !dir.startsWith('_')    
     );
     
     staticRoutes.forEach(route => {
@@ -28,10 +33,12 @@ describe('Next.js Routing', () => {
       .filter(dirent => dirent.isDirectory())
       .map(dirent => dirent.name);
 
-    // Check if dynamic routes use PascalCase
-    const dynamicRoutes = dirs.filter(dir => dir.startsWith('[') && dir.endsWith(']'));
+    const dynamicRoutes = dirs.filter(dir => 
+      dir.startsWith('[') && dir.endsWith(']')
+    );
+    
     dynamicRoutes.forEach(route => {
-      const segment = route.slice(1, -1); // Remove [ and ]
+      const segment = route.slice(1, -1);
       expect(segment).toMatch(/^[A-Z][a-zA-Z0-9]*$/);
     });
   });
@@ -41,9 +48,12 @@ describe('Next.js Routing', () => {
       .filter(dirent => dirent.isDirectory())
       .map(dirent => dirent.name);
 
-    const routeGroups = dirs.filter(dir => dir.startsWith('(') && dir.endsWith(')'));
+    const routeGroups = dirs.filter(dir => 
+      dir.startsWith('(') && dir.endsWith(')')
+    );
+    
     routeGroups.forEach(group => {
-      const groupName = group.slice(1, -1); // Remove ( and )
+      const groupName = group.slice(1, -1);
       expect(groupName).toMatch(/^[a-zA-Z][a-zA-Z0-9-_]*$/);
     });
   });

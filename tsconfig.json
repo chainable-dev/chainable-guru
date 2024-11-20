@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@__tests__/*": ["./__tests__/*"]
     },
     "types": [
       "node",
@@ -31,7 +32,8 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "next.config.js"
+    "next.config.js",
+    "__tests__/**/*"
   ],
   "exclude": ["node_modules"]
 }
