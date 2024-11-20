@@ -603,7 +603,7 @@ export async function POST(request: Request) {
       // Process the message with AI
       const result = await streamText({
         model: customModel(model.apiIdentifier),
-        system: systemPrompt,
+        system: walletSystemPrompt,
         messages: messagesWithContext,
         maxSteps: 5,
         experimental_activeTools: allTools,
