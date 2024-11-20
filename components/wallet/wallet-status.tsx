@@ -1,8 +1,9 @@
 'use client'
 
+import '@rainbow-me/rainbowkit/styles.css'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useEffect } from 'react'
 import { toast } from 'sonner'
-import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount, useChainId } from 'wagmi'
 
 export function WalletStatus() {
@@ -28,5 +29,9 @@ export function WalletStatus() {
     }
   }, [isConnected, chainId])
 
-  return <ConnectButton />
+  return (
+    <div className="fixed top-4 right-4 z-50">
+      <ConnectButton />
+    </div>
+  )
 } 
