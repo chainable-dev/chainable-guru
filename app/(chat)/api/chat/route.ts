@@ -402,34 +402,17 @@ const tools = {
           
           const usdcAddress = chainId === 8453
             ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' 
-        if (!isCorrectNetwork) {
-          return {
-            type: 'tool-result',
-            result: {
-              error: 'Unsupported network',
-              details: 'Please connect to Base Mainnet or Base Sepolia'
-            }
-          };
-        }
-
-        try {
-          // Use walletClient from useWalletState for balance checks
-          const { walletClient } = useWalletState();
-          const balance = await walletClient.getBalance({ address });
-          
-          const usdcAddress = chainId === 8453
-            ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' 
             : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
 
           const usdcAbi = ['function balanceOf(address) view returns (uint256)'];
-          const usdcContract = new ethers.Contract(usdcAddress, usdcAbi);
-          const usdcBalance = await usdcContract.read.balanceOf([address]);
+          const usdcContract = new ethers.Contract(usdcAddress, usdcAbi, provider);
+          const usdcBalance = await usdcContract.balanceOf(address);
 
           return {
             type: 'tool-result',
             result: {
               address,
-              network: networkInfo?.name,
+              network: chainId === 8453 ? 'Base Mainnet' : 'Base Sepolia',
               chainId,
               balances: {
                 eth: ethers.formatEther(balance),
@@ -446,7 +429,7 @@ const tools = {
               error: 'Failed to fetch balances',
               details: error instanceof Error ? error.message : 'Unknown error',
               chainId,
-              network: networkInfo?.name
+              network: chainId === 8453 ? 'Base Mainnet' : 'Base Sepolia'
             }
           };
         }
