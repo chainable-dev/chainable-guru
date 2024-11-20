@@ -16,23 +16,24 @@ export const Overview = () => {
         <div className="flex flex-row justify-center gap-4 items-center">
           <Image 
             src="/logos/favi.ico"
-            alt="App Logo"
+            alt="Elron - The AI Blockchain Assistant"
             width={40}
             height={40}
           />
+          <h2 className="text-xl font-semibold">Elron</h2>
         </div>
         <p>
-          Welcome to Chainable - bridging the gap between Web3 and AI. Our platform
-          represents the next evolution in blockchain interaction, where complex
-          crypto operations become as intuitive as having a conversation.
+          Welcome to Chainable - bridging the gap between Web3 and AI. Meet Elron, our
+          AI assistant who makes complex crypto operations as intuitive as having a
+          conversation.
         </p>
         <p>
-          Built with Next.js and powered by advanced AI capabilities, Chainable seamlessly
+          Built with Next.js and powered by advanced AI capabilities, Elron seamlessly
           integrates natural language processing with blockchain technology. Our mission
           is to make Web3 accessible to everyone by translating technical blockchain
           operations into simple, conversational commands. Whether you&apos;re managing
-          wallets, executing trades, or deploying smart contracts, our AI assistant
-          guides you through each step.
+          wallets, executing trades, or deploying smart contracts, Elron guides you
+          through each step.
         </p>
         <p>
           Join us at{' '}

@@ -1,6 +1,7 @@
 'use client';
 
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useWindowSize } from 'usehooks-ts';
@@ -12,7 +13,6 @@ import { BetterTooltip } from '@/components/ui/tooltip';
 
 import { PlusIcon } from './icons';
 import { useSidebar } from '../ui/sidebar';
-import Image from 'next/image';
 
 export function ChatHeader({ selectedModelId }: { selectedModelId: string }) {
   const router = useRouter();

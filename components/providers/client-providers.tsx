@@ -15,14 +15,15 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider
           appInfo={{
-            appName: 'Chainable',
-            learnMoreUrl: 'https://chainable.ai',
+            appName: 'Chatbot',
+            learnMoreUrl: 'https://chatbot.com',
           }}
           theme={darkTheme({
-            accentColor: '#3EB8B3', // Primary teal color
-            accentColorForeground: '#FFFFFF', // High contrast white
+            accentColor: '#ff79c6',
+            accentColorForeground: '#282a36',
             borderRadius: 'small',
-            fontStack: 'rounded', // Brand font
+            fontStack: 'system',
+            overlayBlur: 'small',
           })}
         >
           {children}
