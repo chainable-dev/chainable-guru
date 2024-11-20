@@ -1,0 +1,73 @@
+name: Run Tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          run_install: false
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Cache pnpm dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Run tests
+        run: pnpm test:coverage
+        env:
+          CI: true
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Check file structure
+        run: |
+          if [ -d "pages" ]; then
+            echo "Error: pages directory found. Please use app directory instead."
+            exit 1
+          fi
+          
+          if [ ! -d "app" ]; then
+            echo "Error: app directory not found. Please create app directory."
+            exit 1
+          fi
+          
+          if [ ! -f "app/layout.tsx" ]; then
+            echo "Error: app/layout.tsx not found."
+            exit 1
+          fi
+          
+          if [ ! -f "app/page.tsx" ]; then
+            echo "Error: app/page.tsx not found."
+            exit 1
+          fi 
