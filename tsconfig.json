@@ -66,6 +66,7 @@
     ".next",
     "coverage",
     "dist",
-    "__test__"
+    "__test__",
+    "**/__tests__/**"
   ]
 }
