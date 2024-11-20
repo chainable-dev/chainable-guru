@@ -15,6 +15,7 @@ import React, {
 import { RiArrowDownSLine, RiArrowUpSLine } from 'react-icons/ri';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
+
 import { useWalletState } from '@/hooks/useWalletState';
 import { createClient } from '@/lib/supabase/client';
 import { sanitizeUIMessages } from '@/lib/utils';
@@ -460,7 +461,7 @@ export function MultimodalInput({
             "h-2 w-2 rounded-full",
             isConnected ? "bg-green-500" : "bg-red-500"
           )} />
-          <WalletIcon className="h-4 w-4" />
+          <WalletIcon className="size-4" />
           <span className="text-muted-foreground">
             {isConnected ? (
               <>
