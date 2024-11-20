@@ -1,10 +1,12 @@
-import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
 
+import { describe, it, expect } from 'vitest';
+
 describe('Next.js App Router Structure', () => {
-  const appDir = path.join(process.cwd(), 'app');
-  const componentsDir = path.join(process.cwd(), 'components');
+  const srcDir = path.join(process.cwd(), 'src');
+  const appDir = path.join(srcDir, 'app');
+  const componentsDir = path.join(srcDir, 'components');
 
   it('has correct directory structure', () => {
     // Check app directory exists
@@ -18,17 +20,15 @@ describe('Next.js App Router Structure', () => {
 
   it('follows Next.js app router conventions', () => {
     // Check for required app router files
-    const layoutExists = fs.existsSync(path.join(appDir, 'layout.tsx')) || 
-                        fs.existsSync(path.join(appDir, 'layout.js'));
-    const pageExists = fs.existsSync(path.join(appDir, 'page.tsx')) || 
-                      fs.existsSync(path.join(appDir, 'page.js'));
+    const layoutExists = fs.existsSync(path.join(appDir, 'layout.tsx'));
+    const pageExists = fs.existsSync(path.join(appDir, 'page.tsx'));
                       
     expect(layoutExists).toBe(true);
     expect(pageExists).toBe(true);
   });
 
   it('does not use pages directory', () => {
-    const pagesDir = path.join(process.cwd(), 'pages');
+    const pagesDir = path.join(srcDir, 'pages');
     expect(fs.existsSync(pagesDir)).toBe(false);
   });
 }); 

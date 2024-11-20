@@ -12,9 +12,9 @@ import React, {
   SetStateAction,
   ChangeEvent,
 } from 'react';
+import { RiArrowDownSLine, RiArrowUpSLine } from 'react-icons/ri';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
-import { RiArrowDownSLine, RiArrowUpSLine } from 'react-icons/ri';
 
 import { useWalletState } from '@/hooks/useWalletState';
 import { createClient } from '@/lib/supabase/client';
@@ -22,9 +22,9 @@ import { sanitizeUIMessages } from '@/lib/utils';
 
 import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
+import { Suggestion } from './suggestion';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
-import { Suggestion } from './suggestion';
 
 import type { Attachment as SupabaseAttachment } from '@/types/supabase';
 import type { Attachment, ChatRequestOptions, CreateMessage, Message } from 'ai';
@@ -369,13 +369,13 @@ export function MultimodalInput({
       <Button
         variant="ghost"
         size="sm"
-        className="absolute -top-2 right-0 z-10 h-8 w-8 p-0 hover:bg-muted/80"
+        className="absolute -top-2 right-0 z-10 size-8 p-0 hover:bg-muted/80"
         onClick={() => setShowSuggestions(!showSuggestions)}
       >
         {showSuggestions ? (
-          <RiArrowUpSLine className="h-4 w-4" />
+          <RiArrowUpSLine className="size-4" />
         ) : (
-          <RiArrowDownSLine className="h-4 w-4" />
+          <RiArrowDownSLine className="size-4" />
         )}
       </Button>
 

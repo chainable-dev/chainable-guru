@@ -1,6 +1,7 @@
-import { describe, it, expect } from 'vitest';
 import fs from 'fs';
 import path from 'path';
+
+import { describe, it, expect } from 'vitest';
 
 describe('Next.js Routing', () => {
   const appDir = path.join(process.cwd(), 'app');

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useState } from 'react';
 import { RiArrowDownSLine, RiArrowUpSLine, RiMessage2Line, RiCloseLine } from 'react-icons/ri';
 import { useWindowSize } from 'usehooks-ts';
 
 import { UISuggestion } from '@/lib/editor/suggestions';
+
 import { Button } from '../ui/button';
 import { TooltipProvider, Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 

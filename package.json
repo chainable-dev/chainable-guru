@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.60",
+    "@geist-ui/core": "^2.3.8",
     "@radix-ui/react-alert-dialog": "^1.1.2",
     "@radix-ui/react-dialog": "^1.1.2",
     "@radix-ui/react-dropdown-menu": "^2.1.2",
@@ -69,8 +70,8 @@
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
     "usehooks-ts": "^3.1.0",
-    "viem": "^2.21.48",
-    "wagmi": "^2.12.33",
+    "viem": "^2.21.0",
+    "wagmi": "^2.5.7",
     "zod": "^3.23.8"
   },
   "devDependencies": {
