@@ -3,38 +3,34 @@ import { useWalletState } from '../../hooks/useWalletState';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-interface WalletComponentProps {
-    walletId: string;
-}
-
-function WalletComponent({ walletId }: WalletComponentProps) {
-    const { walletState, updateState, clearState } = useWalletState(walletId);
+function WalletComponent({ walletId }) {
+    const { isConnected, lastAccount, updateState, clearState } = useWalletState(walletId);
 
     const handleConnect = async () => {
         const newState = {
-            address: '0x34D8cd259f248A7Ca8669Ad8A76Dc6226aD17414',
+            address: lastAccount || '0xDefaultAddress',
             chainId: 8453,
             network: 'Base Mainnet',
             isConnected: true,
             networkInfo: 'Base Mainnet',
             isCorrectNetwork: true,
+            connectionStatus: 'connected',
         };
         await updateState(newState);
-        toast.success('Wallet connected successfully!');
+        toast.success(`Wallet connected successfully! Last account: ${lastAccount}`);
     };
 
     const handleDisconnect = async () => {
         await clearState();
-        toast.success('Wallet disconnected successfully!');
+        toast.warning(`Wallet disconnected. Last account was: ${lastAccount}`);
     };
 
     return (
         <div>
             <h1>Wallet</h1>
-            {walletState ? (
+            {isConnected ? (
                 <div>
-                    <p>Connected: {walletState.address}</p>
-                    <p>Network: {walletState.network}</p>
+                    <p>Connected: {lastAccount}</p>
                     <button onClick={handleDisconnect}>Disconnect</button>
                 </div>
             ) : (

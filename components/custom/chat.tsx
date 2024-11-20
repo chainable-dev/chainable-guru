@@ -6,6 +6,7 @@ import { KeyboardIcon } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useWindowSize } from 'usehooks-ts';
+import { useAccount } from 'wagmi';
 
 import { ChatHeader } from '@/components/custom/chat-header';
 import { PreviewMessage, ThinkingMessage } from '@/components/custom/message';
@@ -34,6 +35,7 @@ export function Chat({
   selectedModelId: string;
 }) {
   const { mutate } = useSWRConfig();
+  const { address } = useAccount();
 
   const {
     messages,
@@ -155,6 +157,7 @@ export function Chat({
             messages={messages}
             setMessages={setMessages}
             append={append}
+            walletId={address}
           />
         </form>
       </div>
@@ -176,6 +179,7 @@ export function Chat({
             messages={messages}
             setMessages={setMessages}
             votes={votes}
+            walletId={address}
           />
         )}
       </AnimatePresence>

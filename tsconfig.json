@@ -1,72 +1,45 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "esnext",
+    "module": "commonjs",
+    "jsx": "preserve",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "*"
+      ]
+    },
+    "types": [
+      "@types/testing-library__jest-dom"
+    ],
     "lib": [
       "dom",
       "dom.iterable",
       "esnext"
     ],
     "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
     "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
+    "incremental": true,
+    "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
     "plugins": [
       {
         "name": "next"
       }
-    ],
-    "paths": {
-      "@/*": [
-        "./*"
-      ],
-      "@/components/*": [
-        "./components/*"
-      ],
-      "@/lib/*": [
-        "./lib/*"
-      ],
-      "@/hooks/*": [
-        "./hooks/*"
-      ],
-      "@/utils/*": [
-        "./utils/*"
-      ],
-      "@/types/*": [
-        "./types/*"
-      ],
-      "@/tests/*": [
-        "./__tests__/*"
-      ]
-    },
-    "types": [
-      "node",
-      "@types/react",
-      "@types/react-dom",
-      "@testing-library/jest-dom",
-      "vitest/importMeta",
-      "vitest/globals"
     ]
   },
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    ".",
-    "__tests__/**/*",
     ".next/types/**/*.ts"
   ],
   "exclude": [
     "node_modules",
-    ".next",
-    "coverage",
-    "dist",
-    "__test__",
-    "**/__tests__/**"
+    "build"
   ]
 }
