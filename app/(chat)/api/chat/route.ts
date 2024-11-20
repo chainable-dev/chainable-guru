@@ -392,28 +392,25 @@ const tools = {
           };
         }
 
-        // Get RPC URL based on chainId
-        let rpcUrl: string;
-        let networkName: string;
-        
-        switch (chainId) {
-          case 8453: // Base Mainnet
-            rpcUrl = 'https://mainnet.base.org';
-            networkName = 'Base Mainnet';
-            break;
-          case 84532: // Base Sepolia
-            rpcUrl = 'https://sepolia.base.org';
-            networkName = 'Base Sepolia';
-            break;
-          default:
-            return {
-              type: 'tool-result',
-              result: {
-                error: `Unsupported chain ID: ${chainId}`,
-                details: 'Please connect to Base Mainnet or Base Sepolia.'
-              }
-            };
+        // Get network info
+        const networkInfo = {
+          name: chainId === 8453 ? 'Base Mainnet' : 
+                chainId === 84532 ? 'Base Sepolia' : 
+                'Unsupported Network',
+          isSupported: [8453, 84532].includes(chainId)
+        };
+
+        if (!networkInfo.isSupported) {
+          return {
+            type: 'tool-result',
+            result: {
+              error: `Unsupported chain ID: ${chainId}`,
+              details: 'Please connect to Base Mainnet or Base Sepolia.'
+            }
+          };
         }
+
+        const rpcUrl = chainId === 8453 ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
 
         try {
           const provider = new ethers.JsonRpcProvider(rpcUrl);
@@ -432,7 +429,7 @@ const tools = {
             type: 'tool-result',
             result: {
               address,
-              network: networkName,
+              network: networkInfo.name,
               chainId,
               balances: {
                 eth: ethers.formatEther(balance),
@@ -449,7 +446,7 @@ const tools = {
               error: 'Failed to connect to network',
               details: 'Please check your network connection and try again',
               chainId,
-              network: networkName
+              network: networkInfo.name
             }
           };
         }
@@ -498,7 +495,6 @@ const tools = {
       chainId: z.number().optional().describe('The chain ID of the network')
     }),
     execute: async ({ address, chainId }: WalletStateParams) => {
-      // Use the wallet state from context
       if (!address || !chainId) {
         return {
           type: 'tool-result',
