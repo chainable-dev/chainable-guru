@@ -369,7 +369,7 @@ export function MultimodalInput({
       <Button
         variant="ghost"
         size="sm"
-        className="absolute -top-12 -right-2 z-10 h-8 w-8 p-0 hover:bg-muted/80"
+        className="absolute -top-2 right-0 z-10 h-8 w-8 p-0 hover:bg-muted/80"
         onClick={() => setShowSuggestions(!showSuggestions)}
       >
         {showSuggestions ? (
