@@ -7,13 +7,11 @@ import {
   streamText,
 } from 'ai';
 import { ethers } from 'ethers';
-import { createPublicClient, http, formatEther } from 'viem';
-import { mainnet, baseSepolia, base } from 'viem/chains';
 import { z } from 'zod';
 
 import { customModel } from '@/ai';
 import { models } from '@/ai/models';
-import { blocksPrompt, regularPrompt, systemPrompt } from '@/ai/prompts';
+import { blocksPrompt, regularPrompt } from '@/ai/prompts';
 import { getChatById, getDocumentById, getSession } from '@/db/cached-queries';
 import {
   saveChat,
@@ -77,6 +75,20 @@ const blocksTools: AllowedTools[] = [
 const weatherTools: AllowedTools[] = ['getWeather'];
 
 const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, 'getWalletBalance', 'checkWalletState'];
+
+const walletSystemPrompt = `You are a helpful AI assistant with knowledge of blockchain and cryptocurrency. You can help users check their wallet balances, verify wallet connections, and provide guidance about Base network operations. When users ask about their wallet, always check their wallet state first using the checkWalletState tool.
+
+For Base network operations:
+- Base Mainnet (Chain ID: 8453)
+- Base Sepolia Testnet (Chain ID: 84532)
+
+You can:
+1. Check wallet connection status
+2. Get wallet balances (ETH and USDC)
+3. Verify network compatibility
+4. Guide users through network switching if needed
+
+Always be security-conscious and remind users to verify transactions carefully.`;
 
 async function getUser() {
   const supabase = await createClient();
@@ -160,12 +172,6 @@ interface WalletMessageContent {
   }>;
 }
 
-// Add client configuration
-const publicClient = createPublicClient({
-  chain: base,
-  transport: http()
-})
-
 // Update the tools object to properly handle tool results
 const tools = {
   getWeather: {
@@ -199,7 +205,7 @@ const tools = {
 
       const { fullStream } = await streamText({
         model: customModel(params.modelId),
-        system: 'Write about the given topic. Markdown is supported. Use headings wherever appropriate.',
+        system: walletSystemPrompt,
         prompt: params.title,
       });
 
@@ -259,7 +265,7 @@ const tools = {
 
       const { fullStream } = await streamText({
         model: customModel(params.modelId),
-        system: 'You are a helpful writing assistant. Based on the description, please update the piece of writing.',
+        system: walletSystemPrompt,
         experimental_providerMetadata: {
           openai: {
             prediction: {
@@ -329,7 +335,7 @@ const tools = {
 
       const { elementStream } = await streamObject({
         model: customModel(params.modelId),
-        system: 'You are a help writing assistant. Given a piece of writing, please offer suggestions to improve the piece of writing and describe the change. It is very important for the edits to contain full sentences instead of just words. Max 5 suggestions.',
+        system: walletSystemPrompt,
         prompt: document.content,
         output: 'array',
         schema: z.object({
@@ -386,45 +392,87 @@ const tools = {
       chainId: number;
     }) => {
       try {
-        // Create a client for the specific chain
-        const client = createPublicClient({
-          chain: chainId === 8453 ? base : 
-                 chainId === 84532 ? baseSepolia :
-                 mainnet,
-          transport: http()
-        })
+        // Validate wallet connection
+        if (!address) {
+          return {
+            type: 'tool-result',
+            result: {
+              error: 'No wallet address provided',
+              details: 'Please connect your wallet first'
+            }
+          };
+        }
 
-        // Get the balance using viem directly
-        const balance = await client.getBalance({
-          address: address as `0x${string}`
-        })
+        // Get RPC URL based on chainId
+        let rpcUrl: string;
+        let networkName: string;
+        
+        switch (chainId) {
+          case 8453: // Base Mainnet
+            rpcUrl = 'https://mainnet.base.org';
+            networkName = 'Base Mainnet';
+            break;
+          case 84532: // Base Sepolia
+            rpcUrl = 'https://sepolia.base.org';
+            networkName = 'Base Sepolia';
+            break;
+          default:
+            return {
+              type: 'tool-result',
+              result: {
+                error: `Unsupported chain ID: ${chainId}`,
+                details: 'Please connect to Base Mainnet or Base Sepolia.'
+              }
+            };
+        }
 
-        return {
-          type: 'tool-result',
-          result: {
-            address,
-            chainId,
-            balance: {
-              formatted: formatEther(balance),
-              value: balance.toString(),
-              symbol: chainId === 8453 || chainId === 84532 ? 'ETH' : 'ETH'
-            },
-            status: 'success',
-            timestamp: new Date().toISOString()
-          }
+        try {
+          const provider = new ethers.JsonRpcProvider(rpcUrl);
+          await provider.getNetwork();
+          const balance = await provider.getBalance(address);
+          
+          const usdcAddress = chainId === 8453
+            ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+            : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+
+          const usdcAbi = ['function balanceOf(address) view returns (uint256)'];
+          const usdcContract = new ethers.Contract(usdcAddress, usdcAbi, provider);
+          const usdcBalance = await usdcContract.balanceOf(address);
+          
+          return {
+            type: 'tool-result',
+            result: {
+              address,
+              network: networkName,
+              chainId,
+              balances: {
+                eth: ethers.formatEther(balance),
+                usdc: (Number(usdcBalance) / 1e6).toString()
+              },
+              timestamp: new Date().toISOString()
+            }
+          };
+        } catch (providerError) {
+          console.error('Provider error:', providerError);
+          return {
+            type: 'tool-result',
+            result: {
+              error: 'Failed to connect to network',
+              details: 'Please check your network connection and try again',
+              chainId,
+              network: networkName
+            }
+          };
         }
       } catch (error) {
+        console.error('Error fetching wallet balance:', error);
         return {
           type: 'tool-result',
           result: {
-            address,
-            chainId,
-            balance: null,
-            status: 'error',
-            error: error instanceof Error ? error.message : 'Unknown error',
-            timestamp: new Date().toISOString()
+            error: 'Failed to fetch wallet balance',
+            details: error instanceof Error ? error.message : 'Unknown error'
           }
-        }
+        };
       }
     }
   },
@@ -569,7 +617,7 @@ export async function POST(request: Request) {
       // Process the message with AI
       const result = await streamText({
         model: customModel(model.apiIdentifier),
-        system: systemPrompt,
+        system: walletSystemPrompt,
         messages: messagesWithContext,
         maxSteps: 5,
         experimental_activeTools: allTools,

@@ -26,7 +26,10 @@ const nextConfig = {
     serverActions: {
       allowedOrigins: ['localhost:3000'],
     },
+    appDir: true,
   },
+  pageExtensions: ['tsx', 'ts'],
+  pages: false,
 }
 
 module.exports = nextConfig 
