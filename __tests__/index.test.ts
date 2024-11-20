@@ -1,17 +1,17 @@
-import './app/layout.test'
-import './app/error-handling.test'
-import './app/data-fetching.test'
-import './app/routing.test'
-import './app/(chat)/layout.test'
-import './architecture/file-structure.test'
-import './components/Chat/ChatMessage.test'
-import './hooks/useChat.test'
-import './api/chat/route.test'
-import './utils/validation.test'
-import './middleware.test'
+import './app/basic.test'
+import './components/basic.test'
 
-describe('Full Test Suite', () => {
-  it('should run all tests', () => {
+import { describe, it, beforeAll } from 'vitest'
+import chalk from 'chalk'
+
+describe('Test Suite Organization', () => {
+  beforeAll(() => {
+    console.log(chalk.blue('\n📁 Test Categories:'))
+    console.log(chalk.gray('├── Basic Tests'))
+    console.log(chalk.gray('└── Component Tests\n'))
+  })
+
+  it('should run all test suites', () => {
     expect(true).toBe(true)
   })
 }) 

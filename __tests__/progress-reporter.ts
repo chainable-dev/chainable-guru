@@ -1,27 +1,24 @@
 import { Reporter, TaskResult, Vitest, File, ErrorWithDiff } from 'vitest';
 import chalk from 'chalk';
-import { TEST_CATEGORIES, TestCategory } from './test-categories';
 
 export default class ProgressReporter implements Reporter {
-  private categories: Map<string, { total: number; passed: number }> = new Map();
   private total = 0;
   private passed = 0;
   private failed = 0;
-  private errors: Array<{ category: TestCategory; file: string; test: string; error: Error }> = [];
+  private skipped = 0;
+  private errors: Array<{ file: string; test: string; error: Error }> = [];
   private startTime: number = Date.now();
   private isWatch: boolean = false;
+  private testResults: Map<string, { passed: number; failed: number; total: number }> = new Map();
 
   onInit(ctx: Vitest) {
     this.isWatch = ctx.config.watch || false;
     this.startTime = Date.now();
     this.passed = 0;
     this.failed = 0;
+    this.skipped = 0;
     this.errors = [];
-    
-    // Initialize categories
-    Object.values(TEST_CATEGORIES).forEach(category => {
-      this.categories.set(category, { total: 0, passed: 0 });
-    });
+    this.testResults.clear();
 
     if (!this.isWatch) {
       console.log(chalk.cyan('\n🚀 Starting test suite...\n'));
@@ -39,78 +36,71 @@ export default class ProgressReporter implements Reporter {
     }
   }
 
-  private getCategoryFromFilePath(filePath: string): TestCategory {
-    if (filePath.includes('architecture')) return TEST_CATEGORIES.ARCHITECTURE;
-    if (filePath.includes('components')) return TEST_CATEGORIES.COMPONENTS;
-    if (filePath.includes('api')) return TEST_CATEGORIES.API;
-    if (filePath.includes('hooks')) return TEST_CATEGORIES.HOOKS;
-    if (filePath.includes('utils')) return TEST_CATEGORIES.UTILS;
-    if (filePath.includes('layout')) return TEST_CATEGORIES.LAYOUTS;
-    if (filePath.includes('routing')) return TEST_CATEGORIES.ROUTING;
-    if (filePath.includes('data-fetching')) return TEST_CATEGORIES.DATA_FETCHING;
-    if (filePath.includes('error-handling')) return TEST_CATEGORIES.ERROR_HANDLING;
-    return TEST_CATEGORIES.UTILS;
-  }
-
   onTestFailed(test: TaskResult) {
     this.failed++;
-    const category = this.getCategoryFromFilePath(test.file?.name || '');
+    const fileResults = this.getFileResults(test.file?.name || 'unknown');
+    fileResults.failed++;
+    
     this.errors.push({
-      category,
       file: test.file?.name || 'unknown',
       test: test.name,
-      error: test.error || new Error('Unknown error'),
+      error: test.error || new Error('Unknown error')
     });
   }
 
-  onTestPassed() {
+  onTestPassed(test: TaskResult) {
     this.passed++;
+    const fileResults = this.getFileResults(test.file?.name || 'unknown');
+    fileResults.passed++;
+  }
+
+  onTestSkipped() {
+    this.skipped++;
+  }
+
+  private getFileResults(fileName: string) {
+    if (!this.testResults.has(fileName)) {
+      this.testResults.set(fileName, { passed: 0, failed: 0, total: 0 });
+    }
+    return this.testResults.get(fileName)!;
   }
 
   onTestFinished(task: TaskResult) {
-    const percentage = Math.round(((this.passed + this.failed) / this.total) * 100) || 0;
+    const completed = this.passed + this.failed + this.skipped;
+    const percentage = Math.round((completed / this.total) * 100) || 0;
     const bar = '█'.repeat(percentage / 2) + '░'.repeat(50 - percentage / 2);
-    const category = this.getCategoryFromFilePath(task.file?.name || '');
-    const categoryStats = this.categories.get(category) || { total: 0, passed: 0 };
-    
-    categoryStats.total++;
-    if (task.state === 'pass') {
-      categoryStats.passed++;
-    }
-    
-    this.categories.set(category, categoryStats);
     
     process.stdout.write(
       `\r${chalk.cyan('[Progress]')} [${bar}] ${percentage}% | ` +
       `${chalk.green(`${this.passed} passed`)} | ` +
       `${chalk.red(`${this.failed} failed`)} | ` +
-      `${this.passed + this.failed}/${this.total} tests`
+      `${this.skipped > 0 ? chalk.yellow(`${this.skipped} skipped`) + ' | ' : ''}` +
+      `${completed}/${this.total} tests`
     );
   }
 
   onFinished() {
     const duration = ((Date.now() - this.startTime) / 1000).toFixed(2);
-    console.log('\n\n' + chalk.cyan('📊 Test Results by Category:'));
+    console.log('\n\n' + chalk.cyan('📊 Test Results by File:'));
 
-    // Show results by category
-    this.categories.forEach((stats, category) => {
-      const passRate = (stats.passed / stats.total * 100) || 0;
+    // Show results by file
+    this.testResults.forEach((results, file) => {
+      const passRate = (results.passed / (results.passed + results.failed) * 100) || 0;
       const color = passRate === 100 ? chalk.green : passRate >= 80 ? chalk.yellow : chalk.red;
+      const shortFile = file.split('/').slice(-2).join('/');
       
-      if (stats.total > 0) {
-        console.log(
-          color(`\n${category}:`),
-          color(`${stats.passed}/${stats.total} (${passRate.toFixed(1)}%)`)
-        );
-      }
+      console.log(
+        color(`\n${shortFile}:`),
+        color(`${results.passed}/${results.passed + results.failed} (${passRate.toFixed(1)}%)`)
+      );
     });
 
     // Show error summary if there are failures
     if (this.errors.length > 0) {
       console.log(chalk.red('\n❌ Failed Tests:\n'));
-      this.errors.forEach(({ category, file, test, error }, index) => {
-        console.log(chalk.red(`${index + 1}) [${category}] ${file}`));
-        console.log(chalk.red(`   Test: ${test}`));
+      this.errors.forEach(({ file, test, error }, index) => {
+        const shortFile = file.split('/').slice(-2).join('/');
+        console.log(chalk.red(`${index + 1}) ${shortFile} > ${test}`));
         console.log(chalk.gray(`   Error: ${error.message}`));
         if (error.stack) {
           const relevantStack = error.stack.split('\n').slice(1, 3).join('\n');
@@ -124,7 +114,14 @@ export default class ProgressReporter implements Reporter {
     console.log(chalk.white(`▸ Duration: ${duration}s`));
     console.log(chalk.white(`▸ Total Tests: ${this.total}`));
     console.log(chalk.green(`▸ Passed: ${this.passed}`));
-    console.log(chalk.red(`▸ Failed: ${this.failed}`));
+    if (this.failed > 0) {
+      console.log(chalk.red(`▸ Failed: ${this.failed}`));
+    } else {
+      console.log(chalk.green('▸ Failed: 0'));
+    }
+    if (this.skipped > 0) {
+      console.log(chalk.yellow(`▸ Skipped: ${this.skipped}`));
+    }
     
     const coverage = ((this.passed / this.total) * 100).toFixed(1);
     const coverageColor = Number(coverage) >= 80 ? chalk.green : chalk.yellow;
