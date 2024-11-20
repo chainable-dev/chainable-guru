@@ -20,6 +20,7 @@ import {
   saveSuggestions,
   deleteChatById,
 } from '@/db/mutations';
+import { useWalletState } from '@/hooks/useWalletState';
 import { createClient } from '@/lib/supabase/server';
 import { MessageRole } from '@/lib/supabase/types';
 import {
@@ -29,7 +30,6 @@ import {
 } from '@/lib/utils';
 
 import { generateTitleFromUserMessage } from '../../actions';
-import { useWalletState } from '@/hooks/useWalletState';
 
 export const maxDuration = 60;
 
