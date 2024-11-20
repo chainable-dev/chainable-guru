@@ -56,6 +56,8 @@ interface RequestSuggestionsParams {
 interface WalletStateParams {
   address?: string;
   chainId?: number;
+  isConnected?: boolean;
+  network?: string;
 }
 
 type AllowedTools =
@@ -64,7 +66,8 @@ type AllowedTools =
   | 'requestSuggestions'
   | 'getWeather'
   | 'getWalletBalance'
-  | 'checkWalletState';
+  | 'checkWalletState'
+  | 'getWalletInfo';
 
 const blocksTools: AllowedTools[] = [
   'createDocument',
@@ -74,7 +77,7 @@ const blocksTools: AllowedTools[] = [
 
 const weatherTools: AllowedTools[] = ['getWeather'];
 
-const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, 'getWalletBalance', 'checkWalletState'];
+const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, 'getWalletBalance', 'checkWalletState', 'getWalletInfo'];
 
 async function getUser() {
   const supabase = await createClient();
@@ -486,6 +489,129 @@ const tools = {
           timestamp: new Date().toISOString()
         }
       };
+    }
+  },
+  getWalletInfo: {
+    description: 'Get detailed information about the connected wallet',
+    parameters: z.object({
+      address: z.string().optional().describe('The wallet address to check'),
+      chainId: z.number().optional().describe('The chain ID of the network')
+    }),
+    execute: async ({ address, chainId }: WalletStateParams) => {
+      // First check wallet connection state
+      if (!address || !chainId) {
+        return {
+          type: 'tool-result',
+          result: {
+            error: 'Wallet not connected',
+            details: 'Please connect your wallet first',
+            isConnected: false,
+            lastChecked: new Date().toISOString()
+          }
+        };
+      }
+
+      try {
+        // Use the same RPC logic we have in other wallet tools
+        let rpcUrl: string;
+        let networkName: string;
+        
+        switch (chainId) {
+          case 8453:
+            rpcUrl = 'https://mainnet.base.org';
+            networkName = 'Base Mainnet';
+            break;
+          case 84532:
+            rpcUrl = 'https://sepolia.base.org';
+            networkName = 'Base Sepolia';
+            break;
+          default:
+            return {
+              type: 'tool-result',
+              result: {
+                error: 'Unsupported network',
+                details: 'Please connect to Base Mainnet or Base Sepolia',
+                address,
+                chainId,
+                isConnected: true,
+                supportedNetworks: [
+                  { name: 'Base Mainnet', chainId: 8453 },
+                  { name: 'Base Sepolia', chainId: 84532 }
+                ]
+              }
+            };
+        }
+
+        const provider = new ethers.JsonRpcProvider(rpcUrl);
+        
+        // Get all wallet data in parallel
+        const [
+          balance, 
+          code, 
+          nonce, 
+          transactionCount,
+          usdcBalance
+        ] = await Promise.all([
+          provider.getBalance(address),
+          provider.getCode(address),
+          provider.getTransactionCount(address),
+          provider.getTransactionCount(address, 'latest'),
+          // Also get USDC balance
+          (async () => {
+            try {
+              const usdcAddress = chainId === 8453
+                ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'  // Mainnet
+                : '0x036CbD53842c5426634e7929541eC2318f3dCF7e'; // Sepolia
+              const usdcAbi = ['function balanceOf(address) view returns (uint256)'];
+              const usdcContract = new ethers.Contract(usdcAddress, usdcAbi, provider);
+              return await usdcContract.balanceOf(address);
+            } catch (e) {
+              console.error('Error fetching USDC balance:', e);
+              return BigInt(0);
+            }
+          })()
+        ]);
+
+        const isContract = code !== '0x';
+
+        return {
+          type: 'tool-result',
+          result: {
+            address,
+            network: networkName,
+            chainId,
+            isConnected: true,
+            isContract,
+            balances: {
+              eth: ethers.formatEther(balance),
+              usdc: (Number(usdcBalance) / 1e6).toString()
+            },
+            stats: {
+              nonce,
+              transactionCount,
+              lastChecked: new Date().toISOString()
+            },
+            supportedNetworks: [
+              { name: 'Base Mainnet', chainId: 8453 },
+              { name: 'Base Sepolia', chainId: 84532 }
+            ]
+          }
+        };
+
+      } catch (error) {
+        console.error('Error fetching wallet info:', error);
+        return {
+          type: 'tool-result',
+          result: {
+            error: 'Failed to fetch wallet information',
+            details: error instanceof Error ? error.message : 'Unknown error',
+            address,
+            chainId,
+            isConnected: true,
+            lastChecked: new Date().toISOString()
+          }
+        };
+      }
     }
   }
 };
