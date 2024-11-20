@@ -29,6 +29,7 @@ import {
 } from '@/lib/utils';
 
 import { generateTitleFromUserMessage } from '../../actions';
+import { useWalletState } from '@/hooks/useWalletState';
 
 export const maxDuration = 60;
 
@@ -389,47 +390,46 @@ const tools = {
           };
         }
 
-        // Get RPC URL based on chainId
-        let rpcUrl: string;
-        let networkName: string;
-        
-        switch (chainId) {
-          case 8453: // Base Mainnet
-            rpcUrl = 'https://mainnet.base.org';
-            networkName = 'Base Mainnet';
-            break;
-          case 84532: // Base Sepolia
-            rpcUrl = 'https://sepolia.base.org';
-            networkName = 'Base Sepolia';
-            break;
-          default:
-            return {
-              type: 'tool-result',
-              result: {
-                error: `Unsupported chain ID: ${chainId}`,
-                details: 'Please connect to Base Mainnet or Base Sepolia.'
-              }
-            };
-        }
+        // Initialize provider based on chainId
+        const provider = new ethers.JsonRpcProvider(
+          chainId === 8453 
+            ? 'https://mainnet.base.org'
+            : 'https://sepolia.base.org'
+        );
 
         try {
-          const provider = new ethers.JsonRpcProvider(rpcUrl);
-          await provider.getNetwork();
           const balance = await provider.getBalance(address);
           
           const usdcAddress = chainId === 8453
-            ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+            ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' 
+        if (!isCorrectNetwork) {
+          return {
+            type: 'tool-result',
+            result: {
+              error: 'Unsupported network',
+              details: 'Please connect to Base Mainnet or Base Sepolia'
+            }
+          };
+        }
+
+        try {
+          // Use walletClient from useWalletState for balance checks
+          const { walletClient } = useWalletState();
+          const balance = await walletClient.getBalance({ address });
+          
+          const usdcAddress = chainId === 8453
+            ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' 
             : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
 
           const usdcAbi = ['function balanceOf(address) view returns (uint256)'];
-          const usdcContract = new ethers.Contract(usdcAddress, usdcAbi, provider);
-          const usdcBalance = await usdcContract.balanceOf(address);
-          
+          const usdcContract = new ethers.Contract(usdcAddress, usdcAbi);
+          const usdcBalance = await usdcContract.read.balanceOf([address]);
+
           return {
             type: 'tool-result',
             result: {
               address,
-              network: networkName,
+              network: networkInfo?.name,
               chainId,
               balances: {
                 eth: ethers.formatEther(balance),
@@ -438,15 +438,15 @@ const tools = {
               timestamp: new Date().toISOString()
             }
           };
-        } catch (providerError) {
-          console.error('Provider error:', providerError);
+        } catch (error) {
+          console.error('Balance check error:', error);
           return {
             type: 'tool-result',
             result: {
-              error: 'Failed to connect to network',
-              details: 'Please check your network connection and try again',
+              error: 'Failed to fetch balances',
+              details: error instanceof Error ? error.message : 'Unknown error',
               chainId,
-              network: networkName
+              network: networkInfo?.name
             }
           };
         }

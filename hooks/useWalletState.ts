@@ -1,9 +1,9 @@
-import { getAccount, useChainId, useWalletClient } from 'wagmi';
+import { useAccount, useChainId, useWalletClient } from 'wagmi';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 export function useWalletState() {
-  const [accountState, setAccountState] = useState(() => getAccount());
+  const { address, isConnected } = useAccount(); // Use useAccount hook to get active wallet
   const chainId = useChainId();
   const { data: walletClient } = useWalletClient();
 
@@ -25,20 +25,14 @@ export function useWalletState() {
     };
   }, [chainId]);
 
-  // Watch for wallet state changes
   useEffect(() => {
-    const unsubscribe = getAccount.subscribe((account:any) => setAccountState(account));
-    return () => unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (accountState.isConnected && accountState.address) {
+    if (isConnected && address) {
       if (networkInfo?.isSupported) {
         const count = getCount();
         localStorage.setItem('walletConnectionCount', (count + 1).toString());
         
         console.log('Wallet connected:', {
-          address: accountState.address,
+          address,
           chainId,
           network: networkInfo.name,
           connectionCount: count + 1
@@ -47,11 +41,11 @@ export function useWalletState() {
         toast.error('Please switch to Base Mainnet or Base Sepolia');
       }
     }
-  }, [accountState.isConnected, accountState.address, chainId, networkInfo]);
+  }, [isConnected, address, chainId, networkInfo]);
 
   return {
-    address: accountState.address,
-    isConnected: accountState.isConnected,
+    address,
+    isConnected,
     chainId,
     walletClient,
     networkInfo,
