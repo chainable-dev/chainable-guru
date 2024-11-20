@@ -38,19 +38,19 @@ export default class ProgressReporter implements Reporter {
 
   onTestFailed(test: TaskResult) {
     this.failed++;
-    const fileResults = this.getFileResults(test.file?.name || 'unknown');
+    const fileResults = this.getFileResults(test.taskFile?.name || 'unknown');
     fileResults.failed++;
     
     this.errors.push({
-      file: test.file?.name || 'unknown',
-      test: test.name,
-      error: test.error || new Error('Unknown error')
+      file: test.taskFile?.name || 'unknown',
+      test: test.taskName || 'unknown',
+      error: test.errors?.[0] || new Error('Unknown error')
     });
   }
 
   onTestPassed(test: TaskResult) {
     this.passed++;
-    const fileResults = this.getFileResults(test.file?.name || 'unknown');
+    const fileResults = this.getFileResults(test.taskFile?.name || 'unknown');
     fileResults.passed++;
   }
 
