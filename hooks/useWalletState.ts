@@ -1,45 +1,45 @@
-import { useAccount, useChainId, useWalletClient } from 'wagmi';
-import { useEffect, useMemo } from 'react';
-import { toast } from 'sonner';
+import { useState, useEffect } from 'react';
+import { Account } from '../types/account';
 
-export function useWalletState() {
-  const { address, isConnected } = useAccount();
-  const chainId = useChainId();
-  const { data: walletClient } = useWalletClient();
+export function useWalletState(walletId: string) {
+    const [walletState, setWalletState] = useState<Account | null>(null);
+    const [isConnected, setIsConnected] = useState<boolean>(false);
 
-  // Memoize network info
-  const networkInfo = useMemo(() => {
-    if (!chainId) return null;
+    useEffect(() => {
+        async function fetchWalletState() {
+            try {
+                // Placeholder for actual wallet state fetching
+                const state = null;
+                setWalletState(state);
+                setIsConnected(!!state);
+                console.log('Wallet state loaded:', state);
+            } catch (error) {
+                console.error('Failed to load wallet state:', error);
+            }
+        }
 
-    return {
-      name: chainId === 8453 ? 'Base Mainnet' : 
-            chainId === 84532 ? 'Base Sepolia' : 
-            'Unsupported Network',
-      isSupported: [8453, 84532].includes(chainId)
+        fetchWalletState();
+    }, [walletId]);
+
+    const updateState = async (newState: Account) => {
+        try {
+            setWalletState(newState);
+            setIsConnected(true);
+            console.log('Wallet state updated:', newState);
+        } catch (error) {
+            console.error('Failed to update wallet state:', error);
+        }
     };
-  }, [chainId]);
 
-  // Watch for wallet state changes
-  useEffect(() => {
-    if (isConnected && address) {
-      if (networkInfo?.isSupported) {
-        console.log('Wallet connected:', {
-          address,
-          chainId,
-          network: networkInfo.name
-        });
-      } else {
-        toast.error('Please switch to Base Mainnet or Base Sepolia');
-      }
-    }
-  }, [isConnected, address, chainId, networkInfo]);
+    const clearState = async () => {
+        try {
+            setWalletState(null);
+            setIsConnected(false);
+            console.log('Wallet state cleared');
+        } catch (error) {
+            console.error('Failed to clear wallet state:', error);
+        }
+    };
 
-  return {
-    address,
-    isConnected,
-    chainId,
-    walletClient,
-    networkInfo,
-    isCorrectNetwork: networkInfo?.isSupported ?? false
-  };
-} 
+    return { walletState, isConnected, updateState, clearState };
+}

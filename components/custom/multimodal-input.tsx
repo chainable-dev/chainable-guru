@@ -15,7 +15,7 @@ import React, {
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
 
-import { useWalletState } from '@/hooks/useWalletState';
+import { useWalletState } from '../../hooks/useWalletState';
 import { createClient } from '@/lib/supabase/client';
 import { sanitizeUIMessages } from '@/lib/utils';
 
@@ -88,6 +88,7 @@ interface MultimodalInputProps {
   handleSubmit: (event?: { preventDefault?: () => void }, chatRequestOptions?: ChatRequestOptions) => void;
   className?: string;
   chatId: string;
+  walletId: string;
 }
 
 export function MultimodalInput({
@@ -102,18 +103,15 @@ export function MultimodalInput({
   append,
   handleSubmit,
   className,
-  chatId
+  chatId,
+  walletId
 }: MultimodalInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
   const supabase = createClient();
-  const {
-    address,
-    isConnected,
-    chainId,
-    networkInfo,
-    isCorrectNetwork
-  } = useWalletState();
+  const { walletState, updateState, clearState } = useWalletState(walletId);
+
+  const { address, isConnected, chainId, networkInfo, isCorrectNetwork } = walletState || {};
 
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);

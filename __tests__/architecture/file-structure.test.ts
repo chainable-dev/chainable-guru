@@ -12,5 +12,5 @@ describe('Project Architecture', () => {
     // expect(componentDirs).toContain('forms');
   })
 
-
+  
 }) 

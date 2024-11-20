@@ -138,6 +138,7 @@ export function Block({
   messages,
   setMessages,
   votes,
+  walletId,
 }: {
   chatId: string;
   input: string;
@@ -161,6 +162,7 @@ export function Block({
     },
     chatRequestOptions?: ChatRequestOptions
   ) => void;
+  walletId: string;
 }) {
   const [messagesContainerRef, messagesEndRef] =
     useScrollToBottom<HTMLDivElement>();
@@ -491,6 +493,7 @@ export function Block({
                 append={append}
                 className="bg-background dark:bg-muted"
                 setMessages={setMessages}
+                walletId={walletId}
               />
             </form>
           </div>
