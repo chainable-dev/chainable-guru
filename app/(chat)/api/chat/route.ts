@@ -56,6 +56,8 @@ interface RequestSuggestionsParams {
 interface WalletStateParams {
   address?: string;
   chainId?: number;
+  isConnected?: boolean;
+  network?: string;
 }
 
 type AllowedTools =
@@ -64,7 +66,8 @@ type AllowedTools =
   | 'requestSuggestions'
   | 'getWeather'
   | 'getWalletBalance'
-  | 'checkWalletState';
+  | 'checkWalletState'
+  | 'getWalletInfo';
 
 const blocksTools: AllowedTools[] = [
   'createDocument',
@@ -74,7 +77,7 @@ const blocksTools: AllowedTools[] = [
 
 const weatherTools: AllowedTools[] = ['getWeather'];
 
-const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, 'getWalletBalance', 'checkWalletState'];
+const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, 'getWalletBalance', 'checkWalletState', 'getWalletInfo'];
 
 async function getUser() {
   const supabase = await createClient();
@@ -484,6 +487,67 @@ const tools = {
             { name: 'Base Sepolia', chainId: 84532 }
           ],
           timestamp: new Date().toISOString()
+        }
+      };
+    }
+  },
+  getWalletInfo: {
+    description: 'Get detailed information about the connected wallet',
+    parameters: z.object({
+      address: z.string().optional().describe('The wallet address to check'),
+      chainId: z.number().optional().describe('The chain ID of the network')
+    }),
+    execute: async ({ address, chainId }: WalletStateParams) => {
+      // Use the wallet state from context
+      if (!address || !chainId) {
+        return {
+          type: 'tool-result',
+          result: {
+            error: 'Wallet not connected',
+            details: 'Please connect your wallet first',
+            isConnected: false,
+            lastChecked: new Date().toISOString()
+          }
+        };
+      }
+
+      // Check if network is supported
+      const isSupported = [8453, 84532].includes(chainId);
+      const networkName = chainId === 8453 ? 'Base Mainnet' : 
+                         chainId === 84532 ? 'Base Sepolia' : 
+                         'Unknown Network';
+
+      if (!isSupported) {
+        return {
+          type: 'tool-result',
+          result: {
+            error: 'Unsupported network',
+            details: 'Please connect to Base Mainnet or Base Sepolia',
+            address,
+            chainId,
+            network: networkName,
+            isConnected: true,
+            supportedNetworks: [
+              { name: 'Base Mainnet', chainId: 8453 },
+              { name: 'Base Sepolia', chainId: 84532 }
+            ]
+          }
+        };
+      }
+
+      return {
+        type: 'tool-result',
+        result: {
+          address,
+          network: networkName,
+          chainId,
+          isConnected: true,
+          isSupported,
+          lastChecked: new Date().toISOString(),
+          supportedNetworks: [
+            { name: 'Base Mainnet', chainId: 8453 },
+            { name: 'Base Sepolia', chainId: 84532 }
+          ]
         }
       };
     }
