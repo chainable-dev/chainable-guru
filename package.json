@@ -10,8 +10,8 @@
     "lint:fix": "next lint --fix",
     "format": "prettier --write .",
     "clean": "rimraf .next",
-    "test": "vitest run __tests__/**/*.test.{ts,tsx}",
-    "test:watch": "vitest watch __tests__/**/*.test.{ts,tsx}",
+    "test": "vitest",
+    "test:watch": "vitest watch",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui"
   },
