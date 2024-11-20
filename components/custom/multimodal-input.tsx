@@ -2,7 +2,7 @@
 
 import cx from 'classnames';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Lock, Unlock, Wallet } from 'lucide-react';
+import { X, Lock, Unlock, Wallet as WalletIcon } from 'lucide-react';
 import React, {
   useRef,
   useEffect,
@@ -15,9 +15,6 @@ import React, {
 import { RiArrowDownSLine, RiArrowUpSLine } from 'react-icons/ri';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
-import { useWallet } from '@/hooks/useWallet'
-import { Wallet } from 'lucide-react'
-
 import { useWalletState } from '@/hooks/useWalletState';
 import { createClient } from '@/lib/supabase/client';
 import { sanitizeUIMessages } from '@/lib/utils';
@@ -118,13 +115,6 @@ export function MultimodalInput({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
   const supabase = createClient();
-  const { 
-    address, 
-    isConnected, 
-    chainId, 
-    networkInfo, 
-    isCorrectNetwork 
-  } = useWalletState();
 
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
@@ -135,11 +125,13 @@ export function MultimodalInput({
   const [showSuggestions, setShowSuggestions] = useState(true);
 
   const {
-    isConnected: walletIsConnected,
-    truncatedAddress,
-    isWrongNetwork,
-    chain
-  } = useWallet()
+    address,
+    isConnected,
+    chainId,
+    walletClient,
+    networkInfo,
+    isCorrectNetwork
+  } = useWalletState();
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -466,20 +458,20 @@ export function MultimodalInput({
         <div className="flex items-center gap-2 px-3 py-1.5 bg-muted rounded-lg text-sm">
           <div className={cx(
             "h-2 w-2 rounded-full",
-            walletIsConnected ? "bg-green-500" : "bg-red-500"
+            isConnected ? "bg-green-500" : "bg-red-500"
           )} />
-          <Wallet className="h-4 w-4" />
+          <WalletIcon className="h-4 w-4" />
           <span className="text-muted-foreground">
-            {walletIsConnected ? (
+            {isConnected ? (
               <>
-                {truncatedAddress}
-                {isWrongNetwork && (
+                {address}
+                {!isCorrectNetwork && (
                   <span className="ml-2 text-destructive">
                     ⚠️ Wrong Network
                   </span>
                 )}
                 <span className="ml-2 text-muted-foreground">
-                  ({chain?.name})
+                  ({networkInfo?.name})
                 </span>
               </>
             ) : (
