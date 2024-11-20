@@ -1,6 +1,7 @@
 'use client';
 
 import { ConnectButton } from '@rainbow-me/rainbowkit';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useWindowSize } from 'usehooks-ts';
@@ -50,6 +51,7 @@ export function ChatHeader({ selectedModelId }: { selectedModelId: string }) {
           }}
         />
       </div>
+      <h1>Welcome to AI Chat</h1>
     </header>
   );
 }

@@ -150,7 +150,9 @@ export function Chat({
             handleSubmit={handleSubmit}
             isLoading={isLoading}
             stop={stop}
+            //@ts-ignore  
             attachments={attachments}
+            //@ts-ignore
             setAttachments={setAttachments}
             messages={messages}
             setMessages={setMessages}

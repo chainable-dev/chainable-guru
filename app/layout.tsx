@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Head from 'next/head';
 
 import { RootProvider } from '@/components/providers/root-provider';
 
@@ -11,9 +12,11 @@ export const metadata: Metadata = {
   description: 'AI Chat Application',
   icons: {
     icon: [
-      { url: 'data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text></svg>' }
-    ]
-  }
+      { url: '/favicon.ico', type: 'image/x-icon' },
+      { url: '/favicon-32x32.png', type: 'image/png', sizes: '32x32' },
+      { url: '/favicon-16x16.png', type: 'image/png', sizes: '16x16' },
+    ],
+  },
 };
 
 export default function RootLayout({
@@ -23,6 +26,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <Head>
+        <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+        <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32" />
+        <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16" />
+      </Head>
       <body className="antialiased" suppressHydrationWarning>
         <RootProvider>
           {children}
