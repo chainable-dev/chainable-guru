@@ -13,7 +13,7 @@ import { z } from 'zod';
 
 import { customModel } from '@/ai';
 import { models } from '@/ai/models';
-import { blocksPrompt, regularPrompt, systemPrompt } from '@/ai/prompts';
+import { blocksPrompt, regularPrompt } from '@/ai/prompts';
 import { getChatById, getDocumentById, getSession } from '@/db/cached-queries';
 import {
   saveChat,
@@ -456,7 +456,7 @@ const tools = {
   }
 };
 
-// Update the system prompt to include wallet context and tools
+// Keep the locally defined systemPrompt constant
 const systemPrompt = `You are a helpful AI assistant with access to wallet information and blockchain tools. You can:
 
 1. Check wallet state and balances:
@@ -669,6 +669,7 @@ export async function POST(request: Request) {
 
     } catch (error) {
       console.error('Error in chat route:', error);
+      streamingData.close();
       return new Response(
         JSON.stringify({ error: 'Internal server error' }), 
         { status: 500 }
