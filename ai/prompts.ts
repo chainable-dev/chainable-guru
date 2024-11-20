@@ -19,9 +19,32 @@ export const blocksPrompt = `
   - Follow user instructions for which parts to modify
 
   Do not update document right after creating it. Wait for user feedback or request to update it.
-  `;
+`;
+
+export const walletPrompt = `
+  Wallet functionality is available through the \`useWalletState\` hook, providing secure blockchain interactions. The wallet interface enables real-time transaction monitoring and multi-network support.
+
+  This is a guide for using wallet tools: \`transfer\`, \`deploy\`, and \`interact\`, which handle blockchain transactions.
+
+  **When to use \`transfer\`:**
+  - For sending ETH or tokens between addresses
+  - When using gasless transfers for supported tokens
+  - For batch transfers to multiple recipients
+
+  **When to use \`deploy\`:**
+  - For creating new ERC-20 tokens
+  - When deploying NFT collections (ERC-721/1155)
+  - For custom smart contract deployment
+
+  **When to use \`interact\`:**
+  - For calling existing contract methods
+  - When executing trades or swaps
+  - For token approvals and management
+
+  Always verify network, addresses, and amounts before executing transactions. Start with testnets for new operations.
+`;
 
 export const regularPrompt =
   'You are a friendly assistant! Keep your responses concise and helpful.';
 
-export const systemPrompt = `${regularPrompt}\n\n${blocksPrompt}`;
+export const systemPrompt = `${regularPrompt}\n\n${blocksPrompt}\n\n${walletPrompt}`;
