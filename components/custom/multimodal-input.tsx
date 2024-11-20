@@ -523,7 +523,7 @@ export function MultimodalInput({
             event.preventDefault();
             submitForm();
           }}
-          disabled={input.length === 0 || stagedFiles.length > 0}
+          disabled={input.length === 0 && attachments.length === 0}
         >
           <ArrowUpIcon size={14} />
         </Button>
