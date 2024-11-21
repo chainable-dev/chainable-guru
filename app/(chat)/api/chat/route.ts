@@ -15,13 +15,14 @@ import type {
 
 // Type imports
 import type {
-  ChatMessage,
+  ChatMessage as ChatMessageFromChat,
   WalletInfo,
   SessionContext,
   MetricsData,
   UserPreferences,
   MessageRole
-} from '@/types';
+} from '@/types/chat';
+import type { ChatMessage as ChatMessageFromIndex } from '@/types/index';
 
 // Lib imports
 import { tools, getAvailableTools } from '@/lib/tools';
@@ -29,7 +30,7 @@ import { sanitizeResponseMessages } from '@/lib/utils';
 import { memoryStore } from '@/lib/memory/store';
 import { MemoryMonitor } from '@/lib/memory/monitor'; // Ensure MemoryMonitor is imported
 
-function getMostRecentUserMessage(messages: ChatMessage[]): ChatMessage | undefined {
+function getMostRecentUserMessage(messages: ChatMessageFromChat[]): ChatMessageFromChat | undefined {
   return [...messages].reverse().find(msg => msg.role === ('user' as MessageRole));
 }
 
@@ -92,7 +93,7 @@ async function getInitialData(id: string, user: any) {
   }
 }
 
-async function processWalletInfo(userMessage: ChatMessage | undefined): Promise<WalletInfo> {
+async function processWalletInfo(userMessage: ChatMessageFromChat | undefined): Promise<WalletInfo> {
   try {
     if (!userMessage) {
       return { text: '', isConnected: false };
@@ -118,7 +119,7 @@ async function processWalletInfo(userMessage: ChatMessage | undefined): Promise<
 
 async function handleToolCalls(
     response: AsyncIterable<ChatCompletionChunk>,
-    userMessage: ChatMessage | undefined,
+    userMessage: ChatMessageFromChat | undefined,
     currentWalletInfo: WalletInfo,
     modelId?: string
 ) {
@@ -155,7 +156,7 @@ async function handleToolCalls(
 
 async function updateSessionAndPreferences(
     id: string,
-    messages: ChatMessage[],
+    messages: ChatMessageFromChat[],
     currentWalletInfo: WalletInfo,
     user: any
 ) {
@@ -172,10 +173,11 @@ async function updateSessionAndPreferences(
       } : undefined,
       activeTools: []
     };
-    await memoryStore.setSession(id, {
-      messages: sanitizeResponseMessages(messages) as ChatMessage[],
-      context: sessionContext
-    });
+    let memory = {
+      context: sessionContext,
+      messages: sanitizeResponseMessages(messages) as ChatMessageFromIndex[]
+    };
+    await memoryStore.setSession(id, memory);
 
     if (user?.id) {
       await memoryStore.setUserPrefs(user.id, {
@@ -207,7 +209,7 @@ export async function POST(req: Request) {
     // Step 3: Prepare and execute AI response
     const response = await openai.chat.completions.create({
       model: modelId || 'gpt-4',
-      messages: messages.map((msg: ChatMessage): OpenAIMessage => ({
+      messages: messages.map((msg: ChatMessageFromChat): OpenAIMessage => ({
         role: mapMessageRole(msg.role),
         content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
       })),

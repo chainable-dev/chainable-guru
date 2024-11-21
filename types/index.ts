@@ -1,14 +1,6 @@
 import type { ChatCompletionMessage, ChatCompletionTool } from 'openai/resources/chat';
+import {CoreAssistantMessage, CoreMessage, CoreToolMessage} from "ai";
 
-// Message Types
-export type MessageRole = 'system' | 'user' | 'assistant' | 'tool';
-
-export interface ChatMessage {
-  id: string;
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-  timestamp: number;
-}
 
 // Memory Types
 export interface MemoryStats {
@@ -45,10 +37,16 @@ export interface SessionContext {
   activeTools: string[];
 }
 
-export interface SessionMemory {
-  messages: ChatMessage[];
-  context: SessionContext;
+
+export type MessageRole = 'system' | 'user' | 'assistant';
+
+export interface ChatMessage {
+  id: string;
+  role: MessageRole;
+  content: string;
+  timestamp: number;
 }
+
 
 // File Types
 export interface FileMetadata {
@@ -58,6 +56,13 @@ export interface FileMetadata {
   timestamp: number;
   compressed: boolean;
 }
+
+
+export interface SessionMemory {
+  messages: (ChatMessage | CoreToolMessage | CoreAssistantMessage)[];
+  context: SessionContext;
+}
+
 
 // Wallet Types
 export interface WalletInfo {

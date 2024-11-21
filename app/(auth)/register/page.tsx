@@ -8,7 +8,8 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { signUp } from '@/db/auth';
+import { supabase } from '@/lib/supabase/client';
+import { GoogleLoginButton } from '@/components/custom/login-button';
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -23,7 +24,13 @@ export default function RegisterPage() {
       const email = formData.get('email') as string;
       const password = formData.get('password') as string;
 
-      await signUp(email, password);
+      const { user, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
       toast.success('Check your email to confirm your account');
       router.push('/login');
     } catch (error: any) {
@@ -32,6 +39,22 @@ export default function RegisterPage() {
       setIsLoading(false);
     }
   }
+
+  const handleGoogleRegister = async () => {
+    setIsLoading(true);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      redirectTo: `${window.location.origin}/auth/callback`,
+    });
+
+    if (error) {
+      console.error('Google registration error:', error);
+      toast.error('Failed to register with Google');
+    } else {
+      toast.success('Redirecting to Google for registration...');
+    }
+    setIsLoading(false);
+  };
 
   return (
     <div className="flex h-[calc(100vh-theme(spacing.16))] items-center justify-center py-10">
@@ -55,12 +78,20 @@ export default function RegisterPage() {
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" required type="password" />
+            <Input
+              id="password"
+              name="password"
+              required
+              type="password"
+            />
           </div>
           <Button className="w-full" disabled={isLoading}>
             {isLoading ? 'Loading...' : 'Register'}
           </Button>
         </form>
+        <Button onClick={handleGoogleRegister} className="w-full bg-red-500 text-white hover:bg-red-600">
+          {isLoading ? 'Loading...' : 'Register with Google'}
+        </Button>
         <div className="text-center text-sm">
           Already have an account?{' '}
           <Link className="underline" href="/login">
