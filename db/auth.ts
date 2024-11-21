@@ -30,7 +30,7 @@ export async function signUp(email: string, password: string) {
     email,
     password,
     options: {
-      emailRedirectTo: `${location.origin}/auth/callback`,
+      emailRedirectTo: `${location.origin}/auth/v1/callback`,
     },
   });
 
