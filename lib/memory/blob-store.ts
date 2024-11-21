@@ -4,6 +4,8 @@ import * as LRUCache from 'lru-cache';
 
 import { MemoryStore, MemoryStats, FileMetadata, SessionMemory, UserPreferences } from '@/types';
 
+// Use environment variable for blob token
+const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 
 interface CacheOptions {
   max: number;
@@ -21,12 +23,15 @@ export class BlobMemoryStore implements MemoryStore {
 
   constructor(
     private readonly prefix: string,
-    private readonly blobToken: string,
     currentSession: Session | null,
     private readonly compressionThreshold: number = 1024,
     private readonly maxSize: number = 10 * 1024 * 1024,
     cacheOptions: CacheOptions = { max: 100, maxAge: 300000 }
   ) {
+    if (!BLOB_TOKEN) {
+      throw new Error('BLOB_READ_WRITE_TOKEN environment variable is not set');
+    }
+
     this.cache = new LRUCache.LRUCache({
       max: cacheOptions.max,
       ttl: cacheOptions.maxAge
@@ -107,7 +112,7 @@ export class BlobMemoryStore implements MemoryStore {
 
     const blobKey = `${this.prefix}/${key}`;
     const blob = new Blob([JSON.stringify(value)], { type: 'application/json' });
-    await put(blobKey, blob, { access: 'public' });
+    await put(blobKey, blob, { access: 'public', token: BLOB_TOKEN });
   }
 
   async get(key: string): Promise<any> {
@@ -128,6 +133,7 @@ export class BlobMemoryStore implements MemoryStore {
       this.cache.set(key, data);
       return data;
     } catch (error) {
+      console.error('Error fetching blob:', error);
       return null;
     }
   }
