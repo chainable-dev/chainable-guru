@@ -46,7 +46,7 @@ export interface SessionContext {
 }
 
 export interface SessionMemory {
-  messages: Array<ChatMessage>;
+  messages: ChatMessage[];
   context: SessionContext;
 }
 
@@ -90,4 +90,4 @@ export interface ToolCallFunction {
 
 export interface ToolCall {
   function: ToolCallFunction;
-} 
+}

@@ -4,8 +4,8 @@ import { generateTitleFromUserMessage } from '../../actions';
 // Third-party imports
 import OpenAI from 'openai';
 import { v4 as generateUUID } from 'uuid';
-import type { 
-  ChatCompletion, 
+import type {
+  ChatCompletion,
   ChatCompletionCreateParams,
   ChatCompletionChunk,
   ChatCompletionMessage,
@@ -14,10 +14,10 @@ import type {
 } from 'openai/resources/chat';
 
 // Type imports
-import type { 
-  ChatMessage, 
-  WalletInfo, 
-  SessionContext, 
+import type {
+  ChatMessage,
+  WalletInfo,
+  SessionContext,
   MetricsData,
   UserPreferences,
   MessageRole
@@ -27,6 +27,7 @@ import type {
 import { tools, getAvailableTools } from '@/lib/tools';
 import { sanitizeResponseMessages } from '@/lib/utils';
 import { memoryStore } from '@/lib/memory/store';
+import { MemoryMonitor } from '@/lib/memory/monitor'; // Ensure MemoryMonitor is imported
 
 function getMostRecentUserMessage(messages: ChatMessage[]): ChatMessage | undefined {
   return [...messages].reverse().find(msg => msg.role === ('user' as MessageRole));
@@ -39,17 +40,17 @@ interface ToolCallParams {
 }
 
 async function processToolCall(
-  toolCall: ChatCompletionTool,
-  params: ToolCallParams
+    toolCall: ChatCompletionTool,
+    params: ToolCallParams
 ) {
   if (!toolCall.function?.name) {
     throw new Error('Invalid tool call: missing function name');
   }
 
   const functionName = toolCall.function.name;
-  const functionParams = typeof toolCall.function.parameters === 'object' 
-    ? toolCall.function.parameters 
-    : {};
+  const functionParams = typeof toolCall.function.parameters === 'object'
+      ? toolCall.function.parameters
+      : {};
 
   switch (functionName) {
     case 'createDocument':
@@ -105,30 +106,21 @@ async function processWalletInfo(userMessage: ChatMessage | undefined): Promise<
         return { text: userMessage.content, isConnected: false };
       }
     }
-    /*
-    *export interface ChatMessage {
-  id: string;
-  role: MessageRole;
-  content: string | Record<string, unknown>;
-  timestamp: number;
-}
-    
-    */
     return { text: '', isConnected: false };
   } catch (error) {
     console.error('Error processing wallet info:', error);
-    return { 
+    return {
       text: typeof userMessage?.content === 'string' ? userMessage.content : '',
-      isConnected: false 
+      isConnected: false
     };
   }
 }
 
 async function handleToolCalls(
-  response: AsyncIterable<ChatCompletionChunk>,
-  userMessage: ChatMessage | undefined,
-  currentWalletInfo: WalletInfo,
-  modelId?: string
+    response: AsyncIterable<ChatCompletionChunk>,
+    userMessage: ChatMessage | undefined,
+    currentWalletInfo: WalletInfo,
+    modelId?: string
 ) {
   try {
     const toolResults = [];
@@ -140,14 +132,14 @@ async function handleToolCalls(
           function: {
             name: toolCall.function.name,
             description: '',
-            parameters: toolCall.function.arguments 
-              ? JSON.parse(toolCall.function.arguments)
-              : {}
+            parameters: toolCall.function.arguments
+                ? JSON.parse(toolCall.function.arguments)
+                : {}
           }
         } as ChatCompletionTool, {
-          content: typeof userMessage?.content === 'string' 
-            ? userMessage.content 
-            : JSON.stringify(userMessage?.content),
+          content: typeof userMessage?.content === 'string'
+              ? userMessage.content
+              : JSON.stringify(userMessage?.content),
           walletInfo: currentWalletInfo,
           modelId
         });
@@ -162,10 +154,10 @@ async function handleToolCalls(
 }
 
 async function updateSessionAndPreferences(
-  id: string,
-  messages: ChatMessage[],
-  currentWalletInfo: WalletInfo,
-  user: any
+    id: string,
+    messages: ChatMessage[],
+    currentWalletInfo: WalletInfo,
+    user: any
 ) {
   try {
     const sessionContext: SessionContext = {
@@ -174,14 +166,14 @@ async function updateSessionAndPreferences(
         walletAddress: currentWalletInfo.walletAddress,
         chainId: currentWalletInfo.chainId,
         network: currentWalletInfo.chainId === 8453 ? 'Base Mainnet' :
-                currentWalletInfo.chainId === 84532 ? 'Base Sepolia' :
+            currentWalletInfo.chainId === 84532 ? 'Base Sepolia' :
                 'Unknown',
         isConnected: true
       } : undefined,
       activeTools: []
     };
     await memoryStore.setSession(id, {
-      messages: sanitizeResponseMessages(messages),
+      messages: sanitizeResponseMessages(messages) as ChatMessage[],
       context: sessionContext
     });
 
@@ -226,10 +218,10 @@ export async function POST(req: Request) {
 
     // Step 4: Handle tool calls
     const toolResults = await handleToolCalls(
-      response as unknown as AsyncIterable<ChatCompletionChunk>,
-      userMessage,
-      currentWalletInfo,
-      modelId
+        response as unknown as AsyncIterable<ChatCompletionChunk>,
+        userMessage,
+        currentWalletInfo,
+        modelId
     );
 
     // Step 5: Update session and preferences
@@ -247,7 +239,7 @@ export async function POST(req: Request) {
 
   } catch (error) {
     console.error('Chat error:', error);
-    
+
     await MemoryMonitor.logMetrics(id, {
       responseTime: Date.now() - startTime,
       cacheHit,
@@ -256,8 +248,8 @@ export async function POST(req: Request) {
     });
 
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500 }
+        JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+        { status: 500 }
     );
   }
 }
