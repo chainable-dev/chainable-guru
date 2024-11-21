@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
 
 import { useWalletState } from '@/hooks/useWalletState';
-import { createClient } from '@/lib/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { sanitizeUIMessages } from '@/lib/utils';
 
 import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
@@ -115,7 +115,6 @@ export function MultimodalInput({
 }: MultimodalInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
-  const supabase = createClient();
 
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);

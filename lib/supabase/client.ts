@@ -1,9 +1,11 @@
-import { createBrowserClient } from '@supabase/ssr';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
-import type { Database } from './types';
-
-export const createClient = () =>
-  createBrowserClient<Database>(
+export const supabase = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+);
+
+// If you want to export a createClient function, you can do it like this:
+export const createClient = () => {
+    return supabase;
+}; 

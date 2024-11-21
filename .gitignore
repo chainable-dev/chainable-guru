@@ -36,3 +36,7 @@ yarn-error.log*
 .vercel
 .vscode
 .env*.local
+
+# Environment variables
+.env.local
+.env.*.local

@@ -6,10 +6,12 @@ import {
   ToolInvocation,
   ToolContent,
 } from 'ai';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import {clsx, type ClassValue} from 'clsx';
+import {twMerge} from 'tailwind-merge';
 
-import type { Database } from '@/lib/supabase/types';
+import {ChatMessage} from "@/types/chat";
+
+import type {Database} from '@/lib/supabase/types';
 
 type DBMessage = Database['public']['Tables']['messages']['Row'];
 type Document = Database['public']['Tables']['documents']['Row'];
@@ -42,23 +44,23 @@ function parseToolContent(content: string): ToolContent {
 }
 
 function addToolMessageToChat({
-  toolMessage,
-  messages,
-}: {
+                                toolMessage,
+                                messages,
+                              }: {
   toolMessage: DBMessage;
   messages: Array<Message>;
 }): Array<Message> {
   return messages.map((message) => {
     if (message.toolInvocations) {
       const toolContent = parseToolContent(
-        toolMessage.content?.toString() ?? ''
+          toolMessage.content?.toString() ?? ''
       );
 
       return {
         ...message,
         toolInvocations: message.toolInvocations.map((toolInvocation) => {
           const toolResult = toolContent.find(
-            (tool) => tool.toolCallId === toolInvocation.toolCallId
+              (tool) => tool.toolCallId === toolInvocation.toolCallId
           );
 
           if (toolResult) {
@@ -79,7 +81,7 @@ function addToolMessageToChat({
 }
 
 export function convertToUIMessages(
-  messages: Array<DBMessage>
+    messages: Array<DBMessage>
 ): Array<Message> {
   return messages.reduce((chatMessages: Array<Message>, message) => {
     if (message.role === 'tool') {
@@ -128,14 +130,14 @@ export function convertToUIMessages(
 }
 
 export function sanitizeResponseMessages(
-  messages: Array<CoreToolMessage | CoreAssistantMessage>
-): Array<CoreToolMessage | CoreAssistantMessage> {
+  messages: Array<CoreToolMessage | CoreAssistantMessage | ChatMessage>
+): Array< ChatMessage> {
   let toolResultIds: Array<string> = [];
 
   for (const message of messages) {
-    if (message.role === 'tool') {
+    if (message.role === 'tool' && Array.isArray(message.content)) {
       for (const content of message.content) {
-        if (content.type === 'tool-result') {
+        if (content && typeof content === 'object' && content.type === 'tool-result') {
           toolResultIds.push(content.toolCallId);
         }
       }
@@ -147,12 +149,12 @@ export function sanitizeResponseMessages(
 
     if (typeof message.content === 'string') return message;
 
-    const sanitizedContent = message.content.filter((content) =>
-      content.type === 'tool-call'
-        ? toolResultIds.includes(content.toolCallId)
-        : content.type === 'text'
-          ? content.text.length > 0
-          : true
+    const sanitizedContent = (message.content as any[]).filter((content: any) =>
+        content.type === 'tool-call'
+            ? toolResultIds.includes(content.toolCallId)
+            : content.type === 'text'
+                ? content.text.length > 0
+                : true
     );
 
     return {
@@ -162,8 +164,8 @@ export function sanitizeResponseMessages(
   });
 
   return messagesBySanitizedContent.filter(
-    (message) => message.content.length > 0
-  );
+      (message) => Array.isArray(message.content) && message.content.length > 0
+  ) as ChatMessage[];
 }
 
 export function sanitizeUIMessages(messages: Array<Message>): Array<Message> {
@@ -181,9 +183,9 @@ export function sanitizeUIMessages(messages: Array<Message>): Array<Message> {
     }
 
     const sanitizedToolInvocations = message.toolInvocations.filter(
-      (toolInvocation) =>
-        toolInvocation.state === 'result' ||
-        toolResultIds.includes(toolInvocation.toolCallId)
+        (toolInvocation) =>
+            toolInvocation.state === 'result' ||
+            toolResultIds.includes(toolInvocation.toolCallId)
     );
 
     return {
@@ -193,9 +195,9 @@ export function sanitizeUIMessages(messages: Array<Message>): Array<Message> {
   });
 
   return messagesBySanitizedToolInvocations.filter(
-    (message) =>
-      message.content.length > 0 ||
-      (message.toolInvocations && message.toolInvocations.length > 0)
+      (message) =>
+          message.content.length > 0 ||
+          (message.toolInvocations && message.toolInvocations.length > 0)
   );
 }
 
@@ -205,8 +207,8 @@ export function getMostRecentUserMessage(messages: Array<CoreMessage>) {
 }
 
 export function getDocumentTimestampByIndex(
-  documents: Array<Document>,
-  index: number
+    documents: Array<Document>,
+    index: number
 ) {
   if (!documents) return new Date();
   if (index > documents.length) return new Date();
@@ -216,8 +218,8 @@ export function getDocumentTimestampByIndex(
 
 // Add fetcher function for SWR
 export async function fetcher<T = any>(
-  input: RequestInfo | URL,
-  init?: RequestInit
+    input: RequestInfo | URL,
+    init?: RequestInit
 ): Promise<T> {
   const response = await fetch(input, init);
 

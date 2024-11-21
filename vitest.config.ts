@@ -6,8 +6,16 @@ export default defineConfig({
   plugins: [react(), tsconfigPaths()],
   test: {
     environment: 'jsdom',
-    include: ['__tests__/**/*.test.{ts,tsx}'],
-    setupFiles: ['__tests__/setup.ts'],
-    globals: true
-  }
+    include: ['**/__tests__/**/*.{test,spec}.{ts,tsx}'],
+    globals: true,
+    setupFiles: ['./vitest.setup.ts'],
+    coverage: {
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        'vitest.config.ts',
+        'vitest.setup.ts',
+      ],
+    },
+  },
 }) 
