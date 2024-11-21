@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase/client';
 import { GoogleLoginButton } from '@/components/custom/login-button';
+import Link from 'next/link';
 
 export default function LoginPage() {
     const [email, setEmail] = useState('');
@@ -27,17 +28,17 @@ export default function LoginPage() {
             toast.error('Failed to log in');
         } else {
             toast.success('Logged in successfully');
-            router.push('/dashboard'); // Redirect to the dashboard or home page
+            router.push('/dashboard');
         }
     };
 
     return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-800">
-            <div className="bg-white dark:bg-gray-900 p-8 rounded-lg shadow-md w-full max-w-sm">
-                <h1 className="text-2xl font-bold text-center mb-6 text-gray-800 dark:text-gray-200">Login</h1>
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-teal-500 to-blue-500">
+            <div className="standard-card p-8 rounded-lg shadow-md w-full max-w-sm">
+                <h1 className="text-3xl font-bold text-center mb-6 text-white">Login</h1>
                 <form onSubmit={handleLogin} className="flex flex-col space-y-4">
                     <div className="space-y-2">
-                        <Label htmlFor="email" className="text-gray-700 dark:text-gray-300">Email</Label>
+                        <Label htmlFor="email" className="text-white">Email</Label>
                         <Input
                             id="email"
                             name="email"
@@ -46,11 +47,11 @@ export default function LoginPage() {
                             onChange={(e) => setEmail(e.target.value)}
                             required
                             type="email"
-                            className="border p-2 rounded dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                            className="border p-2 rounded"
                         />
                     </div>
                     <div className="space-y-2">
-                        <Label htmlFor="password" className="text-gray-700 dark:text-gray-300">Password</Label>
+                        <Label htmlFor="password" className="text-white">Password</Label>
                         <Input
                             id="password"
                             name="password"
@@ -59,17 +60,24 @@ export default function LoginPage() {
                             onChange={(e) => setPassword(e.target.value)}
                             required
                             type="password"
-                            className="border p-2 rounded dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200"
+                            className="border p-2 rounded"
                         />
                     </div>
-                    <Button type="submit" className="w-full bg-blue-500 text-white hover:bg-blue-600 dark:bg-blue-700 dark:hover:bg-blue-600">
+                    <Button type="submit" className="w-full bg-teal-500 text-white hover:bg-teal-600">
                         Login
                     </Button>
                 </form>
                 <div className="mt-4 text-center">
-                    <span className="text-gray-600 dark:text-gray-400">or</span>
+                    <span className="text-white">or</span>
                 </div>
                 <GoogleLoginButton />
+                <div className="text-center text-sm">
+                    Already have an account?{' '}
+                    <Link className="underline" href="/register">
+                        Register        
+                    </Link>
+
+                </div>  
             </div>
         </div>
     );
