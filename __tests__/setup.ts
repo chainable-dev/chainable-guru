@@ -1,7 +1,28 @@
-import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
-import { afterEach } from 'vitest';
+import '@testing-library/jest-dom'
+import { vi } from 'vitest'
 
-afterEach(() => {
-  cleanup();
-}); 
+// Mock next/navigation
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn()
+  }),
+  useSearchParams: () => ({
+    get: vi.fn()
+  })
+}))
+
+// Mock next/headers
+vi.mock('next/headers', () => ({
+  headers: () => new Headers(),
+  cookies: () => ({
+    get: vi.fn(),
+    set: vi.fn()
+  })
+}))
+
+// Reset mocks between tests
+beforeEach(() => {
+  vi.clearAllMocks()
+}) 

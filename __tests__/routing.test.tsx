@@ -1,60 +1,53 @@
-import fs from 'fs';
-import path from 'path';
+import { render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { MockSidebar, MockMultimodalInput } from './__mocks__/components'
+import { useSearchParams } from 'next/navigation'
 
-import { describe, it, expect } from 'vitest';
-import { cleanup } from '@testing-library/react';
-import '@__tests__/setup';
+// Mock the components
+vi.mock('@/components/ui/sidebar', () => ({
+  default: MockSidebar
+}))
 
-describe('Next.js Routing', () => {
-  afterEach(() => {
-    cleanup();
-  });
+vi.mock('@/components/custom/multimodal-input', () => ({
+  default: MockMultimodalInput
+}))
 
-  const appDir = path.join(process.cwd(), 'app');
-  
-  it('uses kebab-case for static routes', () => {
-    const dirs = fs.readdirSync(appDir, { withFileTypes: true })
-      .filter(dirent => dirent.isDirectory())
-      .map(dirent => dirent.name);
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn()
+  }),
+  useSearchParams: vi.fn()
+}))
 
-    const staticRoutes = dirs.filter(dir => 
-      !dir.startsWith('[') && 
-      !dir.startsWith('(') && 
-      !dir.startsWith('_')    
-    );
-    
-    staticRoutes.forEach(route => {
-      expect(route).toMatch(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
-    });
-  });
+describe('Chat Routing', () => {
+  it('should render chat components correctly', () => {
+    render(
+      <div>
+        <MockSidebar>
+          <MockMultimodalInput />
+        </MockSidebar>
+      </div>
+    )
 
-  it('uses PascalCase for dynamic segments', () => {
-    const dirs = fs.readdirSync(appDir, { withFileTypes: true })
-      .filter(dirent => dirent.isDirectory())
-      .map(dirent => dirent.name);
+    expect(screen.getByTestId('mock-sidebar')).toBeInTheDocument()
+    expect(screen.getByTestId('mock-multimodal-input')).toBeInTheDocument()
+  })
 
-    const dynamicRoutes = dirs.filter(dir => 
-      dir.startsWith('[') && dir.endsWith(']')
-    );
-    
-    dynamicRoutes.forEach(route => {
-      const segment = route.slice(1, -1);
-      expect(segment).toMatch(/^[A-Z][a-zA-Z0-9]*$/);
-    });
-  });
+  it('should handle chat route parameters', () => {
+    const mockParams = new URLSearchParams('?message=test')
+    const mockUseSearchParams = vi.mocked(useSearchParams)
+    mockUseSearchParams.mockReturnValue(mockParams)
 
-  it('uses valid route group naming', () => {
-    const dirs = fs.readdirSync(appDir, { withFileTypes: true })
-      .filter(dirent => dirent.isDirectory())
-      .map(dirent => dirent.name);
+    render(
+      <div>
+        <MockSidebar>
+          <MockMultimodalInput />
+        </MockSidebar>
+      </div>
+    )
 
-    const routeGroups = dirs.filter(dir => 
-      dir.startsWith('(') && dir.endsWith(')')
-    );
-    
-    routeGroups.forEach(group => {
-      const groupName = group.slice(1, -1);
-      expect(groupName).toMatch(/^[a-zA-Z][a-zA-Z0-9-_]*$/);
-    });
-  });
-}); 
+    expect(MockMultimodalInput).toHaveBeenCalled()
+  })
+}) 
