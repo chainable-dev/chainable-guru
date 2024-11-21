@@ -24,7 +24,7 @@ export default function RegisterPage() {
       const email = formData.get('email') as string;
       const password = formData.get('password') as string;
 
-      const { user, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
       });
@@ -44,7 +44,9 @@ export default function RegisterPage() {
     setIsLoading(true);
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      redirectTo: `${window.location.origin}/auth/callback`,
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
     });
 
     if (error) {

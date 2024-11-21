@@ -14,15 +14,16 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const router = useRouter();
 
-    const handleLogin = async (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        const { user, error } = await supabase.auth.signIn({
+        
+        const { error } = await supabase.auth.signInWithPassword({
             email,
             password,
         });
 
         if (error) {
-            console.error('Login error:', error);
+            console.error('Login error:', error.message);
             toast.error('Failed to log in');
         } else {
             toast.success('Logged in successfully');
