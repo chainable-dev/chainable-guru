@@ -1,6 +1,6 @@
-import { put, del, list } from '@vercel/blob';
+import * as LRUCache from 'lru-cache';
 
-import LRUCache from 'lru-cache';
+import { put, del, list, get } from '@vercel/blob';
 
 import { MemoryStore, MemoryStats, FileMetadata, SessionMemory, UserPreferences } from '@/types';
 
@@ -9,9 +9,8 @@ interface CacheOptions {
   max: number;
   maxAge?: number;
 }
-
 export class BlobMemoryStore implements MemoryStore {
-  private cache: LRUCache<string, any>;
+  private cache: LRUCache.LRUCache<string, any>;
   private metrics = {
     totalResponseTime: 0,
     requestCount: 0,
@@ -25,9 +24,9 @@ export class BlobMemoryStore implements MemoryStore {
     private readonly maxSize: number = 10 * 1024 * 1024,
     cacheOptions: CacheOptions = { max: 100, maxAge: 300000 }
   ) {
-    this.cache = new LRUCache({
+    this.cache = new LRUCache.LRUCache({
       max: cacheOptions.max,
-      maxAge: cacheOptions.maxAge
+      ttl: cacheOptions.maxAge
     });
   }
   setSession(id: string, memory: SessionMemory): Promise<void> {
@@ -94,19 +93,46 @@ export class BlobMemoryStore implements MemoryStore {
     });
 
     await Promise.all(expired.map((blob: any) => del(blob.url)));
-    this.cache.reset();
+    this.cache.clear();
   }
 
   async set(key: string, value: any, ttl?: number): Promise<void> {
-    // Implementation
+    // Set the value in the cache
+    this.cache.set(key, value, { ttl });
+
+    // Upload the value to the blob storage
+    const blobKey = `${this.prefix}/${key}`;
+    await put(blobKey, value, {
+      metadata: {
+        timestamp: Date.now(),
+        ttl
+      }
+    });
   }
 
   async get(key: string): Promise<any> {
-    // Implementation
+    // Try to get the value from the cache
+    const cachedValue = this.cache.get(key);
+    if (cachedValue !== undefined) {
+      return cachedValue;
+    }
+
+    // If not in cache, retrieve from blob storage
+    const blobKey = `${this.prefix}/${key}`;
+    const { data } = await get(blobKey, {
+      headers: {
+        'Authorization': `Bearer ${this.blobToken}`
+      }
+    });
+
+    // Store the retrieved value in the cache
+    this.cache.set(key, data);
+    return data;
   }
 
   async mset(entries: [string, any][], ttl?: number): Promise<void> {
-    // Implementation
+    // Set multiple entries in the cache and blob storage
+    await Promise.all(entries.map(([key, value]) => this.set(key, value, ttl)));
   }
 
   async mget(keys: string[]): Promise<any[]> {
@@ -121,7 +147,18 @@ export class BlobMemoryStore implements MemoryStore {
   }
 
   async clear(pattern?: string): Promise<void> {
-    // Implementation
+    // Clear cache entries matching the pattern
+    if (pattern) {
+      const keysToDelete = this.cache.keys().filter(key => key.includes(pattern));
+      keysToDelete.forEach(key => this.cache.delete(key));
+    } else {
+      this.cache.clear();
+    }
+
+    // Clear blob storage entries matching the pattern
+    const { blobs } = await list({ prefix: this.prefix });
+    const blobsToDelete = blobs.filter((blob: any) => blob.pathname.includes(pattern || ''));
+    await Promise.all(blobsToDelete.map((blob: any) => del(blob.url)));
   }
 
   async delete(key: string): Promise<void> {
