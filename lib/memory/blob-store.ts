@@ -1,10 +1,10 @@
 import { Session } from '@supabase/supabase-js';
 import { put, del, list } from '@vercel/blob';
 import * as LRUCache from 'lru-cache';
+import redis from '@/lib/redis/client';
 
 import { MemoryStore, MemoryStats, FileMetadata, SessionMemory, UserPreferences } from '@/types';
 
-// Use environment variable for blob token
 const BLOB_TOKEN = process.env.BLOB_READ_WRITE_TOKEN;
 
 interface CacheOptions {
@@ -109,6 +109,7 @@ export class BlobMemoryStore implements MemoryStore {
     }
 
     this.cache.set(key, value, { ttl });
+    await redis.set(key, JSON.stringify(value), 'EX', ttl || 300);
 
     const blobKey = `${this.prefix}/${key}`;
     const blob = new Blob([JSON.stringify(value)], { type: 'application/json' });
@@ -123,6 +124,13 @@ export class BlobMemoryStore implements MemoryStore {
     const cachedValue = this.cache.get(key);
     if (cachedValue !== undefined) {
       return cachedValue;
+    }
+
+    const redisValue = await redis.get(key);
+    if (redisValue) {
+      const data = JSON.parse(redisValue);
+      this.cache.set(key, data);
+      return data;
     }
 
     const blobKey = `${this.prefix}/${key}`;
@@ -174,5 +182,14 @@ export class BlobMemoryStore implements MemoryStore {
     this.cache.delete(key);
     const { blobs } = await list({ prefix: `${this.prefix}/${key}` });
     await Promise.all(blobs.map((blob: any) => del(blob.url)));
+  }
+
+  async cacheData(key: string, value: any) {
+    await redis.set(key, JSON.stringify(value));
+  }
+
+  async getCachedData(key: string) {
+    const data = await redis.get(key);
+    return data ? JSON.parse(data) : null;
   }
 }
