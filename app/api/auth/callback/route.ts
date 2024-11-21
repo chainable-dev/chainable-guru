@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { handleAuthCallback } from '../../../lib/auth'; // Adjust the import path as necessary
+
+
+
 
 export async function POST(req: NextRequest) {
     try {
@@ -11,17 +13,16 @@ export async function POST(req: NextRequest) {
         const refreshToken = searchParams.get('refresh_token');
         const tokenType = searchParams.get('token_type');
 
-        // You can now use these tokens as needed, e.g., store them in a session or database
-        const result = await handleAuthCallback({
+        // Return the extracted tokens directly
+        return NextResponse.json({
             accessToken,
             expiresAt,
             refreshToken,
-            tokenType,
-        });
+            tokenType
+        }, { status: 200 });
 
-        return NextResponse.json(result, { status: 200 });
     } catch (error) {
         console.error('Error handling callback:', error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }
-} 
+}
