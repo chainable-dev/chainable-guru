@@ -1,14 +1,13 @@
 import * as LRUCache from 'lru-cache';
-
-import { put, del, list, get } from '@vercel/blob';
-
+import { put, del, list } from '@vercel/blob';
 import { MemoryStore, MemoryStats, FileMetadata, SessionMemory, UserPreferences } from '@/types';
-
+import { Session } from '@supabase/supabase-js';
 
 interface CacheOptions {
   max: number;
   maxAge?: number;
 }
+
 export class BlobMemoryStore implements MemoryStore {
   private cache: LRUCache.LRUCache<string, any>;
   private metrics = {
@@ -16,6 +15,7 @@ export class BlobMemoryStore implements MemoryStore {
     requestCount: 0,
     cacheItems: 0
   };
+  private currentSession: Session | null = null;
 
   constructor(
     private readonly prefix: string,
@@ -29,29 +29,27 @@ export class BlobMemoryStore implements MemoryStore {
       ttl: cacheOptions.maxAge
     });
   }
-  setSession(id: string, memory: SessionMemory): Promise<void> {
-    throw new Error('Method not implemented.');
+
+  async setSession(id: string, memory: SessionMemory): Promise<void> {
+    await this.set(id, memory);
   }
-  getSession(id: string): Promise<SessionMemory | null> {
-    throw new Error('Method not implemented.');
+
+  async getSession(id: string): Promise<SessionMemory | null> {
+    return this.get(id);
   }
-  setUserPrefs(userId: string, prefs: Partial<UserPreferences>): Promise<void> {
-    throw new Error('Method not implemented.');
+
+  async setUserPrefs(userId: string, prefs: Partial<UserPreferences>): Promise<void> {
+    if (!this.currentSession) {
+      throw new Error('User is not authenticated');
+    }
+    await this.set(`userPrefs:${userId}`, prefs);
   }
-  getUserPrefs(userId: string): Promise<UserPreferences | null> {
-    throw new Error('Method not implemented.');
-  }
-  uploadFile?(file: File, userId: string): Promise<string> {
-    throw new Error('Method not implemented.');
-  }
-  getFile?(userId: string, fileId: string): Promise<{ url: string; metadata: FileMetadata; } | null> {
-    throw new Error('Method not implemented.');
-  }
-  listFiles?(userId: string): Promise<Array<{ url: string; metadata: FileMetadata; }>> {
-    throw new Error('Method not implemented.');
-  }
-  deleteFile?(userId: string, fileId: string): Promise<void> {
-    throw new Error('Method not implemented.');
+
+  async getUserPrefs(): Promise<UserPreferences | null> {
+    if (!this.currentSession) {
+      throw new Error('User is not authenticated');
+    }
+    return this.get('userPrefs');
   }
 
   private getCacheSize(): number {
@@ -97,41 +95,40 @@ export class BlobMemoryStore implements MemoryStore {
   }
 
   async set(key: string, value: any, ttl?: number): Promise<void> {
-    // Set the value in the cache
+    if (!this.currentSession) {
+      throw new Error('User is not authenticated');
+    }
+
     this.cache.set(key, value, { ttl });
 
-    // Upload the value to the blob storage
     const blobKey = `${this.prefix}/${key}`;
-    await put(blobKey, value, {
-      metadata: {
-        timestamp: Date.now(),
-        ttl
-      }
-    });
+    const blob = new Blob([JSON.stringify(value)], { type: 'application/json' });
+    await put(blobKey, blob, { access: 'public' });
   }
 
   async get(key: string): Promise<any> {
-    // Try to get the value from the cache
+    if (!this.currentSession) {
+      throw new Error('User is not authenticated');
+    }
+
     const cachedValue = this.cache.get(key);
     if (cachedValue !== undefined) {
       return cachedValue;
     }
 
-    // If not in cache, retrieve from blob storage
     const blobKey = `${this.prefix}/${key}`;
-    const { data } = await get(blobKey, {
-      headers: {
-        'Authorization': `Bearer ${this.blobToken}`
-      }
-    });
-
-    // Store the retrieved value in the cache
-    this.cache.set(key, data);
-    return data;
+    try {
+      const response = await fetch(blobKey);
+      if (!response.ok) return null;
+      const data = await response.json();
+      this.cache.set(key, data);
+      return data;
+    } catch (error) {
+      return null;
+    }
   }
 
   async mset(entries: [string, any][], ttl?: number): Promise<void> {
-    // Set multiple entries in the cache and blob storage
     await Promise.all(entries.map(([key, value]) => this.set(key, value, ttl)));
   }
 
@@ -147,22 +144,24 @@ export class BlobMemoryStore implements MemoryStore {
   }
 
   async clear(pattern?: string): Promise<void> {
-    // Clear cache entries matching the pattern
     if (pattern) {
-      const keysToDelete = this.cache.keys().filter(key => key.includes(pattern));
-      keysToDelete.forEach(key => this.cache.delete(key));
+      const keysToDelete = Array.from(this.cache.keys()).filter((key: string) => key.includes(pattern));
+      keysToDelete.forEach((key: string) => this.cache.delete(key));
     } else {
       this.cache.clear();
     }
 
-    // Clear blob storage entries matching the pattern
     const { blobs } = await list({ prefix: this.prefix });
     const blobsToDelete = blobs.filter((blob: any) => blob.pathname.includes(pattern || ''));
     await Promise.all(blobsToDelete.map((blob: any) => del(blob.url)));
   }
 
   async delete(key: string): Promise<void> {
-    this.cache.set(key, undefined);
+    if (!this.currentSession) {
+      throw new Error('User is not authenticated');
+    }
+
+    this.cache.delete(key);
     const { blobs } = await list({ prefix: `${this.prefix}/${key}` });
     await Promise.all(blobs.map((blob: any) => del(blob.url)));
   }

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Session } from '@supabase/supabase-js';
+import { Session, User } from '@supabase/supabase-js';
 
+//returns a session object
 export function useAuth() {
   const supabase = createClient();
 
@@ -9,7 +10,7 @@ export function useAuth() {
 
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
-        (_event, session) => {
+        (_event: string, session: Session | null) => {
           setSession(session);
         }
     );
