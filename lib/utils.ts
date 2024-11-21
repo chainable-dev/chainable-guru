@@ -10,6 +10,7 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 import type { Database } from '@/lib/supabase/types';
+import {ChatMessage} from "@/types/chat";
 
 type DBMessage = Database['public']['Tables']['messages']['Row'];
 type Document = Database['public']['Tables']['documents']['Row'];
@@ -128,14 +129,14 @@ export function convertToUIMessages(
 }
 
 export function sanitizeResponseMessages(
-  messages: Array<CoreToolMessage | CoreAssistantMessage>
-): Array<CoreToolMessage | CoreAssistantMessage> {
+  messages: Array<CoreToolMessage | CoreAssistantMessage | ChatMessage>
+): Array< ChatMessage> {
   let toolResultIds: Array<string> = [];
 
   for (const message of messages) {
-    if (message.role === 'tool') {
+    if (message.role === 'tool' && Array.isArray(message.content)) {
       for (const content of message.content) {
-        if (content.type === 'tool-result') {
+        if (content && typeof content === 'object' && content.type === 'tool-result') {
           toolResultIds.push(content.toolCallId);
         }
       }
@@ -147,7 +148,7 @@ export function sanitizeResponseMessages(
 
     if (typeof message.content === 'string') return message;
 
-    const sanitizedContent = message.content.filter((content) =>
+    const sanitizedContent = message.content.filter((content: any) =>
       content.type === 'tool-call'
         ? toolResultIds.includes(content.toolCallId)
         : content.type === 'text'

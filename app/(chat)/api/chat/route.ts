@@ -24,10 +24,9 @@ import type {
 } from '@/types';
 
 // Lib imports
-import { MemoryMonitor } from '@/app/lib/memory/monitor';
-import { memoryStore } from '@/app/lib/memory/store';
-import { tools, getAvailableTools } from '@/app/lib/tools';
-import { sanitizeResponseMessages } from '@/app/lib/utils';
+import { tools, getAvailableTools } from '@/lib/tools';
+import { sanitizeResponseMessages } from '@/lib/utils';
+import { memoryStore } from '@/lib/memory/store';
 
 function getMostRecentUserMessage(messages: ChatMessage[]): ChatMessage | undefined {
   return [...messages].reverse().find(msg => msg.role === ('user' as MessageRole));
@@ -78,58 +77,62 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
 
-export async function POST(req: Request) {
-  const id = generateUUID();
-  const startTime = Date.now();
-  let cacheHit = false;
-
+// Helper functions to break down the main logic
+async function getInitialData(id: string, user: any) {
   try {
-    const { messages, walletInfo: initialWalletInfo, modelId, user } = await req.json();
-
-    // Get user preferences if available
-    const [sessionMemory, userPrefs, workingMemory] = await Promise.all([
+    return await Promise.all([
       memoryStore.getSession(id),
       user?.id ? memoryStore.getUserPrefs(user.id) : null,
       memoryStore.getWorking(id)
     ]);
+  } catch (error) {
+    console.error('Error getting initial data:', error);
+    throw error;
+  }
+}
 
-    // Process wallet info from the latest message
-    const userMessage = getMostRecentUserMessage(messages);
-    let currentWalletInfo: WalletInfo = { text: '', isConnected: false };
-    
-    if (userMessage) {
-      try {
-        if (typeof userMessage.content === 'string') {
-          try {
-            const parsed = JSON.parse(userMessage.content);
-            currentWalletInfo = { ...parsed, isConnected: !!parsed.walletAddress };
-          } catch {
-            currentWalletInfo = { text: userMessage.content, isConnected: false };
-          }
-        }
-      } catch (e) {
-        console.error('Error processing message content:', e);
-        currentWalletInfo = { 
-          text: typeof userMessage.content === 'string' ? userMessage.content : '',
-          isConnected: false
-        };
-      }
+async function processWalletInfo(userMessage: ChatMessage | undefined): Promise<WalletInfo> {
+  try {
+    if (!userMessage) {
+      return { text: '', isConnected: false };
     }
 
-    // Prepare AI response
-    const response = await openai.chat.completions.create({
-      model: modelId || 'gpt-4',
-      messages: messages.map((msg: ChatMessage): OpenAIMessage => ({
-        role: mapMessageRole(msg.role),
-        content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
-      })),
-      tools: getAvailableTools(currentWalletInfo),
-      temperature: 0.7,
-      stream: true
-    });
+    if (typeof userMessage.content === 'string') {
+      try {
+        const parsed = JSON.parse(userMessage.content);
+        return { ...parsed, isConnected: !!parsed.walletAddress };
+      } catch {
+        return { text: userMessage.content, isConnected: false };
+      }
+    }
+    /*
+    *export interface ChatMessage {
+  id: string;
+  role: MessageRole;
+  content: string | Record<string, unknown>;
+  timestamp: number;
+}
+    
+    */
+    return { text: '', isConnected: false };
+  } catch (error) {
+    console.error('Error processing wallet info:', error);
+    return { 
+      text: typeof userMessage?.content === 'string' ? userMessage.content : '',
+      isConnected: false 
+    };
+  }
+}
 
-    // Handle streaming response
-    for await (const chunk of response as unknown as AsyncIterable<ChatCompletionChunk>) {
+async function handleToolCalls(
+  response: AsyncIterable<ChatCompletionChunk>,
+  userMessage: ChatMessage | undefined,
+  currentWalletInfo: WalletInfo,
+  modelId?: string
+) {
+  try {
+    const toolResults = [];
+    for await (const chunk of response) {
       const toolCall = chunk.choices[0]?.delta?.tool_calls?.[0];
       if (toolCall?.function?.name) {
         const result = await processToolCall({
@@ -148,10 +151,23 @@ export async function POST(req: Request) {
           walletInfo: currentWalletInfo,
           modelId
         });
+        toolResults.push({ toolCall, result });
       }
     }
+    return toolResults;
+  } catch (error) {
+    console.error('Error handling tool calls:', error);
+    throw error;
+  }
+}
 
-    // Update session memory
+async function updateSessionAndPreferences(
+  id: string,
+  messages: ChatMessage[],
+  currentWalletInfo: WalletInfo,
+  user: any
+) {
+  try {
     const sessionContext: SessionContext = {
       lastActive: Date.now(),
       wallet: currentWalletInfo.walletAddress ? {
@@ -164,34 +180,74 @@ export async function POST(req: Request) {
       } : undefined,
       activeTools: []
     };
-
     await memoryStore.setSession(id, {
       messages: sanitizeResponseMessages(messages),
       context: sessionContext
     });
 
-    // Update user preferences if available
     if (user?.id) {
       await memoryStore.setUserPrefs(user.id, {
         lastChatId: id,
         lastActive: Date.now()
       });
     }
+  } catch (error) {
+    console.error('Error updating session and preferences:', error);
+    throw error;
+  }
+}
 
-    // Log metrics
+export async function POST(req: Request) {
+  const id = generateUUID();
+  const startTime = Date.now();
+  let cacheHit = false;
+
+  try {
+    const { messages, walletInfo: initialWalletInfo, modelId, user } = await req.json();
+
+    // Step 1: Get initial data
+    const [sessionMemory, userPrefs, workingMemory] = await getInitialData(id, user);
+
+    // Step 2: Process wallet info
+    const userMessage = getMostRecentUserMessage(messages);
+    const currentWalletInfo = await processWalletInfo(userMessage);
+
+    // Step 3: Prepare and execute AI response
+    const response = await openai.chat.completions.create({
+      model: modelId || 'gpt-4',
+      messages: messages.map((msg: ChatMessage): OpenAIMessage => ({
+        role: mapMessageRole(msg.role),
+        content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+      })),
+      tools: getAvailableTools(currentWalletInfo),
+      temperature: 0.7,
+      stream: true
+    });
+
+    // Step 4: Handle tool calls
+    const toolResults = await handleToolCalls(
+      response as unknown as AsyncIterable<ChatCompletionChunk>,
+      userMessage,
+      currentWalletInfo,
+      modelId
+    );
+
+    // Step 5: Update session and preferences
+    await updateSessionAndPreferences(id, messages, currentWalletInfo, user);
+
+    // Step 6: Log metrics
     await MemoryMonitor.logMetrics(id, {
       responseTime: Date.now() - startTime,
       cacheHit
     });
 
-    return new Response(JSON.stringify({ id }), {
+    return new Response(JSON.stringify({ id, toolResults }), {
       headers: { 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
     console.error('Chat error:', error);
     
-    // Log error metrics
     await MemoryMonitor.logMetrics(id, {
       responseTime: Date.now() - startTime,
       cacheHit,
@@ -205,4 +261,3 @@ export async function POST(req: Request) {
     );
   }
 }
-

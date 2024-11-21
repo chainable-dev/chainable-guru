@@ -5,8 +5,8 @@ export type MessageRole = 'system' | 'user' | 'assistant' | 'tool';
 
 export interface ChatMessage {
   id: string;
-  role: MessageRole;
-  content: string | Record<string, unknown>;
+  role: 'system' | 'user' | 'assistant';
+  content: string;
   timestamp: number;
 }
 
@@ -46,7 +46,7 @@ export interface SessionContext {
 }
 
 export interface SessionMemory {
-  messages: ChatMessage[];
+  messages: Array<ChatMessage>;
   context: SessionContext;
 }
 
