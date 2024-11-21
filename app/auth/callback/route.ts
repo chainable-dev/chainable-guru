@@ -1,60 +1,31 @@
-import { createClient } from '@/lib/supabase/client'
+'use server'
+
 import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
 
 export async function GET(request: Request) {
-  const requestUrl = new URL(request.url)
-  const code = requestUrl.searchParams.get('code')
-  const hash = requestUrl.hash
+  const { searchParams, origin } = new URL(request.url)
+  const code = searchParams.get('code')
+  // if "next" is in param, use it as the redirect URL
+  const next = searchParams.get('next') ?? '/'
 
-  // Create Supabase client
-  const supabase = createClient()
-
-  // Handle hash-based authentication (OAuth providers)
-  if (hash && hash.includes('access_token')) {
-    try {
-      // Parse the hash fragment
-      const hashParams = new URLSearchParams(hash.substring(1))
-      const accessToken = hashParams.get('access_token')
-      const refreshToken = hashParams.get('refresh_token')
-      const expiresIn = hashParams.get('expires_in')
-
-      if (accessToken && refreshToken) {
-        const { error } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          expires_in: parseInt(expiresIn || '3600')
-        })
-
-        if (error) {
-          console.error('Error setting session:', error)
-          return NextResponse.redirect(
-            `${requestUrl.origin}/login?error=${encodeURIComponent(error.message)}`
-          )
-        }
-
-        return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
-      }
-    } catch (error) {
-      console.error('Error processing hash params:', error)
-      return NextResponse.redirect(
-        `${requestUrl.origin}/login?error=${encodeURIComponent('Authentication failed')}`
-      )
-    }
-  }
-
-  // Handle code-based authentication (email/password)
   if (code) {
+    const supabase = await createClient()
     const { error } = await supabase.auth.exchangeCodeForSession(code)
-
-    if (error) {
-      return NextResponse.redirect(
-        `${requestUrl.origin}/login?error=${encodeURIComponent(error.message)}`
-      )
+    if (!error) {
+      const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
+      const isLocalEnv = process.env.NODE_ENV === 'development'
+      if (isLocalEnv) {
+        // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
+        return NextResponse.redirect(`${origin}${next}`)
+      } else if (forwardedHost) {
+        return NextResponse.redirect(`https://${forwardedHost}${next}`)
+      } else {
+        return NextResponse.redirect(`${origin}${next}`)
+      }
     }
-
-    return NextResponse.redirect(`${requestUrl.origin}/dashboard`)
   }
 
-  // If no code or hash params found, redirect to login
-  return NextResponse.redirect(`${requestUrl.origin}/login`)
+  // return the user to an error page with instructions
+  return NextResponse.redirect(`${origin}/auth/auth-code-error`)
 }
