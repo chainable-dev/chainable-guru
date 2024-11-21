@@ -1,7 +1,9 @@
-import * as LRUCache from 'lru-cache';
-import { put, del, list } from '@vercel/blob';
-import { MemoryStore, MemoryStats, FileMetadata, SessionMemory, UserPreferences } from '@/types';
 import { Session } from '@supabase/supabase-js';
+import { put, del, list } from '@vercel/blob';
+import * as LRUCache from 'lru-cache';
+
+import { MemoryStore, MemoryStats, FileMetadata, SessionMemory, UserPreferences } from '@/types';
+
 
 interface CacheOptions {
   max: number;
@@ -15,11 +17,12 @@ export class BlobMemoryStore implements MemoryStore {
     requestCount: 0,
     cacheItems: 0
   };
-  private currentSession: Session | null = null;
+  private currentSession: Session | null;
 
   constructor(
     private readonly prefix: string,
     private readonly blobToken: string,
+    currentSession: Session | null,
     private readonly compressionThreshold: number = 1024,
     private readonly maxSize: number = 10 * 1024 * 1024,
     cacheOptions: CacheOptions = { max: 100, maxAge: 300000 }
@@ -28,6 +31,7 @@ export class BlobMemoryStore implements MemoryStore {
       max: cacheOptions.max,
       ttl: cacheOptions.maxAge
     });
+    this.currentSession = currentSession;
   }
 
   async setSession(id: string, memory: SessionMemory): Promise<void> {

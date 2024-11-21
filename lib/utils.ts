@@ -9,8 +9,9 @@ import {
 import {clsx, type ClassValue} from 'clsx';
 import {twMerge} from 'tailwind-merge';
 
-import type {Database} from '@/lib/supabase/types';
 import {ChatMessage} from "@/types/chat";
+
+import type {Database} from '@/lib/supabase/types';
 
 type DBMessage = Database['public']['Tables']['messages']['Row'];
 type Document = Database['public']['Tables']['documents']['Row'];

@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
+import { GoogleLoginButton } from '@/components/custom/login-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase/client';
-import { GoogleLoginButton } from '@/components/custom/login-button';
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
