@@ -389,17 +389,13 @@ const tools = {
           };
         }
 
-        // Get RPC URL based on chainId
-        let rpcUrl: string;
+        // Validate supported network
         let networkName: string;
-
         switch (chainId) {
-          case 8453: // Base Mainnet
-            rpcUrl = 'https://mainnet.base.org';
+          case 8453:
             networkName = 'Base Mainnet';
             break;
-          case 84532: // Base Sepolia
-            rpcUrl = 'https://sepolia.base.org';
+          case 84532:
             networkName = 'Base Sepolia';
             break;
           default:
@@ -413,17 +409,25 @@ const tools = {
         }
 
         try {
-          const provider = new ethers.JsonRpcProvider(rpcUrl);
-          await provider.getNetwork();
-          const balance = await provider.getBalance(address);
+          // Use wagmi's useBalance hook for ETH balance
+          const { data: ethBalance } = await useBalance({
+            address,
+            chainId,
+            token: undefined, // for native ETH
+            unit: 'ether'
+          });
 
+          // Use wagmi's useBalance hook for USDC balance
           const usdcAddress = chainId === 8453
-              ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-              : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+            ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+            : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
 
-          const usdcAbi = ['function balanceOf(address) view returns (uint256)'];
-          const usdcContract = new ethers.Contract(usdcAddress, usdcAbi, provider);
-          const usdcBalance = await usdcContract.balanceOf(address);
+          const { data: usdcBalance } = await useBalance({
+            address,
+            chainId,
+            token: usdcAddress,
+            unit: 'ether'
+          });
 
           return {
             type: 'tool-result',
@@ -432,30 +436,32 @@ const tools = {
               network: networkName,
               chainId,
               balances: {
-                eth: ethers.formatEther(balance),
-                usdc: (Number(usdcBalance) / 1e6).toString()
+                eth: ethBalance?.formatted || '0',
+                usdc: usdcBalance?.formatted || '0'
               },
               timestamp: new Date().toISOString()
             }
           };
-        } catch (providerError) {
-          console.error('Provider error:', providerError);
+
+        } catch (balanceError) {
+          console.error('Balance fetch error:', balanceError);
           return {
             type: 'tool-result',
             result: {
-              error: 'Failed to connect to network',
-              details: 'Please check your network connection and try again',
+              error: 'Failed to fetch balances',
+              details: 'Could not retrieve wallet balances',
               chainId,
               network: networkName
             }
           };
         }
+
       } catch (error) {
-        console.error('Error fetching wallet balance:', error);
+        console.error('Error in wallet balance check:', error);
         return {
           type: 'tool-result',
           result: {
-            error: 'Failed to fetch wallet balance',
+            error: 'Failed to check wallet balance',
             details: error instanceof Error ? error.message : 'Unknown error'
           }
         };

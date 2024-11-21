@@ -18,6 +18,7 @@ import { BlockStreamHandler } from './block-stream-handler';
 import { MultimodalInput } from './multimodal-input';
 import { Overview } from './overview';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import { useWalletState } from '@/hooks/useWalletState';
 
 
 import type { Attachment, Message } from 'ai';
@@ -79,6 +80,8 @@ export function Chat({
     useScrollToBottom<HTMLDivElement>();
 
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
+
+  const { balance, balanceSymbol, isBalanceLoading, isBalanceError } = useWalletState();
 
   console.log(messages);
 
@@ -199,6 +202,18 @@ export function Chat({
             </div>
           </TooltipContent>
         </Tooltip>
+      </div>
+
+      <div className="px-4 py-2 bg-muted/50 rounded-md mb-4">
+        <p className="text-sm font-medium">
+          {isBalanceLoading ? (
+            'Loading balance...'
+          ) : isBalanceError ? (
+            'Error loading balance'
+          ) : (
+            `Balance: ${balance} ${balanceSymbol}`
+          )}
+        </p>
       </div>
     </>
   );

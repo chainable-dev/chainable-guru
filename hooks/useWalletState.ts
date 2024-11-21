@@ -1,11 +1,19 @@
-import { useAccount, useChainId, useWalletClient } from 'wagmi';
 import { useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
+import { useAccount, useBalance, useChainId, useWalletClient } from 'wagmi';
 
 export function useWalletState() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { data: walletClient } = useWalletClient();
+  
+  // Use wagmi's useBalance hook with correct options
+  const { data: balanceData, isError: isBalanceError } = useBalance({
+    address,
+    chainId,
+    token: undefined, // for native token (ETH)
+    unit: 'ether',
+  });
 
   // Memoize network info
   const networkInfo = useMemo(() => {
@@ -26,13 +34,21 @@ export function useWalletState() {
         console.log('Wallet connected:', {
           address,
           chainId,
-          network: networkInfo.name
+          network: networkInfo.name,
+          balance: balanceData?.formatted
         });
       } else {
         toast.error('Please switch to Base Mainnet or Base Sepolia');
       }
     }
-  }, [isConnected, address, chainId, networkInfo]);
+  }, [isConnected, address, chainId, networkInfo, balanceData?.formatted]);
+
+  // Handle balance errors
+  useEffect(() => {
+    if (isBalanceError) {
+      toast.error('Failed to fetch wallet balance');
+    }
+  }, [isBalanceError]);
 
   return {
     address,
@@ -40,6 +56,11 @@ export function useWalletState() {
     chainId,
     walletClient,
     networkInfo,
-    isCorrectNetwork: networkInfo?.isSupported ?? false
+    isCorrectNetwork: networkInfo?.isSupported ?? false,
+    balance: balanceData?.formatted,
+    balanceSymbol: balanceData?.symbol,
+    balanceValue: balanceData?.value,
+    isBalanceLoading: !balanceData && !isBalanceError,
+    isBalanceError
   };
 } 
