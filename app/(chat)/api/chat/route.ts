@@ -1,18 +1,19 @@
 // Local imports first
+import { generateTitleFromUserMessage } from '../../actions';
 
 // Third-party imports
 import OpenAI from 'openai';
 import { v4 as generateUUID } from 'uuid';
-
+import type {
+  ChatCompletion,
+  ChatCompletionCreateParams,
+  ChatCompletionChunk,
+  ChatCompletionMessage,
+  ChatCompletionTool,
+  ChatCompletionToolChoiceOption
+} from 'openai/resources/chat';
 
 // Type imports
-import { MemoryMonitor } from '@/lib/memory/monitor'; // Ensure MemoryMonitor is imported
-import { memoryStore } from '@/lib/memory/store';
-import { tools, getAvailableTools } from '@/lib/tools';
-import { sanitizeResponseMessages } from '@/lib/utils';
-
-import { generateTitleFromUserMessage } from '../../actions';
-
 import type {
   ChatMessage as ChatMessageFromChat,
   WalletInfo,
@@ -24,16 +25,10 @@ import type {
 import type { ChatMessage as ChatMessageFromIndex } from '@/types/index';
 
 // Lib imports
-
-
-import type {
-  ChatCompletion,
-  ChatCompletionCreateParams,
-  ChatCompletionChunk,
-  ChatCompletionMessage,
-  ChatCompletionTool,
-  ChatCompletionToolChoiceOption
-} from 'openai/resources/chat';
+import { tools, getAvailableTools } from '@/lib/tools';
+import { sanitizeResponseMessages } from '@/lib/utils';
+import { memoryStore } from '@/lib/memory/store';
+import { MemoryMonitor } from '@/lib/memory/monitor'; // Ensure MemoryMonitor is imported
 
 function getMostRecentUserMessage(messages: ChatMessageFromChat[]): ChatMessageFromChat | undefined {
   return [...messages].reverse().find(msg => msg.role === ('user' as MessageRole));
