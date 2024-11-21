@@ -20,7 +20,7 @@ import {
   useWindowSize,
 } from 'usehooks-ts';
 
-import { fetcher } from '@/lib/utils';
+import { fetcher } from '@/lib/utils/utils';
 
 import { DiffView } from './diffview';
 import { DocumentSkeleton } from './document-skeleton';

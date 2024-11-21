@@ -17,7 +17,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { sanitizeUIMessages } from '@/lib/utils';
+import { sanitizeUIMessages } from '@/lib/utils/utils';
 
 import {
   ArrowUpIcon,

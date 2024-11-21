@@ -7,7 +7,7 @@ import { useSWRConfig } from 'swr';
 import { useWindowSize } from 'usehooks-ts';
 
 import { Document } from '@/lib/supabase/types';
-import { getDocumentTimestampByIndex } from '@/lib/utils';
+import { getDocumentTimestampByIndex } from '@/lib/utils/utils';
 
 import { UIBlock } from './block';
 import { LoaderIcon } from './icons';

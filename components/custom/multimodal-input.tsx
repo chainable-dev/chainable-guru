@@ -18,7 +18,7 @@ import { useLocalStorage, useWindowSize } from 'usehooks-ts';
 
 import { useWalletState } from '@/hooks/useWalletState';
 import { supabase } from '@/lib/supabase/client';
-import { sanitizeUIMessages } from '@/lib/utils';
+import { sanitizeUIMessages } from '@/lib/utils/utils';
 
 import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
@@ -51,7 +51,7 @@ const suggestedActions = [
     action: 'Help me deploy a basic ERC20 token smart contract on Base Sepolia testnet',
   },
   {
-    title: 'Analyze my NFTs', 
+    title: 'Analyze my NFTs',
     label: 'in my wallet',
     action: 'Show me all NFTs in my connected wallet and analyze their rarity',
   },
@@ -207,7 +207,7 @@ export function MultimodalInput({
   const submitForm = useCallback(async () => {
     if (!input && attachments.length === 0) return;
 
-    const isWalletQuery = input.toLowerCase().includes('wallet') || 
+    const isWalletQuery = input.toLowerCase().includes('wallet') ||
                          input.toLowerCase().includes('balance');
 
     if (isWalletQuery) {
@@ -272,9 +272,9 @@ export function MultimodalInput({
   ]);
 
   const handleSuggestedAction = useCallback((action: string) => {
-    const isWalletAction = action.toLowerCase().includes('wallet') || 
+    const isWalletAction = action.toLowerCase().includes('wallet') ||
                           action.toLowerCase().includes('balance');
-    
+
     if (isWalletAction) {
       if (!isConnected) {
         toast.error('Please connect your wallet first');
@@ -292,7 +292,7 @@ export function MultimodalInput({
 
   const handleFileChange = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
-    
+
     // Create staged files with blob URLs
     const newStagedFiles = files.map(createStagedFile);
     setStagedFiles(prev => [...prev, ...newStagedFiles]);
@@ -300,7 +300,7 @@ export function MultimodalInput({
     try {
       // Upload each file
       for (const stagedFile of newStagedFiles) {
-        setStagedFiles(prev => 
+        setStagedFiles(prev =>
           prev.map(f => f.id === stagedFile.id ? { ...f, status: 'uploading' } : f)
         );
 
@@ -316,7 +316,7 @@ export function MultimodalInput({
         if (!response.ok) throw new Error('Upload failed');
 
         const data = await response.json();
-        
+
         // Add to attachments on successful upload
         setAttachments(current => [...current, {
           url: data.url,
@@ -326,7 +326,7 @@ export function MultimodalInput({
         }]);
 
         // Mark as complete and remove from staged files
-        setStagedFiles(prev => 
+        setStagedFiles(prev =>
           prev.map(f => f.id === stagedFile.id ? { ...f, status: 'complete' } : f)
         );
         setTimeout(() => removeStagedFile(stagedFile.id), 500);
@@ -336,10 +336,10 @@ export function MultimodalInput({
     } catch (error) {
       console.error('Error uploading files:', error);
       toast.error('Failed to upload one or more files');
-      
+
       // Mark failed files
       newStagedFiles.forEach(file => {
-        setStagedFiles(prev => 
+        setStagedFiles(prev =>
           prev.map(f => f.id === file.id ? { ...f, status: 'error' } : f)
         );
       });
@@ -415,7 +415,7 @@ export function MultimodalInput({
               <PreviewAttachment
                 attachment={attachment}
                 onRemove={() => {
-                  setAttachments(current => 
+                  setAttachments(current =>
                     current.filter(a => a.url !== attachment.url)
                   );
                 }}

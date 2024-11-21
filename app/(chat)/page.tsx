@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 
 import { DEFAULT_MODEL_NAME, models } from '@/ai/models';
 import { Chat } from '@/components/custom/chat';
-import { generateUUID } from '@/lib/utils';
+import { generateUUID } from '@/lib/utils/utils';
 
 export default async function Page() {
   const id = generateUUID();

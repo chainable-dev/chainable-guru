@@ -11,7 +11,7 @@ import { ChatHeader } from '@/components/custom/chat-header';
 import { PreviewMessage, ThinkingMessage } from '@/components/custom/message';
 import { useScrollToBottom } from '@/components/custom/use-scroll-to-bottom';
 import { Database } from '@/lib/supabase/types';
-import { fetcher } from '@/lib/utils';
+import { fetcher } from '@/lib/utils/utils';
 
 import { Block, UIBlock } from './block';
 import { BlockStreamHandler } from './block-stream-handler';
@@ -136,7 +136,7 @@ export function Chat({
             className="shrink-0 min-w-[24px] min-h-[24px]"
           />
         </div>
-        <form 
+        <form
           className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl"
           onSubmit={(e) => {
             e.preventDefault();
@@ -150,7 +150,7 @@ export function Chat({
             handleSubmit={handleSubmit}
             isLoading={isLoading}
             stop={stop}
-            //@ts-ignore  
+            //@ts-ignore
             attachments={attachments}
             //@ts-ignore
             setAttachments={setAttachments}

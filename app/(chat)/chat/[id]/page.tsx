@@ -8,7 +8,7 @@ import {
   getMessagesByChatId,
   getSession,
 } from '@/db/cached-queries';
-import { convertToUIMessages } from '@/lib/utils';
+import { convertToUIMessages } from '@/lib/utils/utils';
 
 export default async function Page(props: { params: Promise<any> }) {
   const params = await props.params;

@@ -26,7 +26,7 @@ import type { ChatMessage as ChatMessageFromIndex } from '@/types/index';
 
 // Lib imports
 import { tools, getAvailableTools } from '@/lib/tools';
-import { sanitizeResponseMessages } from '@/lib/utils';
+import { sanitizeResponseMessages } from '@/lib/utils/utils';
 import { memoryStore } from '@/lib/memory/store';
 import { MemoryMonitor } from '@/lib/memory/monitor'; // Ensure MemoryMonitor is imported
 

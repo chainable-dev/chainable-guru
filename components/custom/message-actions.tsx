@@ -4,7 +4,7 @@ import { useSWRConfig } from 'swr';
 import { useCopyToClipboard } from 'usehooks-ts';
 
 import { Vote } from '@/lib/supabase/types';
-import { getMessageIdFromAnnotations } from '@/lib/utils';
+import { getMessageIdFromAnnotations } from '@/lib/utils/utils';
 
 import { CopyIcon, ThumbDownIcon, ThumbUpIcon } from './icons';
 import { Button } from '../ui/button';
