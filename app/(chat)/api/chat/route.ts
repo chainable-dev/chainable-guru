@@ -1,4 +1,9 @@
+// Local imports first
+import { generateTitleFromUserMessage } from '../../actions';
+
+// Third-party imports
 import OpenAI from 'openai';
+import { v4 as generateUUID } from 'uuid';
 import type { 
   ChatCompletion, 
   ChatCompletionCreateParams,
@@ -7,7 +12,6 @@ import type {
   ChatCompletionTool,
   ChatCompletionToolChoiceOption
 } from 'openai/resources/chat';
-import { v4 as generateUUID } from 'uuid';
 
 // Type imports
 import type { 
@@ -20,13 +24,10 @@ import type {
 } from '@/types';
 
 // Lib imports
-import { memoryStore } from '@/app/lib/memory/store';
 import { MemoryMonitor } from '@/app/lib/memory/monitor';
+import { memoryStore } from '@/app/lib/memory/store';
 import { tools, getAvailableTools } from '@/app/lib/tools';
 import { sanitizeResponseMessages } from '@/app/lib/utils';
-
-// Local imports
-import { generateTitleFromUserMessage } from '../../actions';
 
 function getMostRecentUserMessage(messages: ChatMessage[]): ChatMessage | undefined {
   return [...messages].reverse().find(msg => msg.role === ('user' as MessageRole));
