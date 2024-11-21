@@ -1,16 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
 
 import { updateSession } from '@/lib/supabase/middleware';
-import { supabase } from './lib/supabase/client';
 
 export async function middleware(request: NextRequest) {
-  const { data: session } = await supabase.auth.getSession();
-  if (!session) {
-    return NextResponse.redirect(new URL('/login', request.url));
-  }
-  return NextResponse.next();
+  return await updateSession(request);
 }
-
 
 export const config = {
   matcher: [
