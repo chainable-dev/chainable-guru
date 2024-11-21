@@ -1,9 +1,12 @@
+import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
-import { BlobStorage } from '@/lib/blob-storage';
+
 import { createClient } from '@/lib/supabase/server';
+import { generateUUID } from '@/lib/utils';
 
 export async function POST(req: Request): Promise<NextResponse> {
   try {
+    // Get form data
     const data = await req.formData();
     const file = data.get('file') as File;
     const chatId = data.get('chatId') as string;
@@ -12,9 +15,10 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json(
         { error: 'No file provided' },
         { status: 400 }
-      );
+      );z
     }
 
+    // Get authenticated user - fix the client creation
     const supabase = await createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -25,8 +29,21 @@ export async function POST(req: Request): Promise<NextResponse> {
       );
     }
 
-    const result = await BlobStorage.uploadFile(file, user.id);
-    return NextResponse.json(result);
+    // Generate unique path for blob storage
+    const blobPath = `${user.id}/${generateUUID()}/${file.name}`;
+
+    // Upload to blob storage
+    const blob = await put(blobPath, file, {
+      access: 'public',
+      addRandomSuffix: true,
+    });
+
+    // Return the blob URL immediately
+    return NextResponse.json({
+      url: blob.url,
+      path: blob.url,
+      success: true
+    });
 
   } catch (error) {
     console.error('Upload error:', error);
@@ -35,6 +52,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       { status: 500 }
     );
   }
+
 }
 
 export const config = {
@@ -42,3 +60,4 @@ export const config = {
     bodyParser: false,
   },
 };
+

@@ -56,18 +56,15 @@ interface RequestSuggestionsParams {
 interface WalletStateParams {
   address?: string;
   chainId?: number;
-  isConnected?: boolean;
-  network?: string;
 }
 
 type AllowedTools =
-  | 'createDocument'
-  | 'updateDocument'
-  | 'requestSuggestions'
-  | 'getWeather'
-  | 'getWalletBalance'
-  | 'checkWalletState'
-  | 'getWalletInfo';
+    | 'createDocument'
+    | 'updateDocument'
+    | 'requestSuggestions'
+    | 'getWeather'
+    | 'getWalletBalance'
+    | 'checkWalletState';
 
 const blocksTools: AllowedTools[] = [
   'createDocument',
@@ -77,7 +74,7 @@ const blocksTools: AllowedTools[] = [
 
 const weatherTools: AllowedTools[] = ['getWeather'];
 
-const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, 'getWalletBalance', 'checkWalletState', 'getWalletInfo'];
+const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, 'getWalletBalance', 'checkWalletState'];
 
 async function getUser() {
   const supabase = await createClient();
@@ -98,19 +95,19 @@ function formatMessageContent(message: CoreMessage): string {
   // For user messages, store as plain text
   if (message.role === 'user') {
     return typeof message.content === 'string'
-      ? message.content
-      : JSON.stringify(message.content);
+        ? message.content
+        : JSON.stringify(message.content);
   }
 
   // For tool messages, format as array of tool results
   if (message.role === 'tool') {
     return JSON.stringify(
-      message.content.map((content) => ({
-        type: content.type || 'tool-result',
-        toolCallId: content.toolCallId,
-        toolName: content.toolName,
-        result: content.result,
-      }))
+        message.content.map((content) => ({
+          type: content.type || 'tool-result',
+          toolCallId: content.toolCallId,
+          toolName: content.toolName,
+          result: content.result,
+        }))
     );
   }
 
@@ -121,20 +118,20 @@ function formatMessageContent(message: CoreMessage): string {
     }
 
     return JSON.stringify(
-      message.content.map((content) => {
-        if (content.type === 'text') {
+        message.content.map((content) => {
+          if (content.type === 'text') {
+            return {
+              type: 'text',
+              text: content.text,
+            };
+          }
           return {
-            type: 'text',
-            text: content.text,
+            type: 'tool-call',
+            toolCallId: content.toolCallId,
+            toolName: content.toolName,
+            args: content.args,
           };
-        }
-        return {
-          type: 'tool-call',
-          toolCallId: content.toolCallId,
-          toolName: content.toolName,
-          args: content.args,
-        };
-      })
+        })
     );
   }
 
@@ -171,7 +168,7 @@ const tools = {
     }),
     execute: async ({ latitude, longitude }: WeatherParams) => {
       const response = await fetch(
-        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&hourly=temperature_2m&daily=sunrise,sunset&timezone=auto`
+          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&hourly=temperature_2m&daily=sunrise,sunset&timezone=auto`
       );
 
       const weatherData = await response.json();
@@ -376,7 +373,7 @@ const tools = {
       address: z.string().describe('The wallet address to check'),
       chainId: z.number().describe('The chain ID of the connected wallet')
     }),
-    execute: async ({ address, chainId }: { 
+    execute: async ({ address, chainId }: {
       address: string;
       chainId: number;
     }) => {
@@ -392,44 +389,47 @@ const tools = {
           };
         }
 
-        // Get network info
-        const networkInfo = {
-          name: chainId === 8453 ? 'Base Mainnet' : 
-                chainId === 84532 ? 'Base Sepolia' : 
-                'Unsupported Network',
-          isSupported: [8453, 84532].includes(chainId)
-        };
+        // Get RPC URL based on chainId
+        let rpcUrl: string;
+        let networkName: string;
 
-        if (!networkInfo.isSupported) {
-          return {
-            type: 'tool-result',
-            result: {
-              error: `Unsupported chain ID: ${chainId}`,
-              details: 'Please connect to Base Mainnet or Base Sepolia.'
-            }
-          };
+        switch (chainId) {
+          case 8453: // Base Mainnet
+            rpcUrl = 'https://mainnet.base.org';
+            networkName = 'Base Mainnet';
+            break;
+          case 84532: // Base Sepolia
+            rpcUrl = 'https://sepolia.base.org';
+            networkName = 'Base Sepolia';
+            break;
+          default:
+            return {
+              type: 'tool-result',
+              result: {
+                error: `Unsupported chain ID: ${chainId}`,
+                details: 'Please connect to Base Mainnet or Base Sepolia.'
+              }
+            };
         }
-
-        const rpcUrl = chainId === 8453 ? 'https://mainnet.base.org' : 'https://sepolia.base.org';
 
         try {
           const provider = new ethers.JsonRpcProvider(rpcUrl);
           await provider.getNetwork();
           const balance = await provider.getBalance(address);
-          
+
           const usdcAddress = chainId === 8453
-            ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-            : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+              ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
+              : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
 
           const usdcAbi = ['function balanceOf(address) view returns (uint256)'];
           const usdcContract = new ethers.Contract(usdcAddress, usdcAbi, provider);
           const usdcBalance = await usdcContract.balanceOf(address);
-          
+
           return {
             type: 'tool-result',
             result: {
               address,
-              network: networkInfo.name,
+              network: networkName,
               chainId,
               balances: {
                 eth: ethers.formatEther(balance),
@@ -446,7 +446,7 @@ const tools = {
               error: 'Failed to connect to network',
               details: 'Please check your network connection and try again',
               chainId,
-              network: networkInfo.name
+              network: networkName
             }
           };
         }
@@ -475,8 +475,8 @@ const tools = {
           isConnected: !!address,
           address: address || null,
           chainId: chainId || null,
-          network: chainId === 8453 ? 'Base Mainnet' : 
-                  chainId === 84532 ? 'Base Sepolia' : 
+          network: chainId === 8453 ? 'Base Mainnet' :
+              chainId === 84532 ? 'Base Sepolia' :
                   'Unknown Network',
           isSupported: chainId ? [8453, 84532].includes(chainId) : false,
           supportedNetworks: [
@@ -484,66 +484,6 @@ const tools = {
             { name: 'Base Sepolia', chainId: 84532 }
           ],
           timestamp: new Date().toISOString()
-        }
-      };
-    }
-  },
-  getWalletInfo: {
-    description: 'Get detailed information about the connected wallet',
-    parameters: z.object({
-      address: z.string().optional().describe('The wallet address to check'),
-      chainId: z.number().optional().describe('The chain ID of the network')
-    }),
-    execute: async ({ address, chainId }: WalletStateParams) => {
-      if (!address || !chainId) {
-        return {
-          type: 'tool-result',
-          result: {
-            error: 'Wallet not connected',
-            details: 'Please connect your wallet first',
-            isConnected: false,
-            lastChecked: new Date().toISOString()
-          }
-        };
-      }
-
-      // Check if network is supported
-      const isSupported = [8453, 84532].includes(chainId);
-      const networkName = chainId === 8453 ? 'Base Mainnet' : 
-                         chainId === 84532 ? 'Base Sepolia' : 
-                         'Unknown Network';
-
-      if (!isSupported) {
-        return {
-          type: 'tool-result',
-          result: {
-            error: 'Unsupported network',
-            details: 'Please connect to Base Mainnet or Base Sepolia',
-            address,
-            chainId,
-            network: networkName,
-            isConnected: true,
-            supportedNetworks: [
-              { name: 'Base Mainnet', chainId: 8453 },
-              { name: 'Base Sepolia', chainId: 84532 }
-            ]
-          }
-        };
-      }
-
-      return {
-        type: 'tool-result',
-        result: {
-          address,
-          network: networkName,
-          chainId,
-          isConnected: true,
-          isSupported,
-          lastChecked: new Date().toISOString(),
-          supportedNetworks: [
-            { name: 'Base Mainnet', chainId: 8453 },
-            { name: 'Base Sepolia', chainId: 84532 }
-          ]
         }
       };
     }
@@ -557,7 +497,7 @@ export async function POST(request: Request) {
       messages,
       modelId,
     }: { id: string; messages: Array<Message>; modelId: string } =
-      await request.json();
+        await request.json();
 
     const user = await getUser();
 
@@ -590,8 +530,8 @@ export async function POST(request: Request) {
       }
     } catch (e) {
       console.error('Error processing message content:', e);
-      walletInfo = { 
-        text: typeof userMessage.content === 'string' ? userMessage.content : '' 
+      walletInfo = {
+        text: typeof userMessage.content === 'string' ? userMessage.content : ''
       };
     }
 
@@ -686,26 +626,26 @@ export async function POST(request: Request) {
           if (user && user.id) {
             try {
               const responseMessagesWithoutIncompleteToolCalls =
-                sanitizeResponseMessages(responseMessages);
+                  sanitizeResponseMessages(responseMessages);
 
               await saveMessages({
                 chatId: id,
                 messages: responseMessagesWithoutIncompleteToolCalls.map(
-                  (message) => {
-                    const messageId = generateUUID();
-                    if (message.role === 'assistant') {
-                      streamingData.appendMessageAnnotation({
-                        messageIdFromServer: messageId,
-                      });
+                    (message) => {
+                      const messageId = generateUUID();
+                      if (message.role === 'assistant') {
+                        streamingData.appendMessageAnnotation({
+                          messageIdFromServer: messageId,
+                        });
+                      }
+                      return {
+                        id: messageId,
+                        chat_id: id,
+                        role: message.role as MessageRole,
+                        content: formatMessageContent(message),
+                        created_at: new Date().toISOString(),
+                      };
                     }
-                    return {
-                      id: messageId,
-                      chat_id: id,
-                      role: message.role as MessageRole,
-                      content: formatMessageContent(message),
-                      created_at: new Date().toISOString(),
-                    };
-                  }
                 ),
               });
             } catch (error) {
@@ -727,15 +667,15 @@ export async function POST(request: Request) {
     } catch (error) {
       console.error('Error in chat route:', error);
       return new Response(
-        JSON.stringify({ error: 'Internal server error' }), 
-        { status: 500 }
+          JSON.stringify({ error: 'Internal server error' }),
+          { status: 500 }
       );
     }
   } catch (error) {
     console.error('Error parsing request:', error);
     return new Response(
-      JSON.stringify({ error: 'Invalid request' }), 
-      { status: 400 }
+        JSON.stringify({ error: 'Invalid request' }),
+        { status: 400 }
     );
   }
 }

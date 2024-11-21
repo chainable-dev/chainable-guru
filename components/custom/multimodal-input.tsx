@@ -15,13 +15,13 @@ import React, {
 import { RiArrowDownSLine, RiArrowUpSLine } from 'react-icons/ri';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
+import Image from 'next/image';
 
 import { useWalletState } from '@/hooks/useWalletState';
 import { createClient } from '@/lib/supabase/client';
 import { sanitizeUIMessages } from '@/lib/utils';
 
 import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
-import { PreviewAttachment } from './preview-attachment';
 import { Suggestion } from './suggestion';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
@@ -205,42 +205,43 @@ export function MultimodalInput({
     };
   }, [stagedFiles]);
 
+  // Add a check for wallet readiness
+  const isWalletReady = useCallback(() => {
+    if (!isConnected) {
+      toast.error('Please connect your wallet first');
+      return false;
+    }
+    if (!isCorrectNetwork) {
+      toast.error('Please switch to Base Mainnet or Base Sepolia');
+      return false;
+    }
+    return true;
+  }, [isConnected, isCorrectNetwork]);
+
   const submitForm = useCallback(async () => {
     if (!input && attachments.length === 0) return;
 
     const isWalletQuery = input.toLowerCase().includes('wallet') || 
                          input.toLowerCase().includes('balance');
 
-    if (isWalletQuery) {
-      if (!isConnected) {
-        toast.error('Please connect your wallet first');
-        return;
-      }
-      if (!isCorrectNetwork) {
-        toast.error('Please switch to Base Mainnet or Base Sepolia');
-        return;
-      }
+    if (isWalletQuery && !isWalletReady()) {
+      return;
     }
 
-    const messageContent = isWalletQuery ? {
+    const messageContent = {
       text: input,
       attachments: attachments.map(att => ({
         url: att.url,
         name: att.name,
         type: att.contentType,
       })),
-      walletAddress: address,
-      chainId,
-      network: networkInfo?.name,
-      isWalletConnected: isConnected,
-      isCorrectNetwork
-    } : {
-      text: input,
-      attachments: attachments.map(att => ({
-        url: att.url,
-        name: att.name,
-        type: att.contentType,
-      }))
+      ...(isWalletQuery && {
+        walletAddress: address,
+        chainId,
+        network: networkInfo?.name || 'unknown',
+        isWalletConnected: isConnected,
+        isCorrectNetwork
+      })
     };
 
     try {
@@ -266,30 +267,24 @@ export function MultimodalInput({
     setLocalStorageInput,
     address,
     chainId,
+    networkInfo,
     setAttachments,
     isConnected,
     isCorrectNetwork,
-    networkInfo
+    isWalletReady
   ]);
 
   const handleSuggestedAction = useCallback((action: string) => {
     const isWalletAction = action.toLowerCase().includes('wallet') || 
                           action.toLowerCase().includes('balance');
     
-    if (isWalletAction) {
-      if (!isConnected) {
-        toast.error('Please connect your wallet first');
-        return;
-      }
-      if (!isCorrectNetwork) {
-        toast.error('Please switch to Base Mainnet or Base Sepolia');
-        return;
-      }
+    if (isWalletAction && !isWalletReady()) {
+      return;
     }
 
     setInput(action);
     submitForm();
-  }, [isConnected, isCorrectNetwork, setInput, submitForm]);
+  }, [isWalletReady, setInput, submitForm]);
 
   const handleFileChange = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || []);
@@ -394,33 +389,60 @@ export function MultimodalInput({
         <div className="flex flex-row gap-4 overflow-x-auto pb-2">
           {stagedFiles.map((stagedFile) => (
             <div key={stagedFile.id} className="relative group">
-              <PreviewAttachment
-                attachment={{
-                  url: stagedFile.previewUrl,
-                  name: stagedFile.file.name,
-                  contentType: stagedFile.file.type,
-                }}
-                isUploading={stagedFile.status === 'uploading'}
-                onRemove={() => removeStagedFile(stagedFile.id)}
-              />
-              {stagedFile.status === 'error' && (
-                <div className="absolute inset-0 bg-destructive/20 flex items-center justify-center rounded-lg">
-                  <span className="text-xs text-destructive">Upload failed</span>
-                </div>
-              )}
+              <div className="relative w-24 h-24 rounded-lg overflow-hidden border bg-muted">
+                {stagedFile.file.type.startsWith('image/') ? (
+                  <Image
+                    src={stagedFile.previewUrl}
+                    alt={stagedFile.file.name}
+                    fill
+                    className="object-cover"
+                    sizes="96px"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full p-2">
+                    <span className="text-xs truncate">{stagedFile.file.name}</span>
+                  </div>
+                )}
+                {stagedFile.status === 'uploading' && (
+                  <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => removeStagedFile(stagedFile.id)}
+                className="absolute -top-2 -right-2 size-5 rounded-full bg-muted/90 hover:bg-muted flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X className="size-3" />
+              </button>
             </div>
           ))}
 
           {attachments.map((attachment) => (
             <div key={attachment.url} className="relative group">
-              <PreviewAttachment
-                attachment={attachment}
-                onRemove={() => {
-                  setAttachments(current => 
-                    current.filter(a => a.url !== attachment.url)
-                  );
-                }}
-              />
+              <div className="relative w-24 h-24 rounded-lg overflow-hidden border bg-muted">
+                {attachment.contentType?.startsWith('image/') ? (
+                  <Image
+                    src={attachment.url}
+                    alt={attachment.name}
+                    fill
+                    className="object-cover"
+                    sizes="96px"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full p-2">
+                    <span className="text-xs truncate">{attachment.name}</span>
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setAttachments(current => 
+                  current.filter(a => a.url !== attachment.url)
+                )}
+                className="absolute -top-2 -right-2 size-5 rounded-full bg-muted/90 hover:bg-muted flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <X className="size-3" />
+              </button>
             </div>
           ))}
         </div>
