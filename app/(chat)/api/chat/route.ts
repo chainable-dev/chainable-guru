@@ -27,6 +27,7 @@ import {
   getMostRecentUserMessage,
   sanitizeResponseMessages,
 } from '@/lib/utils';
+import { getWalletBalance } from '@/lib/wallet/balance'
 
 import { generateTitleFromUserMessage } from '../../actions';
 

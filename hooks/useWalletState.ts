@@ -7,12 +7,10 @@ export function useWalletState() {
   const chainId = useChainId();
   const { data: walletClient } = useWalletClient();
   
-  // Use wagmi's useBalance hook with correct options
   const { data: balanceData, isError: isBalanceError } = useBalance({
     address,
     chainId,
-    token: undefined, // for native token (ETH)
-    unit: 'ether',
+    watch: true
   });
 
   // Memoize network info
@@ -43,13 +41,6 @@ export function useWalletState() {
     }
   }, [isConnected, address, chainId, networkInfo, balanceData?.formatted]);
 
-  // Handle balance errors
-  useEffect(() => {
-    if (isBalanceError) {
-      toast.error('Failed to fetch wallet balance');
-    }
-  }, [isBalanceError]);
-
   return {
     address,
     isConnected,
@@ -59,8 +50,6 @@ export function useWalletState() {
     isCorrectNetwork: networkInfo?.isSupported ?? false,
     balance: balanceData?.formatted,
     balanceSymbol: balanceData?.symbol,
-    balanceValue: balanceData?.value,
-    isBalanceLoading: !balanceData && !isBalanceError,
-    isBalanceError
+    balanceValue: balanceData?.value
   };
 } 
