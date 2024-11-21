@@ -27,6 +27,9 @@ import {
   getMostRecentUserMessage,
   sanitizeResponseMessages,
 } from '@/lib/utils';
+import { MemoryStore } from '@/lib/memory/store'
+import { redis, KEYS } from '@/lib/redis'
+import { MemoryMonitor } from '@/lib/memory/monitor'
 
 import { generateTitleFromUserMessage } from '../../actions';
 
@@ -551,192 +554,178 @@ const tools = {
 };
 
 export async function POST(request: Request) {
-  try {
-    const {
-      id,
-      messages,
-      modelId,
-    }: { id: string; messages: Array<Message>; modelId: string } =
-      await request.json();
+  const startTime = Date.now()
+  let cacheHit = false
 
+  try {
+    const { id, messages, modelId } = await request.json();
     const user = await getUser();
 
     if (!user) {
       return new Response('Unauthorized', { status: 401 });
     }
 
-    const model = models.find((model) => model.id === modelId);
+    // 1. Load all memory contexts
+    const [sessionMemory, userPrefs, workingMemory] = await Promise.all([
+      MemoryStore.getSession(id),
+      MemoryStore.getUserPrefs(user.id),
+      MemoryStore.getWorking(id)
+    ]);
 
-    if (!model) {
-      return new Response('Model not found', { status: 404 });
-    }
-
-    const coreMessages = convertToCoreMessages(messages);
-    const userMessage = getMostRecentUserMessage(coreMessages);
-
-    if (!userMessage) {
-      return new Response('No user message found', { status: 400 });
-    }
-
-    // Parse the message content and create context
-    let walletInfo: WalletMessageContent = { text: '' };
-    try {
-      if (typeof userMessage.content === 'string') {
-        try {
-          walletInfo = JSON.parse(userMessage.content);
-        } catch {
-          walletInfo = { text: userMessage.content };
+    // 2. Process wallet info from the latest message
+    const userMessage = getMostRecentUserMessage(messages);
+    let walletInfo = { text: '' };
+    
+    if (userMessage) {
+      try {
+        if (typeof userMessage.content === 'string') {
+          try {
+            walletInfo = JSON.parse(userMessage.content);
+          } catch {
+            walletInfo = { text: userMessage.content };
+          }
         }
-      }
-    } catch (e) {
-      console.error('Error processing message content:', e);
-      walletInfo = { 
-        text: typeof userMessage.content === 'string' ? userMessage.content : '' 
-      };
-    }
-
-    // Create messages with enhanced wallet context
-    const messagesWithContext = coreMessages.map(msg => {
-      if (msg.role === 'user' && msg === userMessage) {
-        const baseMessage = {
-          ...msg,
-          content: walletInfo.text || (typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content))
+      } catch (e) {
+        console.error('Error processing message content:', e);
+        walletInfo = { 
+          text: typeof userMessage.content === 'string' ? userMessage.content : '' 
         };
+      }
+    }
 
-        if (walletInfo.walletAddress && walletInfo.chainId !== undefined) {
-          return {
-            ...baseMessage,
-            walletAddress: walletInfo.walletAddress,
-            chainId: walletInfo.chainId,
-            isWalletConnected: true,
-            lastChecked: new Date().toISOString()
-          };
-        }
+    // 3. Update session memory with new context
+    await MemoryStore.setSession(id, {
+      chatId: id,
+      messages: messages.map(msg => ({
+        id: generateUUID(),
+        role: msg.role,
+        content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content),
+        timestamp: Date.now()
+      })),
+      context: {
+        wallet: walletInfo.walletAddress ? {
+          address: walletInfo.walletAddress,
+          chainId: walletInfo.chainId,
+          network: walletInfo.chainId === 8453 ? 'Base Mainnet' : 
+                  walletInfo.chainId === 84532 ? 'Base Sepolia' : 
+                  'Unknown Network',
+          isConnected: true
+        } : undefined,
+        lastActive: Date.now(),
+        activeTools: workingMemory?.tools.active || []
+      }
+    });
 
+    // 4. Create enhanced context for AI
+    const enhancedMessages = messages.map(msg => {
+      if (msg.role === 'user' && msg === userMessage) {
         return {
-          ...baseMessage,
-          isWalletConnected: false,
-          lastChecked: new Date().toISOString()
+          ...msg,
+          content: walletInfo.text || (typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)),
+          context: {
+            wallet: sessionMemory?.context.wallet,
+            preferences: userPrefs,
+            workingMemory: workingMemory?.status === 'active' ? workingMemory : undefined
+          }
         };
       }
       return msg;
     });
 
-    // Initialize streaming data
+    // 5. Initialize streaming data
     const streamingData = new StreamData();
 
-    try {
-      // Try to get existing chat
-      const chat = await getChatById(id);
+    // Check cache first
+    const cachedSession = await MemoryStore.getSession(id)
+    if (cachedSession) {
+      cacheHit = true
+    }
 
-      // If chat doesn't exist, create it
-      if (!chat) {
-        const title = await generateTitleFromUserMessage({
-          message: userMessage as unknown as { role: 'user'; content: string },
-        });
-        try {
-          await saveChat({ id, userId: user.id, title });
-        } catch (error) {
-          // Ignore duplicate chat error, continue with message saving
-          if (!(error instanceof Error && error.message === 'Chat ID already exists')) {
-            throw error;
+    // 6. Process with AI and handle response
+    const result = await streamText({
+      model: customModel(modelId),
+      system: systemPrompt,
+      messages: enhancedMessages,
+      maxSteps: 5,
+      experimental_activeTools: allTools,
+      tools: {
+        ...tools,
+        createDocument: {
+          ...tools.createDocument,
+          execute: async (params) => {
+            const result = await tools.createDocument.execute({ ...params, modelId });
+            // Update working memory with document creation status
+            await MemoryStore.setWorking(id, {
+              taskId: id,
+              status: 'completed',
+              tools: {
+                active: [],
+                completed: ['createDocument'],
+                results: { documentId: result.id }
+              }
+            });
+            return result;
+          }
+        },
+        // ... other tool configurations
+      },
+      onFinish: async ({ responseMessages }) => {
+        if (user && user.id) {
+          try {
+            const sanitizedMessages = sanitizeResponseMessages(responseMessages);
+            
+            // Update session memory with AI response
+            await MemoryStore.setSession(id, {
+              chatId: id,
+              messages: [
+                ...(sessionMemory?.messages || []),
+                ...sanitizedMessages.map(msg => ({
+                  id: generateUUID(),
+                  role: msg.role,
+                  content: formatMessageContent(msg),
+                  timestamp: Date.now()
+                }))
+              ],
+              context: {
+                ...(sessionMemory?.context || {}),
+                lastActive: Date.now()
+              }
+            });
+
+            // Cleanup old messages if needed
+            await MemoryStore.cleanupSession(id);
+          } catch (error) {
+            console.error('Failed to save chat:', error);
           }
         }
-      } else if (chat.user_id !== user.id) {
-        return new Response('Unauthorized', { status: 401 });
+        streamingData.close();
       }
+    });
 
-      // Save the user message
-      await saveMessages({
-        chatId: id,
-        messages: [
-          {
-            id: generateUUID(),
-            chat_id: id,
-            role: userMessage.role as MessageRole,
-            content: formatMessageContent(userMessage),
-            created_at: new Date().toISOString(),
-          },
-        ],
-      });
+    // Log metrics after processing
+    await MemoryMonitor.logMetrics(id, {
+      responseTime: Date.now() - startTime,
+      cacheHit
+    })
 
-      // Process the message with AI
-      const result = await streamText({
-        model: customModel(model.apiIdentifier),
-        system: systemPrompt,
-        messages: messagesWithContext,
-        maxSteps: 5,
-        experimental_activeTools: allTools,
-        tools: {
-          ...tools,
-          createDocument: {
-            ...tools.createDocument,
-            execute: (params) => tools.createDocument.execute({ ...params, modelId: model.apiIdentifier }),
-          },
-          updateDocument: {
-            ...tools.updateDocument,
-            execute: (params) => tools.updateDocument.execute({ ...params, modelId: model.apiIdentifier }),
-          },
-          requestSuggestions: {
-            ...tools.requestSuggestions,
-            execute: (params) => tools.requestSuggestions.execute({ ...params, modelId: model.apiIdentifier }),
-          },
-        },
-        onFinish: async ({ responseMessages }) => {
-          if (user && user.id) {
-            try {
-              const responseMessagesWithoutIncompleteToolCalls =
-                sanitizeResponseMessages(responseMessages);
+    return result.toDataStreamResponse({
+      data: streamingData,
+    });
 
-              await saveMessages({
-                chatId: id,
-                messages: responseMessagesWithoutIncompleteToolCalls.map(
-                  (message) => {
-                    const messageId = generateUUID();
-                    if (message.role === 'assistant') {
-                      streamingData.appendMessageAnnotation({
-                        messageIdFromServer: messageId,
-                      });
-                    }
-                    return {
-                      id: messageId,
-                      chat_id: id,
-                      role: message.role as MessageRole,
-                      content: formatMessageContent(message),
-                      created_at: new Date().toISOString(),
-                    };
-                  }
-                ),
-              });
-            } catch (error) {
-              console.error('Failed to save chat:', error);
-            }
-          }
-          streamingData.close();
-        },
-        experimental_telemetry: {
-          isEnabled: true,
-          functionId: 'stream-text',
-        },
-      });
-
-      return result.toDataStreamResponse({
-        data: streamingData,
-      });
-
-    } catch (error) {
-      console.error('Error in chat route:', error);
-      return new Response(
-        JSON.stringify({ error: 'Internal server error' }), 
-        { status: 500 }
-      );
-    }
   } catch (error) {
-    console.error('Error parsing request:', error);
+    console.error('Error in chat route:', error)
+    
+    // Log error metrics
+    await MemoryMonitor.logMetrics(id, {
+      responseTime: Date.now() - startTime,
+      cacheHit,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    })
+
     return new Response(
-      JSON.stringify({ error: 'Invalid request' }), 
-      { status: 400 }
-    );
+      JSON.stringify({ error: 'Internal server error' }), 
+      { status: 500 }
+    )
   }
 }
 
