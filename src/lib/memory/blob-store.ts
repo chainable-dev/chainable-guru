@@ -12,6 +12,19 @@ interface BlobMetadata {
   hash?: string;
 }
 
+interface FileMetadata extends BlobMetadata {
+  filename: string;
+  contentType: string;
+  size: number;
+}
+
+interface ImageMetadata extends FileMetadata {
+  width?: number;
+  height?: number;
+  format?: string;
+  thumbnailUrl?: string;
+}
+
 export class BlobMemoryStore implements MemoryStore {
   private cache: LRU<string, any>;
   
@@ -247,5 +260,292 @@ export class BlobMemoryStore implements MemoryStore {
     } catch (error) {
       throw new Error(`Cleanup failed: ${error.message}`);
     }
+  }
+
+  async uploadFile(file: File, chatId: string): Promise<string> {
+    try {
+      const fileKey = `${this.prefix}/files/${chatId}/${file.name}`;
+      const metadata: FileMetadata = {
+        filename: file.name,
+        contentType: file.type,
+        size: file.size,
+        timestamp: Date.now(),
+        compressed: false
+      };
+
+      // Upload file to blob storage
+      const { url } = await put(fileKey, file, {
+        access: 'public',
+        addRandomSuffix: true,
+        metadata: metadata as Record<string, unknown>
+      });
+
+      // Cache file metadata
+      this.cache.set(fileKey, {
+        url,
+        metadata
+      });
+
+      return url;
+    } catch (error) {
+      throw new Error(`Failed to upload file: ${error.message}`);
+    }
+  }
+
+  async getFile(chatId: string, filename: string): Promise<{ url: string; metadata: FileMetadata } | null> {
+    try {
+      const fileKey = `${this.prefix}/files/${chatId}/${filename}`;
+      
+      // Check cache first
+      const cached = this.cache.get(fileKey);
+      if (cached) return cached;
+
+      const { blobs } = await list({
+        prefix: fileKey
+      });
+
+      if (!blobs.length) return null;
+
+      const blob = blobs[0];
+      const metadata = blob.metadata as FileMetadata;
+
+      const result = {
+        url: blob.url,
+        metadata
+      };
+
+      // Update cache
+      this.cache.set(fileKey, result);
+
+      return result;
+    } catch (error) {
+      throw new Error(`Failed to get file: ${error.message}`);
+    }
+  }
+
+  async listFiles(chatId: string): Promise<Array<{ url: string; metadata: FileMetadata }>> {
+    try {
+      const { blobs } = await list({
+        prefix: `${this.prefix}/files/${chatId}`
+      });
+
+      return blobs.map(blob => ({
+        url: blob.url,
+        metadata: blob.metadata as FileMetadata
+      }));
+    } catch (error) {
+      throw new Error(`Failed to list files: ${error.message}`);
+    }
+  }
+
+  async deleteFile(chatId: string, filename: string): Promise<void> {
+    try {
+      const fileKey = `${this.prefix}/files/${chatId}/${filename}`;
+      const { blobs } = await list({
+        prefix: fileKey
+      });
+
+      await Promise.all(blobs.map(blob => del(blob.url)));
+      this.cache.delete(fileKey);
+    } catch (error) {
+      throw new Error(`Failed to delete file: ${error.message}`);
+    }
+  }
+
+  async uploadImage(
+    image: File | Blob,
+    chatId: string,
+    options?: {
+      generateThumbnail?: boolean;
+      maxWidth?: number;
+      maxHeight?: number;
+    }
+  ): Promise<{ url: string; metadata: ImageMetadata }> {
+    try {
+      // Get image dimensions
+      const imageBitmap = await createImageBitmap(image);
+      const { width, height } = imageBitmap;
+
+      const fileKey = `${this.prefix}/images/${chatId}/${Date.now()}-${width}x${height}.${this.getImageFormat(image)}`;
+      
+      const metadata: ImageMetadata = {
+        filename: image instanceof File ? image.name : fileKey.split('/').pop()!,
+        contentType: image.type,
+        size: image.size,
+        timestamp: Date.now(),
+        compressed: false,
+        width,
+        height,
+        format: this.getImageFormat(image)
+      };
+
+      // Generate thumbnail if requested
+      if (options?.generateThumbnail) {
+        const thumbnailBlob = await this.generateThumbnail(image, {
+          maxWidth: options.maxWidth || 200,
+          maxHeight: options.maxHeight || 200
+        });
+        
+        const thumbnailKey = `${this.prefix}/images/${chatId}/thumbnails/${metadata.filename}`;
+        const { url: thumbnailUrl } = await put(thumbnailKey, thumbnailBlob, {
+          access: 'public',
+          addRandomSuffix: true
+        });
+        
+        metadata.thumbnailUrl = thumbnailUrl;
+      }
+
+      // Upload original image
+      const { url } = await put(fileKey, image, {
+        access: 'public',
+        addRandomSuffix: true,
+        metadata: metadata as Record<string, unknown>
+      });
+
+      // Cache image metadata
+      this.cache.set(fileKey, {
+        url,
+        metadata
+      });
+
+      return { url, metadata };
+    } catch (error) {
+      throw new Error(`Failed to upload image: ${error.message}`);
+    }
+  }
+
+  private getImageFormat(image: File | Blob): string {
+    const type = image.type;
+    return type.split('/')[1] || 'unknown';
+  }
+
+  private async generateThumbnail(
+    image: File | Blob,
+    { maxWidth, maxHeight }: { maxWidth: number; maxHeight: number }
+  ): Promise<Blob> {
+    const img = await createImageBitmap(image);
+    const canvas = new OffscreenCanvas(maxWidth, maxHeight);
+    const ctx = canvas.getContext('2d')!;
+
+    // Calculate thumbnail dimensions
+    const ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
+    const width = img.width * ratio;
+    const height = img.height * ratio;
+
+    // Draw resized image
+    ctx.drawImage(img, 0, 0, width, height);
+    
+    return canvas.convertToBlob({
+      type: 'image/jpeg',
+      quality: 0.8
+    });
+  }
+
+  async getImage(chatId: string, imageId: string): Promise<{ url: string; metadata: ImageMetadata } | null> {
+    try {
+      const imageKey = `${this.prefix}/images/${chatId}/${imageId}`;
+      
+      // Check cache first
+      const cached = this.cache.get(imageKey);
+      if (cached) return cached;
+
+      const { blobs } = await list({
+        prefix: imageKey
+      });
+
+      if (!blobs.length) return null;
+
+      const blob = blobs[0];
+      const metadata = blob.metadata as ImageMetadata;
+
+      const result = {
+        url: blob.url,
+        metadata
+      };
+
+      // Update cache
+      this.cache.set(imageKey, result);
+
+      return result;
+    } catch (error) {
+      throw new Error(`Failed to get image: ${error.message}`);
+    }
+  }
+
+  async listImages(chatId: string): Promise<Array<{ url: string; metadata: ImageMetadata }>> {
+    try {
+      const { blobs } = await list({
+        prefix: `${this.prefix}/images/${chatId}`
+      });
+
+      // Filter out thumbnails
+      return blobs
+        .filter(blob => !blob.pathname.includes('/thumbnails/'))
+        .map(blob => ({
+          url: blob.url,
+          metadata: blob.metadata as ImageMetadata
+        }));
+    } catch (error) {
+      throw new Error(`Failed to list images: ${error.message}`);
+    }
+  }
+
+  async deleteImage(chatId: string, imageId: string): Promise<void> {
+    try {
+      const imageKey = `${this.prefix}/images/${chatId}/${imageId}`;
+      const { blobs } = await list({
+        prefix: imageKey
+      });
+
+      // Delete original and thumbnail
+      await Promise.all(blobs.map(async blob => {
+        const metadata = blob.metadata as ImageMetadata;
+        await del(blob.url);
+        if (metadata.thumbnailUrl) {
+          await del(metadata.thumbnailUrl);
+        }
+      }));
+
+      this.cache.delete(imageKey);
+    } catch (error) {
+      throw new Error(`Failed to delete image: ${error.message}`);
+    }
+  }
+
+  async getFileByPath(userId: string, path: string) {
+    const fileKey = `documents/${userId}/${path}`;
+    
+    // Check cache first
+    const cached = this.cache.get(fileKey);
+    if (cached) return cached;
+
+    const { blobs } = await list({
+      prefix: fileKey
+    });
+
+    if (!blobs.length) return null;
+
+    const blob = blobs[0];
+    const result = {
+      url: blob.url,
+      metadata: blob.metadata
+    };
+
+    // Update cache
+    this.cache.set(fileKey, result);
+
+    return result;
+  }
+
+  async listUserFiles(userId: string) {
+    const { blobs } = await list({
+      prefix: `documents/${userId}`
+    });
+
+    return blobs.map(blob => ({
+      path: blob.pathname,
+      url: blob.url,
+      metadata: blob.metadata
+    }));
   }
 } 

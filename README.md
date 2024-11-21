@@ -344,3 +344,20 @@ console.log('Cache Hit Rate:', metrics.cacheHitRate);
 - Access control via tokens
 - Rate limiting
 - Encryption at rest
+
+## Storage Architecture
+
+### Image Handling
+All images are now stored in Vercel Blob Storage with:
+- Automatic CDN distribution
+- Thumbnail generation
+- Metadata preservation
+- Efficient caching
+- URL consistency
+
+### Migration Status
+✅ Completed:
+- Image migration to Blob Storage
+- URL updates
+- Metadata preservation
+- Performance optimization
