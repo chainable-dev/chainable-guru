@@ -1,14 +1,15 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
+    "forceConsistentCasingInFileNames": true,
     "noEmit": true,
     "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
+    "module": "esnext", 
+    "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "preserve",
@@ -20,33 +21,17 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "@__tests__/*": ["./__tests__/*"]
     },
-    "types": [
-      "node",
-      "@types/react"
-    ]
+    "types": ["@testing-library/jest-dom"]
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts"
+    ".next/types/**/*.ts",
+    "types/jest.d.ts"
   ],
-  "exclude": [
-    "node_modules",
-    "**/*.test.ts",
-    "**/*.test.tsx",
-    "**/__tests__/**",
-    "**/tests/**",
-    "**/*.spec.ts",
-    "**/*.spec.tsx",
-    "vitest.config.ts",
-    "src/**/*.test.ts",
-    "src/**/*.test.tsx",
-    "src/**/__tests__/**",
-    "src/**/tests/**",
-    "src/**/*.spec.ts",
-    "src/**/*.spec.tsx"
-  ]
+
+  //ignore all test files
+  "exclude": ["node_modules", "**/*.test.ts", "**/*.test.tsx", "**/__tests__/**", "jest.config.ts"]
 }

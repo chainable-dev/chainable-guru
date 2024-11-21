@@ -106,7 +106,7 @@ const walletSection: PromptSection = {
 // Add memory optimization section
 const memoryOptimizationSection: PromptSection = {
   title: 'Memory Optimization',
-  description: 'Use these strategies to optimize memory usage and improve response quality.',
+  description: 'Optimize memory usage for performance and cost efficiency.',
   tools: [{
     name: 'useContextWindow',
     usage: [
@@ -124,14 +124,30 @@ const memoryOptimizationSection: PromptSection = {
     usage: [
       'For summarizing long conversations',
       'When storing key information points',
-      'For efficient context storage'
+      'For efficient context storage',
+      'Large conversation histories',
+      'Complex transaction data',
+      'Batch operations data'
+    ],
+    avoid: [
+      'Small data sets (<1KB)',
+      'Frequently accessed data',
+      'Already compressed data'
     ]
   }, {
     name: 'useMemoryPrioritization',
     usage: [
       'For focusing on most relevant context',
       'When handling multiple topics',
-      'For managing complex conversations'
+      'For managing complex conversations',
+      'Frequently accessed user preferences',
+      'Common blockchain queries',
+      'Recent conversation context'
+    ],
+    avoid: [
+      'Removing recent relevant messages',
+      'Discarding active wallet sessions',
+      'Losing critical user preferences'
     ]
   }]
 };
@@ -218,48 +234,6 @@ const memorySystemSection: PromptSection = {
       'Persistent user data',
       'Completed transaction data',
       'Historical conversation data'
-    ]
-  }]
-};
-
-const memoryOptimizationSection: PromptSection = {
-  title: 'Memory Optimization',
-  description: 'Optimize memory usage for performance and cost efficiency.',
-  tools: [{
-    name: 'useCompression',
-    usage: [
-      'Large conversation histories',
-      'Complex transaction data',
-      'Batch operations data'
-    ],
-    avoid: [
-      'Small data sets (<1KB)',
-      'Frequently accessed data',
-      'Already compressed data'
-    ]
-  }, {
-    name: 'useCaching',
-    usage: [
-      'Frequently accessed user preferences',
-      'Common blockchain queries',
-      'Recent conversation context'
-    ],
-    avoid: [
-      'Sensitive wallet data',
-      'One-time operation results',
-      'Large data sets'
-    ]
-  }, {
-    name: 'useCleanup',
-    usage: [
-      'Expired conversation contexts',
-      'Completed operation states',
-      'Outdated cache entries'
-    ],
-    avoid: [
-      'Active conversation data',
-      'User preferences',
-      'Important historical data'
     ]
   }]
 };
