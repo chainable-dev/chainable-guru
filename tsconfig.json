@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "es5",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
@@ -19,13 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"],
-      "@__tests__/*": ["./__tests__/*"]
-    },
-    "types": [
-      "node",
-      "@types/react"
-    ]
+      "@/*": ["./src/*"]
+    }
   },
   "include": [
     "next-env.d.ts",

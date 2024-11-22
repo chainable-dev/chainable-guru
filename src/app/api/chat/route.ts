@@ -1,28 +1,35 @@
 import { NextResponse } from 'next/server';
-import formidable, { Fields, Files } from 'formidable';
-import { IncomingMessage } from 'http';
+import { getChatCompletion } from '@/lib/openai-functions';
+import { webSearch } from '@/lib/search-functions';
 
 export async function POST(req: Request) {
   try {
-    // Convert the Request to IncomingMessage
-    const incomingMessage = req as unknown as IncomingMessage;
-
-    const form = new formidable.IncomingForm();
-    const { fields, files }: { fields: Fields; files: Files } = await new Promise((resolve, reject) => {
-      form.parse(incomingMessage, (err, fields, files) => {
-        if (err) reject(err);
-        resolve({ fields, files });
-      });
-    });
-
-    // Process the message and attachments
-    const message = fields.message;
-    const attachments = files;
-
-    // Handle the message and attachments as needed
-    // ...
-
-    return NextResponse.json({ message: { role: 'assistant', content: 'Response with attachments processed' } });
+    const { messages, enableSearch } = await req.json();
+    
+    const completion = await getChatCompletion(messages, enableSearch);
+    
+    if (completion.choices[0].function_call) {
+      const functionCall = completion.choices[0].function_call;
+      
+      if (functionCall.name === 'web_search') {
+        const { query } = JSON.parse(functionCall.arguments);
+        const searchResults = await webSearch(query);
+        
+        // Send search results back to GPT for processing
+        const finalResponse = await getChatCompletion([
+          ...messages,
+          {
+            role: 'function',
+            name: 'web_search',
+            content: JSON.stringify(searchResults)
+          }
+        ]);
+        
+        return NextResponse.json({ message: finalResponse.choices[0].message });
+      }
+    }
+    
+    return NextResponse.json({ message: completion.choices[0].message });
   } catch (error) {
     console.error('API error:', error);
     return NextResponse.json(
