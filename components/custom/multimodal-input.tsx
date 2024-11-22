@@ -129,7 +129,6 @@ export function MultimodalInput({
     address,
     isConnected,
     chainId,
-    walletClient,
     networkInfo,
     isCorrectNetwork
   } = useWalletState();
@@ -424,10 +423,10 @@ export function MultimodalInput({
                 {attachment.contentType?.startsWith('image/') ? (
                   <Image
                     src={attachment.url}
-                    alt={attachment.name}
-                    fill
-                    className="object-cover"
-                    sizes="96px"
+                    alt={attachment.name || 'Uploaded file'}
+                    width={100}
+                    height={100}
+                    className="object-cover rounded-md"
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full p-2">

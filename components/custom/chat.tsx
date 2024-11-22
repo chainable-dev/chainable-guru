@@ -81,7 +81,12 @@ export function Chat({
 
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
 
-  const { balance, balanceSymbol, isBalanceLoading, isBalanceError } = useWalletState();
+  const { 
+    balance = '0', 
+    balanceSymbol = '', 
+    isBalanceLoading = false, 
+    isBalanceError = false 
+  } = useWalletState()
 
   console.log(messages);
 
