@@ -1,80 +1,121 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
-import { getBalance } from '@wagmi/core'
+import { useWalletState } from '@/hooks/useWalletState'
+import { useAccount, useBalance, useChainId, useWalletClient } from 'wagmi'
 
-// Mock wagmi core
-vi.mock('@wagmi/core', () => ({
-  getBalance: vi.fn(),
-  createConfig: vi.fn(),
-  http: vi.fn()
+// Mock wagmi hooks
+jest.mock('wagmi', () => ({
+  useAccount: jest.fn(),
+  useBalance: jest.fn(),
+  useChainId: jest.fn(),
+  useWalletClient: jest.fn()
 }))
 
-describe('Wallet State', () => {
+describe('useWalletState', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    // Reset all mocks before each test
+    jest.clearAllMocks()
   })
 
-  it('should fetch wallet balance correctly', async () => {
-    const mockBalance = {
-      decimals: 18,
-      formatted: '1.5',
-      symbol: 'ETH',
-      value: BigInt('1500000000000000000')
-    }
-
-    vi.mocked(getBalance).mockResolvedValue(mockBalance)
-
-    const address = '0x4557B18E779944BFE9d78A672452331C186a9f48'
-    const result = await getBalance({
-      address,
-      chainId: 1, // mainnet
-      unit: 'ether'
+  it('should return correct wallet state when connected to Base Mainnet', () => {
+    // Mock hook returns
+    ;(useAccount as jest.Mock).mockReturnValue({
+      address: '0x123' as `0x${string}`,
+      isConnected: true
+    })
+    ;(useChainId as jest.Mock).mockReturnValue(8453) // Base Mainnet
+    ;(useWalletClient as jest.Mock).mockReturnValue({ data: {} })
+    ;(useBalance as jest.Mock).mockReturnValue({
+      data: {
+        formatted: '1.5',
+        symbol: 'ETH'
+      },
+      isLoading: false,
+      isError: false
     })
 
-    expect(result).toEqual(mockBalance)
-    expect(getBalance).toHaveBeenCalledWith({
-      address,
+    const { result } = renderHook(() => useWalletState())
+
+    expect(result.current).toEqual({
+      address: '0x123',
+      isConnected: true,
+      chainId: 8453,
+      balance: '1.5',
+      balanceSymbol: 'ETH',
+      isBalanceLoading: false,
+      isBalanceError: false,
+      networkInfo: {
+        name: 'Base Mainnet',
+        isTestnet: false
+      },
+      isCorrectNetwork: true,
+      walletClient: {}
+    })
+  })
+
+  it('should return correct wallet state when connected to Base Sepolia', () => {
+    ;(useAccount as jest.Mock).mockReturnValue({
+      address: '0x456' as `0x${string}`,
+      isConnected: true
+    })
+    ;(useChainId as jest.Mock).mockReturnValue(84532) // Base Sepolia
+    ;(useWalletClient as jest.Mock).mockReturnValue({ data: {} })
+    ;(useBalance as jest.Mock).mockReturnValue({
+      data: {
+        formatted: '0.5',
+        symbol: 'ETH'
+      },
+      isLoading: false,
+      isError: false
+    })
+
+    const { result } = renderHook(() => useWalletState())
+
+    expect(result.current).toEqual({
+      address: '0x456',
+      isConnected: true,
+      chainId: 84532,
+      balance: '0.5',
+      balanceSymbol: 'ETH',
+      isBalanceLoading: false,
+      isBalanceError: false,
+      networkInfo: {
+        name: 'Base Sepolia',
+        isTestnet: true
+      },
+      isCorrectNetwork: true,
+      walletClient: {}
+    })
+  })
+
+  it('should handle disconnected state', () => {
+    ;(useAccount as jest.Mock).mockReturnValue({
+      address: undefined,
+      isConnected: false
+    })
+    ;(useChainId as jest.Mock).mockReturnValue(1) // Wrong network
+    ;(useWalletClient as jest.Mock).mockReturnValue({ data: null })
+    ;(useBalance as jest.Mock).mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: false
+    })
+
+    const { result } = renderHook(() => useWalletState())
+
+    expect(result.current).toEqual({
+      address: undefined,
+      isConnected: false,
       chainId: 1,
-      unit: 'ether'
-    })
-  })
-
-  it('should handle balance fetch errors', async () => {
-    const mockError = new Error('Failed to fetch balance')
-    vi.mocked(getBalance).mockRejectedValue(mockError)
-
-    const address = '0x4557B18E779944BFE9d78A672452331C186a9f48'
-    
-    await expect(getBalance({
-      address,
-      chainId: 1
-    })).rejects.toThrow('Failed to fetch balance')
-  })
-
-  it('should fetch token balance correctly', async () => {
-    const mockTokenBalance = {
-      decimals: 6,
-      formatted: '100.5',
-      symbol: 'USDC',
-      value: BigInt('100500000')
-    }
-
-    vi.mocked(getBalance).mockResolvedValue(mockTokenBalance)
-
-    const address = '0x4557B18E779944BFE9d78A672452331C186a9f48'
-    const tokenAddress = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48' // USDC contract
-    
-    const result = await getBalance({
-      address,
-      token: tokenAddress,
-      chainId: 1
-    })
-
-    expect(result).toEqual(mockTokenBalance)
-    expect(getBalance).toHaveBeenCalledWith({
-      address,
-      token: tokenAddress,
-      chainId: 1
+      balance: undefined,
+      balanceSymbol: undefined,
+      isBalanceLoading: false,
+      isBalanceError: false,
+      networkInfo: {
+        name: 'Unknown Network',
+        isTestnet: false
+      },
+      isCorrectNetwork: false,
+      walletClient: null
     })
   })
 }) 

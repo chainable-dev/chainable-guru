@@ -3,6 +3,7 @@
 import cx from 'classnames';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Lock, Unlock, Wallet as WalletIcon } from 'lucide-react';
+import Image from 'next/image';
 import React, {
   useRef,
   useEffect,
@@ -15,7 +16,6 @@ import React, {
 import { RiArrowDownSLine, RiArrowUpSLine } from 'react-icons/ri';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
-import Image from 'next/image';
 
 import { useWalletState } from '@/hooks/useWalletState';
 import { createClient } from '@/lib/supabase/client';
@@ -388,7 +388,7 @@ export function MultimodalInput({
         <div className="flex flex-row gap-4 overflow-x-auto pb-2">
           {stagedFiles.map((stagedFile) => (
             <div key={stagedFile.id} className="relative group">
-              <div className="relative w-24 h-24 rounded-lg overflow-hidden border bg-muted">
+              <div className="relative size-24 rounded-lg overflow-hidden border bg-muted">
                 {stagedFile.file.type.startsWith('image/') ? (
                   <Image
                     src={stagedFile.previewUrl}
@@ -404,7 +404,7 @@ export function MultimodalInput({
                 )}
                 {stagedFile.status === 'uploading' && (
                   <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
+                    <div className="animate-spin rounded-full size-6 border-2 border-primary border-t-transparent" />
                   </div>
                 )}
               </div>
@@ -419,7 +419,7 @@ export function MultimodalInput({
 
           {attachments.map((attachment) => (
             <div key={attachment.url} className="relative group">
-              <div className="relative w-24 h-24 rounded-lg overflow-hidden border bg-muted">
+              <div className="relative size-24 rounded-lg overflow-hidden border bg-muted">
                 {attachment.contentType?.startsWith('image/') ? (
                   <Image
                     src={attachment.url}

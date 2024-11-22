@@ -10,6 +10,7 @@ import { useWindowSize } from 'usehooks-ts';
 import { ChatHeader } from '@/components/custom/chat-header';
 import { PreviewMessage, ThinkingMessage } from '@/components/custom/message';
 import { useScrollToBottom } from '@/components/custom/use-scroll-to-bottom';
+import { useWalletState } from '@/hooks/useWalletState';
 import { Database } from '@/lib/supabase/types';
 import { fetcher } from '@/lib/utils';
 
@@ -18,7 +19,6 @@ import { BlockStreamHandler } from './block-stream-handler';
 import { MultimodalInput } from './multimodal-input';
 import { Overview } from './overview';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-import { useWalletState } from '@/hooks/useWalletState';
 
 
 import type { Attachment, Message } from 'ai';
