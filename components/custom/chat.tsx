@@ -1,39 +1,34 @@
 'use client';
 
 import { useChat } from 'ai/react';
+import type { Message, Attachment } from 'ai';
 import { AnimatePresence } from 'framer-motion';
 import { KeyboardIcon } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ClipboardEvent } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useWindowSize } from 'usehooks-ts';
 
+import { Block } from '@/components/custom/block';
+import { BlockStreamHandler } from '@/components/custom/block-stream-handler';
 import { ChatHeader } from '@/components/custom/chat-header';
+import { MultimodalInput } from '@/components/custom/multimodal-input';
+import { Overview } from '@/components/custom/overview';
 import { PreviewMessage, ThinkingMessage } from '@/components/custom/message';
 import { useScrollToBottom } from '@/components/custom/use-scroll-to-bottom';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+
 import { Database } from '@/lib/supabase/types';
 import { fetcher } from '@/lib/utils';
 
-import { Block, UIBlock } from './block';
-import { BlockStreamHandler } from './block-stream-handler';
-import { MultimodalInput } from './multimodal-input';
-import { Overview } from './overview';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
-
-
-import type { Attachment, Message } from 'ai';
-
 type Vote = Database['public']['Tables']['votes']['Row'];
 
-export function Chat({
-  id,
-  initialMessages,
-  selectedModelId,
-}: {
+export function Chat({ id, initialMessages, selectedModelId }: {
   id: string;
   initialMessages: Array<Message>;
   selectedModelId: string;
 }) {
   const { mutate } = useSWRConfig();
+  const { width: windowWidth = 1920, height: windowHeight = 1080 } = useWindowSize();
 
   const {
     messages,
@@ -52,9 +47,6 @@ export function Chat({
       mutate('/api/history');
     },
   });
-
-  const { width: windowWidth = 1920, height: windowHeight = 1080 } =
-    useWindowSize();
 
   const [block, setBlock] = useState<UIBlock>({
     documentId: 'init',
@@ -75,29 +67,8 @@ export function Chat({
     fetcher
   );
 
-  const [messagesContainerRef, messagesEndRef] =
-    useScrollToBottom<HTMLDivElement>();
-
+  const [messagesContainerRef, messagesEndRef] = useScrollToBottom<HTMLDivElement>();
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
-
-  console.log(messages);
-
-  // Add keyboard navigation
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + / to focus input
-      if ((e.metaKey || e.ctrlKey) && e.key === '/') {
-        e.preventDefault();
-        const input = document.querySelector('textarea');
-        if (input) {
-          (input as HTMLTextAreaElement).focus();
-        }
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, []);
 
   return (
     <>
@@ -117,25 +88,17 @@ export function Chat({
               block={block}
               setBlock={setBlock}
               isLoading={isLoading && messages.length - 1 === index}
-              vote={
-                votes
-                  ? votes.find((vote) => vote.message_id === message.id)
-                  : undefined
-              }
+              vote={votes?.find((vote) => vote.message_id === message.id)}
             />
           ))}
 
-          {isLoading &&
-            messages.length > 0 &&
-            messages[messages.length - 1].role === 'user' && (
-              <ThinkingMessage />
-            )}
+          {isLoading && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
+            <ThinkingMessage />
+          )}
 
-          <div
-            ref={messagesEndRef}
-            className="shrink-0 min-w-[24px] min-h-[24px]"
-          />
+          <div ref={messagesEndRef} className="shrink-0 min-w-[24px] min-h-[24px]" />
         </div>
+
         <form 
           className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl"
           onSubmit={(e) => {

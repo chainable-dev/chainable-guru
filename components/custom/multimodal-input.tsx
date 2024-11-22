@@ -350,6 +350,85 @@ export function MultimodalInput({
     return () => clearTimeout(timer);
   }, []);
 
+  const handlePaste = useCallback(async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    console.log('🔍 Paste event detected');
+    
+    const clipboardData = e.clipboardData;
+    if (!clipboardData) return;
+
+    // Check for images in clipboard
+    const items = Array.from(clipboardData.items);
+    const imageItems = items.filter(item => 
+      item.kind === 'file' && item.type.startsWith('image/')
+    );
+
+    if (imageItems.length > 0) {
+      e.preventDefault();
+      console.log('📸 Found image in clipboard');
+
+      // Convert clipboard items to files
+      const files = imageItems
+        .map(item => item.getAsFile())
+        .filter((file): file is File => file !== null)
+        .map(file => new File([file], 
+          `screenshot-${Date.now()}.${file.type.split('/')[1] || 'png'}`,
+          { type: file.type }
+        ));
+
+      // Create staged files with blob URLs
+      const newStagedFiles = files.map(createStagedFile);
+      setStagedFiles(prev => [...prev, ...newStagedFiles]);
+
+      try {
+        // Upload each file using existing upload logic
+        for (const stagedFile of newStagedFiles) {
+          setStagedFiles(prev =>
+            prev.map(f => f.id === stagedFile.id ? { ...f, status: 'uploading' } : f)
+          );
+
+          const formData = new FormData();
+          formData.append('file', stagedFile.file);
+          formData.append('chatId', chatId);
+
+          const response = await fetch('/api/files/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) throw new Error('Upload failed');
+
+          const data = await response.json();
+
+          // Add to attachments on successful upload
+          setAttachments(current => [...current, {
+            url: data.url,
+            name: stagedFile.file.name,
+            contentType: stagedFile.file.type,
+            path: data.path
+          }]);
+
+          // Mark as complete and remove from staged files
+          setStagedFiles(prev =>
+            prev.map(f => f.id === stagedFile.id ? { ...f, status: 'complete' } : f)
+          );
+          setTimeout(() => removeStagedFile(stagedFile.id), 500);
+        }
+
+        toast.success('Files uploaded successfully');
+      } catch (error) {
+        console.error('Error uploading files:', error);
+        toast.error('Failed to upload one or more files');
+
+        // Mark failed files
+        newStagedFiles.forEach(file => {
+          setStagedFiles(prev =>
+            prev.map(f => f.id === file.id ? { ...f, status: 'error' } : f)
+          );
+        });
+      }
+    }
+  }, [chatId, createStagedFile, removeStagedFile, setAttachments]);
+
   return (
     <div className="relative w-full flex flex-col gap-4">
       {messages.length === 0 &&
@@ -430,6 +509,7 @@ export function MultimodalInput({
         placeholder="Send a message..."
         value={input}
         onChange={handleInput}
+        onPaste={handlePaste}
         className={cx(
           'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-xl text-base bg-muted',
           className
