@@ -33,7 +33,11 @@ const nextConfig = {
               default-src 'self';
               script-src 'self' 'unsafe-eval' 'unsafe-inline';
               style-src 'self' 'unsafe-inline';
-              img-src 'self' blob: data: https://*.public.blob.vercel-storage.com https://avatar.vercel.sh https://avatars.githubusercontent.com;
+              img-src 'self' blob: data: 
+                https://*.public.blob.vercel-storage.com 
+                https://avatar.vercel.sh 
+                https://avatars.githubusercontent.com
+                clipboard-write:;
               font-src 'self';
               connect-src 'self' 
                 https://*.supabase.co
@@ -48,16 +52,30 @@ const nextConfig = {
                 wss://*.supabase.co
                 wss://*.walletconnect.org
                 wss://*.walletconnect.com
+                wss://relay.walletconnect.com
+                wss://relay.walletconnect.org
                 wss://*.base.org
-                https://*.supabase.co/auth/v1/user;
+                https://*.supabase.co/auth/v1/user
+                blob:;
               frame-src 'self' 
                 https://verify.walletconnect.com 
                 https://verify.walletconnect.org
-                https://*.base.org;
+                https://*.base.org
+                http://localhost:*
+                https://localhost:*
+                http://127.0.0.1:*
+                https://127.0.0.1:*;
               frame-ancestors 'self' 
                 https://*.chainable.finance 
-                https://chainable.finance;
+                https://chainable.finance
+                http://localhost:*
+                https://localhost:*
+                http://127.0.0.1:*
+                https://127.0.0.1:*;
               worker-src 'self' blob:;
+              media-src 'self' blob:;
+              clipboard-write 'self';
+              clipboard-read 'self';
             `.replace(/\s{2,}/g, ' ').trim()
           },
           {
@@ -74,7 +92,7 @@ const nextConfig = {
           },
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()'
+            value: 'camera=(), microphone=(), geolocation=(), clipboard-write=(self), clipboard-read=(self)'
           }
         ]
       }
