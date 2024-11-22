@@ -6,4 +6,12 @@ export type Attachment = {
   name: string;
   content_type: string;
   created_at: string;
-}; 
+};
+
+export type Database = {
+  public: {
+    Tables: {
+      // Define your tables here
+    }
+  }
+} 

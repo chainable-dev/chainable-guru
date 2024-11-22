@@ -1,21 +1,11 @@
 import { Session } from '@supabase/supabase-js';
 import { put, del, list } from '@vercel/blob';
-import * as LRUCache from 'lru-cache';
-
-import { MemoryStore, MemoryStats, FileMetadata, SessionMemory, UserPreferences } from '@/types';
-
-
-interface CacheOptions {
-  max: number;
-  maxAge?: number;
-}
+import { MemoryStore, MemoryStats, SessionMemory, UserPreferences } from '@/types';
 
 export class BlobMemoryStore implements MemoryStore {
-  private cache: LRUCache.LRUCache<string, any>;
   private metrics = {
     totalResponseTime: 0,
-    requestCount: 0,
-    cacheItems: 0
+    requestCount: 0
   };
   private currentSession: Session | null;
 
@@ -24,13 +14,8 @@ export class BlobMemoryStore implements MemoryStore {
     private readonly blobToken: string,
     currentSession: Session | null,
     private readonly compressionThreshold: number = 1024,
-    private readonly maxSize: number = 10 * 1024 * 1024,
-    cacheOptions: CacheOptions = { max: 100, maxAge: 300000 }
+    private readonly maxSize: number = 10 * 1024 * 1024
   ) {
-    this.cache = new LRUCache.LRUCache({
-      max: cacheOptions.max,
-      ttl: cacheOptions.maxAge
-    });
     this.currentSession = currentSession;
   }
 
@@ -56,10 +41,6 @@ export class BlobMemoryStore implements MemoryStore {
     return this.get('userPrefs');
   }
 
-  private getCacheSize(): number {
-    return Array.from(this.cache.keys()).length;
-  }
-
   async getStats(): Promise<MemoryStats> {
     const { blobs } = await list({ prefix: this.prefix });
 
@@ -77,8 +58,7 @@ export class BlobMemoryStore implements MemoryStore {
       compressedSize,
       compressionRatio: totalSize ? totalSize / compressedSize : 1,
       itemCount: blobs.length,
-      cacheHitRate: this.metrics.requestCount ?
-        (this.getCacheSize() / this.metrics.requestCount) * 100 : 0,
+      cacheHitRate: 0,
       averageResponseTime: this.metrics.requestCount ?
         this.metrics.totalResponseTime / this.metrics.requestCount : 0
     };
@@ -95,7 +75,6 @@ export class BlobMemoryStore implements MemoryStore {
     });
 
     await Promise.all(expired.map((blob: any) => del(blob.url)));
-    this.cache.clear();
   }
 
   async set(key: string, value: any, ttl?: number): Promise<void> {
@@ -103,11 +82,17 @@ export class BlobMemoryStore implements MemoryStore {
       throw new Error('User is not authenticated');
     }
 
-    this.cache.set(key, value, { ttl });
-
     const blobKey = `${this.prefix}/${key}`;
     const blob = new Blob([JSON.stringify(value)], { type: 'application/json' });
-    await put(blobKey, blob, { access: 'public' });
+    
+    await put(blobKey, blob, { 
+      access: 'public',
+      addRandomSuffix: false,
+      contentType: JSON.stringify({
+        timestamp: Date.now(),
+        ttl
+      })
+    });
   }
 
   async get(key: string): Promise<any> {
@@ -115,17 +100,11 @@ export class BlobMemoryStore implements MemoryStore {
       throw new Error('User is not authenticated');
     }
 
-    const cachedValue = this.cache.get(key);
-    if (cachedValue !== undefined) {
-      return cachedValue;
-    }
-
     const blobKey = `${this.prefix}/${key}`;
     try {
       const response = await fetch(blobKey);
       if (!response.ok) return null;
       const data = await response.json();
-      this.cache.set(key, data);
       return data;
     } catch (error) {
       return null;
@@ -148,15 +127,10 @@ export class BlobMemoryStore implements MemoryStore {
   }
 
   async clear(pattern?: string): Promise<void> {
-    if (pattern) {
-      const keysToDelete = Array.from(this.cache.keys()).filter((key: string) => key.includes(pattern));
-      keysToDelete.forEach((key: string) => this.cache.delete(key));
-    } else {
-      this.cache.clear();
-    }
-
     const { blobs } = await list({ prefix: this.prefix });
-    const blobsToDelete = blobs.filter((blob: any) => blob.pathname.includes(pattern || ''));
+    const blobsToDelete = pattern ? 
+      blobs.filter((blob: any) => blob.pathname.includes(pattern)) :
+      blobs;
     await Promise.all(blobsToDelete.map((blob: any) => del(blob.url)));
   }
 
@@ -165,7 +139,6 @@ export class BlobMemoryStore implements MemoryStore {
       throw new Error('User is not authenticated');
     }
 
-    this.cache.delete(key);
     const { blobs } = await list({ prefix: `${this.prefix}/${key}` });
     await Promise.all(blobs.map((blob: any) => del(blob.url)));
   }
