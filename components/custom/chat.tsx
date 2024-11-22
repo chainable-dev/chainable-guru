@@ -84,54 +84,61 @@ export function Chat({ id, initialMessages, selectedModelId }: {
   })
 
   const handleFileUpload = async (file: File) => {
-    if (!file) return
+    if (!file) return;
 
     if (file.size > 10 * 1024 * 1024) {
-      toast.error("File size must be less than 10MB")
-      return
+      toast.error("File size must be less than 10MB");
+      return;
     }
 
-    setFileUpload({ progress: 0, uploading: true, error: null })
+    setFileUpload({ progress: 0, uploading: true, error: null });
 
-    try {
-      const formData = new FormData()
-      formData.append("file", file)
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const formData = new FormData();
+      formData.append("file", file);
 
-      const response = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-        onUploadProgress: (progressEvent) => {
-          const progress = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          )
-          setFileUpload(prev => ({ ...prev, progress }))
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) {
+          const progress = Math.round((e.loaded * 100) / e.total);
+          setFileUpload(prev => ({ ...prev, progress }));
         }
-      })
+      });
 
-      if (!response.ok) {
-        throw new Error("Upload failed")
-      }
+      xhr.addEventListener("load", () => {
+        if (xhr.status === 200) {
+          const response = JSON.parse(xhr.responseText);
+          toast.success("File uploaded successfully");
+          append({
+            role: "user",
+            content: `[File uploaded: ${file.name}](${response.url})`
+          });
+          resolve(response);
+        } else {
+          setFileUpload(prev => ({ 
+            ...prev, 
+            error: "Upload failed" 
+          }));
+          toast.error("Failed to upload file");
+          reject(new Error("Upload failed"));
+        }
+        setFileUpload(prev => ({ ...prev, uploading: false }));
+      });
 
-      const data = await response.json()
-      
-      addMessage({
-        role: "user",
-        content: `[File uploaded: ${file.name}](${data.url})`
-      })
+      xhr.addEventListener("error", () => {
+        setFileUpload(prev => ({ 
+          ...prev, 
+          error: "Upload failed",
+          uploading: false 
+        }));
+        toast.error("Failed to upload file");
+        reject(new Error("Upload failed"));
+      });
 
-      toast.success("File uploaded successfully")
-
-    } catch (error) {
-      console.error("Upload error:", error)
-      setFileUpload(prev => ({ 
-        ...prev, 
-        error: "Failed to upload file" 
-      }))
-      toast.error("Failed to upload file")
-    } finally {
-      setFileUpload(prev => ({ ...prev, uploading: false }))
-    }
-  }
+      xhr.open("POST", "/api/upload");
+      xhr.send(formData);
+    });
+  };
 
   return (
     <>
@@ -232,9 +239,9 @@ export function Chat({ id, initialMessages, selectedModelId }: {
       </div>
 
       {fileUpload.uploading && (
-        <div className="w-full max-w-md mx-auto p-4">
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md mx-auto p-4 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg">
           <Progress value={fileUpload.progress} className="w-full" />
-          <p className="text-sm text-muted-foreground mt-2">
+          <p className="text-sm text-muted-foreground mt-2 text-center">
             Uploading... {fileUpload.progress}%
           </p>
         </div>
@@ -243,8 +250,8 @@ export function Chat({ id, initialMessages, selectedModelId }: {
       <input
         type="file"
         onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) handleFileUpload(file)
+          const file = e.target.files?.[0];
+          if (file) handleFileUpload(file);
         }}
         className="hidden"
         id="file-upload"
