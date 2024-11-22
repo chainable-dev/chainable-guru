@@ -15,6 +15,7 @@ const nextConfig = {
         pathname: '/**',
       }
     ],
+    domains: ['avatars.githubusercontent.com']
   },
   experimental: {
     serverActions: {
@@ -28,15 +29,36 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' blob: data: https:",
-              "connect-src 'self' https://explorer-api.walletconnect.com https://pulse.walletconnect.org",
-              "frame-src 'self'",
-              "font-src 'self'"
-            ].join('; ')
+            value: `
+              default-src 'self';
+              script-src 'self' 'unsafe-eval' 'unsafe-inline';
+              style-src 'self' 'unsafe-inline';
+              img-src 'self' blob: data:;
+              font-src 'self';
+              connect-src 'self' 
+                https://*.supabase.co
+                https://explorer-api.walletconnect.com
+                https://pulse.walletconnect.org
+                wss://*.supabase.co
+                https://*.supabase.co/auth/v1/user;
+              frame-src 'self';
+            `.replace(/\s{2,}/g, ' ').trim()
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin'
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()'
           }
         ]
       }

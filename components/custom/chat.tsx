@@ -8,7 +8,7 @@ import { useState, useEffect, type ClipboardEvent } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useWindowSize } from 'usehooks-ts';
 
-import { Block } from '@/components/custom/block';
+import { Block, UIBlock } from '@/components/custom/block';
 import { BlockStreamHandler } from '@/components/custom/block-stream-handler';
 import { ChatHeader } from '@/components/custom/chat-header';
 import { MultimodalInput } from '@/components/custom/multimodal-input';
@@ -100,11 +100,14 @@ export function Chat({ id, initialMessages, selectedModelId }: {
         </div>
 
         <form 
+          id="chat-form"
+          name="chat-form"
           className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl"
           onSubmit={(e) => {
             e.preventDefault();
             handleSubmit(e);
           }}
+          aria-label="Chat input form"
         >
           <MultimodalInput
             chatId={id}
@@ -148,7 +151,11 @@ export function Chat({ id, initialMessages, selectedModelId }: {
       <div className="fixed bottom-4 right-4 opacity-50 hover:opacity-100 transition-opacity">
         <Tooltip>
           <TooltipTrigger asChild>
-            <button className="p-2 rounded-full bg-muted">
+            <button 
+              className="p-2 rounded-full bg-muted"
+              type="button"
+              aria-label="Keyboard shortcuts"
+            >
               <KeyboardIcon className="size-4" />
             </button>
           </TooltipTrigger>
