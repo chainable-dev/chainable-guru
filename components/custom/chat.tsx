@@ -7,6 +7,8 @@ import { KeyboardIcon } from 'lucide-react';
 import { useState, useEffect, type ClipboardEvent } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useWindowSize } from 'usehooks-ts';
+import { Progress } from "@/components/ui/progress"
+import { toast } from "sonner"
 
 import { Block, UIBlock } from '@/components/custom/block';
 import { BlockStreamHandler } from '@/components/custom/block-stream-handler';
@@ -21,6 +23,12 @@ import { Database } from '@/lib/supabase/types';
 import { fetcher } from '@/lib/utils';
 
 type Vote = Database['public']['Tables']['votes']['Row'];
+
+interface FileUploadState {
+  progress: number
+  uploading: boolean
+  error: string | null
+}
 
 export function Chat({ id, initialMessages, selectedModelId }: {
   id: string;
@@ -69,6 +77,61 @@ export function Chat({ id, initialMessages, selectedModelId }: {
 
   const [messagesContainerRef, messagesEndRef] = useScrollToBottom<HTMLDivElement>();
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
+  const [fileUpload, setFileUpload] = useState<FileUploadState>({
+    progress: 0,
+    uploading: false,
+    error: null
+  })
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size must be less than 10MB")
+      return
+    }
+
+    setFileUpload({ progress: 0, uploading: true, error: null })
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+        onUploadProgress: (progressEvent) => {
+          const progress = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          )
+          setFileUpload(prev => ({ ...prev, progress }))
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error("Upload failed")
+      }
+
+      const data = await response.json()
+      
+      addMessage({
+        role: "user",
+        content: `[File uploaded: ${file.name}](${data.url})`
+      })
+
+      toast.success("File uploaded successfully")
+
+    } catch (error) {
+      console.error("Upload error:", error)
+      setFileUpload(prev => ({ 
+        ...prev, 
+        error: "Failed to upload file" 
+      }))
+      toast.error("Failed to upload file")
+    } finally {
+      setFileUpload(prev => ({ ...prev, uploading: false }))
+    }
+  }
 
   return (
     <>
@@ -167,6 +230,26 @@ export function Chat({ id, initialMessages, selectedModelId }: {
           </TooltipContent>
         </Tooltip>
       </div>
+
+      {fileUpload.uploading && (
+        <div className="w-full max-w-md mx-auto p-4">
+          <Progress value={fileUpload.progress} className="w-full" />
+          <p className="text-sm text-muted-foreground mt-2">
+            Uploading... {fileUpload.progress}%
+          </p>
+        </div>
+      )}
+
+      <input
+        type="file"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) handleFileUpload(file)
+        }}
+        className="hidden"
+        id="file-upload"
+        accept="image/*,.pdf,.doc,.docx,.txt"
+      />
     </>
   );
 }
