@@ -156,7 +156,6 @@ export function Chat({ id, initialMessages, selectedModelId }: {
               type="button"
               aria-label="Keyboard shortcuts"
             >
-              <KeyboardIcon className="size-4" />
             </button>
           </TooltipTrigger>
           <TooltipContent>
