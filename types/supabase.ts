@@ -1,9 +1,16 @@
-export type Attachment = {
+export interface Document {
   id: string;
   chat_id: string;
-  file_path: string;
+  title: string;
+  content: string;
+  status: 'processing' | 'ready' | 'error';
+  created_at: string;
+  updated_at?: string;
+}
+
+export interface Attachment {
   url: string;
   name: string;
-  content_type: string;
-  created_at: string;
-}; 
+  contentType: string;
+  path?: string;
+} 

@@ -9,6 +9,30 @@ interface PreviewAttachmentProps {
   onRemove?: (url: string) => void;
 }
 
+const PreviewImage = ({ src, alt, className }: { src: string, alt: string, className: string }) => {
+  const isBlob = src.startsWith('blob:');
+  
+  if (isBlob) {
+    return (
+      <img 
+        src={src} 
+        alt={alt} 
+        className={className} 
+      />
+    );
+  }
+
+  return (
+    <Image
+      src={src}
+      alt={alt}
+      className={className}
+      width={200}
+      height={200}
+    />
+  );
+};
+
 export function PreviewAttachment({ 
   attachment, 
   isUploading = false,
@@ -21,14 +45,13 @@ export function PreviewAttachment({
     <div className="relative group">
       <div className="relative size-20 border rounded-lg overflow-hidden bg-muted">
         {isImage ? (
-          <Image
-            src={attachment.url}
-            alt={altText}
-            width={80}
-            height={80}
-            className="object-cover"
-            priority
-          />
+          <div className="relative w-full h-full">
+            <PreviewImage
+              src={attachment.url}
+              alt={altText}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          </div>
         ) : (
           <div className="flex items-center justify-center h-full">
             <FileIcon className="size-8 text-muted-foreground" />
