@@ -1,10 +1,18 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    appDir: true,
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'avatar.vercel.sh',
+        port: '',
+        pathname: '/**',
+      },
+    ],
   },
-  pageExtensions: ['tsx', 'ts'],
-  pages: false,
+  experimental: {
+    serverActions: true,
+  },
 }
 
 module.exports = nextConfig 
