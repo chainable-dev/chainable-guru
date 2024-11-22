@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Outer Circle -->
+  <circle cx="50" cy="50" r="48" stroke="#4CAF50" stroke-width="4" fill="none" />
+
+  <!-- Inner Neural Lines -->
+  <path d="M30 50 C40 30, 60 30, 70 50" stroke="#4CAF50" stroke-width="2" fill="none" />
+  <path d="M30 50 C40 70, 60 70, 70 50" stroke="#4CAF50" stroke-width="2" fill="none" />
+
+  <!-- Connecting Dots -->
+  <circle cx="30" cy="50" r="3" fill="#4CAF50" />
+  <circle cx="50" cy="30" r="3" fill="#4CAF50" />
+  <circle cx="50" cy="70" r="3" fill="#4CAF50" />
+  <circle cx="70" cy="50" r="3" fill="#4CAF50" />
+
+  <!-- Elron Name -->
+  <text x="50" y="90" font-size="10" fill="#4CAF50" text-anchor="middle" font-family="Arial, sans-serif">
+    Elron
+  </text>
+</svg>
