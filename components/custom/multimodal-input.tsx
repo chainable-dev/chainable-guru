@@ -97,12 +97,6 @@ interface MultimodalInputProps {
   handleSubmit: (event?: { preventDefault?: () => void }, chatRequestOptions?: ChatRequestOptions) => void;
   className?: string;
   chatId: string;
-  onFileUpload?: (file: {
-    url: string;
-    name: string;
-    type: string;
-    size: number;
-  }) => void;
 }
 
 export function MultimodalInput({
@@ -117,8 +111,7 @@ export function MultimodalInput({
   append,
   handleSubmit,
   className,
-  chatId,
-  onFileUpload
+  chatId
 }: MultimodalInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -131,12 +124,6 @@ export function MultimodalInput({
     lockedSuggestions: suggestedActions
   });
   const [showSuggestions, setShowSuggestions] = useState(true);
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<Array<{
-    url: string;
-    name: string;
-    type: string;
-  }>>([]);
 
   const {
     address,
@@ -299,68 +286,65 @@ export function MultimodalInput({
     submitForm();
   }, [isWalletReady, setInput, submitForm]);
 
-  const handleFileUpload = async (file: File) => {
-    if (isUploading) return;
+  const handleFileChange = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
     
+    // Create staged files with blob URLs
+    const newStagedFiles = files.map(createStagedFile);
+    setStagedFiles(prev => [...prev, ...newStagedFiles]);
+
     try {
-      setIsUploading(true);
-      
-      // Increased to 10MB
-      const MAX_FILE_SIZE = 10 * 1024 * 1024;
-      if (file.size > MAX_FILE_SIZE) {
-        toast.error('File size exceeds 10MB limit');
-        return;
+      // Upload each file
+      for (const stagedFile of newStagedFiles) {
+        setStagedFiles(prev => 
+          prev.map(f => f.id === stagedFile.id ? { ...f, status: 'uploading' } : f)
+        );
+
+        const formData = new FormData();
+        formData.append('file', stagedFile.file);
+        formData.append('chatId', chatId);
+
+        const response = await fetch('/api/files/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) throw new Error('Upload failed');
+
+        const data = await response.json();
+        
+        // Add to attachments on successful upload
+        setAttachments(current => [...current, {
+          url: data.url,
+          name: stagedFile.file.name,
+          contentType: stagedFile.file.type,
+          path: data.path
+        }]);
+
+        // Mark as complete and remove from staged files
+        setStagedFiles(prev => 
+          prev.map(f => f.id === stagedFile.id ? { ...f, status: 'complete' } : f)
+        );
+        setTimeout(() => removeStagedFile(stagedFile.id), 500);
       }
 
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('chatId', chatId);
-
-      const response = await fetch('/api/files/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Upload failed');
-      }
-
-      // Update attachments state with the new file
-      setAttachments(prev => [...prev, {
-        url: data.url,
-        name: data.name,
-        contentType: data.type,
-        size: data.size
-      }]);
-
-      toast.success('File uploaded successfully');
-
+      toast.success('Files uploaded successfully');
     } catch (error) {
-      console.error('Upload error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to upload file');
+      console.error('Error uploading files:', error);
+      toast.error('Failed to upload one or more files');
+      
+      // Mark failed files
+      newStagedFiles.forEach(file => {
+        setStagedFiles(prev => 
+          prev.map(f => f.id === file.id ? { ...f, status: 'error' } : f)
+        );
+      });
     } finally {
-      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
-  };
-
-  const handleDrop = async (e: React.DragEvent) => {
-    e.preventDefault();
-    const file = e.dataTransfer?.files[0];
-    if (file) {
-      await handleFileUpload(file);
-    }
-  };
-
-  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      await handleFileUpload(file);
-      // Clear input value to allow uploading same file again
-      e.target.value = '';
-    }
-  };
+  }, [chatId, createStagedFile, removeStagedFile, setAttachments]);
 
   // Focus management
   useEffect(() => {
@@ -397,7 +381,7 @@ export function MultimodalInput({
         className="fixed -top-4 -left-4 size-0.5 opacity-0 pointer-events-none"
         ref={fileInputRef}
         multiple
-        onChange={handleFileInput}
+        onChange={handleFileChange}
         tabIndex={-1}
       />
 
@@ -439,22 +423,15 @@ export function MultimodalInput({
               <div className="relative w-24 h-24 rounded-lg overflow-hidden border bg-muted">
                 {attachment.contentType?.startsWith('image/') ? (
                   <Image
-                    src={attachment.url || ''}
-                    alt={attachment.name || 'Uploaded file'}
+                    src={attachment.url}
+                    alt={attachment.name}
                     fill
                     className="object-cover"
                     sizes="96px"
                   />
                 ) : (
                   <div className="flex items-center justify-center h-full p-2">
-                    <span className="text-xs truncate">
-                      {attachment.name || 'File'}
-                      {attachment.contentType && 
-                        <span className="block text-muted-foreground">
-                          {attachment.contentType.split('/')[1].toUpperCase()}
-                        </span>
-                      }
-                    </span>
+                    <span className="text-xs truncate">{attachment.name}</span>
                   </div>
                 )}
               </div>
@@ -582,13 +559,9 @@ export function MultimodalInput({
           fileInputRef.current?.click();
         }}
         variant="outline"
-        disabled={isLoading || isUploading}
+        disabled={isLoading}
       >
-        {isUploading ? (
-          <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent" />
-        ) : (
-          <PaperclipIcon size={14} />
-        )}
+        <PaperclipIcon size={14} />
       </Button>
     </div>
   );
