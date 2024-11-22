@@ -33,20 +33,29 @@ const nextConfig = {
               default-src 'self';
               script-src 'self' 'unsafe-eval' 'unsafe-inline';
               style-src 'self' 'unsafe-inline';
-              img-src 'self' blob: data:;
+              img-src 'self' blob: data: https://*.public.blob.vercel-storage.com https://avatar.vercel.sh https://avatars.githubusercontent.com;
               font-src 'self';
               connect-src 'self' 
                 https://*.supabase.co
                 https://explorer-api.walletconnect.com
+                https://verify.walletconnect.com
+                https://verify.walletconnect.org
                 https://pulse.walletconnect.org
                 wss://*.supabase.co
+                wss://*.walletconnect.org
+                wss://*.walletconnect.com
                 https://*.supabase.co/auth/v1/user;
-              frame-src 'self';
+              frame-src 'self' 
+                https://verify.walletconnect.com 
+                https://verify.walletconnect.org;
+              frame-ancestors 'self' 
+                https://*.chainable.finance 
+                https://chainable.finance;
             `.replace(/\s{2,}/g, ' ').trim()
           },
           {
             key: 'X-Frame-Options',
-            value: 'DENY'
+            value: 'SAMEORIGIN'
           },
           {
             key: 'X-Content-Type-Options',
