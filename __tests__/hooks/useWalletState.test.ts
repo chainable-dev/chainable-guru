@@ -1,37 +1,36 @@
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import { useWalletState } from '@/hooks/useWalletState'
 import { useAccount, useBalance, useChainId, useWalletClient } from 'wagmi'
 
-// Mock wagmi hooks
-jest.mock('wagmi', () => ({
-  useAccount: jest.fn(),
-  useBalance: jest.fn(),
-  useChainId: jest.fn(),
-  useWalletClient: jest.fn()
+vi.mock('wagmi', () => ({
+  useAccount: vi.fn(),
+  useBalance: vi.fn(),
+  useChainId: vi.fn(),
+  useWalletClient: vi.fn()
 }))
 
 describe('useWalletState', () => {
   beforeEach(() => {
-    // Reset all mocks before each test
-    jest.clearAllMocks()
+    vi.clearAllMocks()
   })
 
-  it('should return correct wallet state when connected to Base Mainnet', () => {
-    // Mock hook returns
-    ;(useAccount as jest.Mock).mockReturnValue({
+  it('should return correct state for Base Mainnet', () => {
+    vi.mocked(useAccount).mockReturnValue({
       address: '0x123' as `0x${string}`,
       isConnected: true
-    })
-    ;(useChainId as jest.Mock).mockReturnValue(8453) // Base Mainnet
-    ;(useWalletClient as jest.Mock).mockReturnValue({ data: {} })
-    ;(useBalance as jest.Mock).mockReturnValue({
+    } as any)
+    
+    vi.mocked(useChainId).mockReturnValue(8453) // Base Mainnet
+    vi.mocked(useWalletClient).mockReturnValue({ data: {} } as any)
+    vi.mocked(useBalance).mockReturnValue({
       data: {
         formatted: '1.5',
         symbol: 'ETH'
       },
       isLoading: false,
       isError: false
-    })
+    } as any)
 
     const { result } = renderHook(() => useWalletState())
 
@@ -52,21 +51,22 @@ describe('useWalletState', () => {
     })
   })
 
-  it('should return correct wallet state when connected to Base Sepolia', () => {
-    ;(useAccount as jest.Mock).mockReturnValue({
+  it('should return correct state for Base Sepolia', () => {
+    vi.mocked(useAccount).mockReturnValue({
       address: '0x456' as `0x${string}`,
       isConnected: true
-    })
-    ;(useChainId as jest.Mock).mockReturnValue(84532) // Base Sepolia
-    ;(useWalletClient as jest.Mock).mockReturnValue({ data: {} })
-    ;(useBalance as jest.Mock).mockReturnValue({
+    } as any)
+    
+    vi.mocked(useChainId).mockReturnValue(84532) // Base Sepolia
+    vi.mocked(useWalletClient).mockReturnValue({ data: {} } as any)
+    vi.mocked(useBalance).mockReturnValue({
       data: {
         formatted: '0.5',
         symbol: 'ETH'
       },
       isLoading: false,
       isError: false
-    })
+    } as any)
 
     const { result } = renderHook(() => useWalletState())
 
@@ -88,17 +88,18 @@ describe('useWalletState', () => {
   })
 
   it('should handle disconnected state', () => {
-    ;(useAccount as jest.Mock).mockReturnValue({
+    vi.mocked(useAccount).mockReturnValue({
       address: undefined,
       isConnected: false
-    })
-    ;(useChainId as jest.Mock).mockReturnValue(1) // Wrong network
-    ;(useWalletClient as jest.Mock).mockReturnValue({ data: null })
-    ;(useBalance as jest.Mock).mockReturnValue({
+    } as any)
+    
+    vi.mocked(useChainId).mockReturnValue(1) // Wrong network
+    vi.mocked(useWalletClient).mockReturnValue({ data: null } as any)
+    vi.mocked(useBalance).mockReturnValue({
       data: undefined,
       isLoading: false,
       isError: false
-    })
+    } as any)
 
     const { result } = renderHook(() => useWalletState())
 
