@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +13,7 @@ import { signIn } from '@/db/auth';
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const router = useRouter();
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -24,13 +26,24 @@ export default function LoginPage() {
       const password = formData.get('password') as string;
 
       await signIn(email, password);
+      setIsTransitioning(true);
       router.push('/');
       router.refresh();
     } catch (error: any) {
       toast.error(error.message);
-    } finally {
       setIsLoading(false);
     }
+  }
+
+  if (isTransitioning) {
+    return (
+      <div className="fixed inset-0 flex items-center justify-center bg-background">
+        <div className="space-y-4 text-center">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <p className="text-sm text-muted-foreground">Redirecting...</p>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -51,14 +64,28 @@ export default function LoginPage() {
               placeholder="m@example.com"
               required
               type="email"
+              disabled={isLoading}
             />
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input id="password" name="password" required type="password" />
+            <Input 
+              id="password" 
+              name="password" 
+              required 
+              type="password"
+              disabled={isLoading}
+            />
           </div>
           <Button className="w-full" disabled={isLoading}>
-            {isLoading ? 'Loading...' : 'Login'}
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              'Sign in'
+            )}
           </Button>
         </form>
         <div className="text-center text-sm">
