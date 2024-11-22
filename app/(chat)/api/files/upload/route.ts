@@ -1,5 +1,6 @@
 import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 
 import { createClient } from '@/lib/supabase/server';
 import { generateUUID } from '@/lib/utils';
@@ -15,7 +16,7 @@ export async function POST(req: Request): Promise<NextResponse> {
       return NextResponse.json(
         { error: 'No file provided' },
         { status: 400 }
-      );z
+      );
     }
 
     // Get authenticated user - fix the client creation
