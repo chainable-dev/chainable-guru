@@ -186,46 +186,55 @@ const tools = {
       let draftText: string = '';
       const data = new StreamData();
 
-      data.append({ type: 'id', content: id });
-      data.append({ type: 'title', content: params.title });
-      data.append({ type: 'clear', content: '' });
+      try {
+        data.append({ type: 'id', content: id });
+        data.append({ type: 'title', content: params.title });
+        data.append({ type: 'clear', content: '' });
 
-      const { fullStream } = await streamText({
-        model: customModel(params.modelId),
-        system: 'Write about the given topic. Markdown is supported. Use headings wherever appropriate.',
-        prompt: params.title,
-      });
+        const { fullStream } = await streamText({
+          model: customModel(params.modelId),
+          system: 'Write about the given topic. Markdown is supported. Use headings wherever appropriate.',
+          prompt: params.title,
+        });
 
-      for await (const delta of fullStream) {
-        const { type } = delta;
+        for await (const delta of fullStream) {
+          if (delta.type === 'text-delta') {
+            draftText += delta.textDelta;
+            data.append({
+              type: 'text-delta',
+              content: delta.textDelta,
+            });
+          }
+        }
 
-        if (type === 'text-delta') {
-          draftText += delta.textDelta;
-          // Stream content updates in real-time
-          data.append({
-            type: 'text-delta',
-            content: delta.textDelta,
+        const currentUser = await getUser();
+        if (currentUser?.id) {
+          await saveDocument({
+            id,
+            title: params.title,
+            content: draftText,
+            userId: currentUser.id,
           });
         }
-      }
 
-      data.append({ type: 'finish', content: '' });
+        data.append({ type: 'finish', content: '' });
+        data.close();
 
-      const currentUser = await getUser();
-      if (currentUser?.id) {
-        await saveDocument({
+        return {
           id,
           title: params.title,
-          content: draftText,
-          userId: currentUser.id,
-        });
-      }
+          content: `A document was created and is now visible to the user.`,
+        };
 
-      return {
-        id,
-        title: params.title,
-        content: `A document was created and is now visible to the user.`,
-      };
+      } catch (error) {
+        console.error('Document creation error:', error);
+        data.append({ 
+          type: 'error', 
+          content: 'Failed to create document' 
+        });
+        data.close();
+        throw error;
+      }
     },
   },
   updateDocument: {
@@ -390,79 +399,52 @@ const tools = {
           };
         }
 
-        // Validate supported network
-        let networkName: string;
-        switch (chainId) {
-          case 8453:
-            networkName = 'Base Mainnet';
-            break;
-          case 84532:
-            networkName = 'Base Sepolia';
-            break;
-          default:
-            return {
-              type: 'tool-result',
-              result: {
-                error: `Unsupported chain ID: ${chainId}`,
-                details: 'Please connect to Base Mainnet or Base Sepolia.'
-              }
-            };
-        }
-
         try {
-          // Use wagmi's useBalance hook for ETH balance
-          const { data: ethBalance } = await useBalance({
-            address,
-            chainId,
-            token: undefined, // for native ETH
-            unit: 'ether'
-          });
+          // Get portfolio value using Debank API - chain agnostic
+          const DEBANK_API_KEY = process.env.DEBANK_API_KEY;
+          const response = await fetch(
+            `https://pro-openapi.debank.com/v1/user/total_balance?id=${address}`,
+            {
+              headers: {
+                'Accept': 'application/json',
+                'AccessKey': DEBANK_API_KEY as string
+              }
+            }
+          );
 
-          // Use wagmi's useBalance hook for USDC balance
-          const usdcAddress = chainId === 8453
-            ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-            : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+          if (!response.ok) {
+            throw new Error('Failed to fetch portfolio data');
+          }
 
-          const { data: usdcBalance } = await useBalance({
-            address,
-            chainId,
-            token: usdcAddress,
-            unit: 'ether'
-          });
+          const data = await response.json();
 
           return {
             type: 'tool-result',
             result: {
               address,
-              network: networkName,
-              chainId,
-              balances: {
-                eth: ethBalance?.formatted || '0',
-                usdc: usdcBalance?.formatted || '0'
-              },
-              timestamp: new Date().toISOString()
+              portfolio: {
+                totalUsdValue: data.total_usd_value,
+                lastUpdated: new Date().toISOString()
+              }
             }
           };
 
-        } catch (balanceError) {
-          console.error('Balance fetch error:', balanceError);
+        } catch (error) {
+          console.error('Portfolio fetch error:', error);
           return {
-            type: 'tool-result',
+            type: 'tool-result', 
             result: {
-              error: 'Failed to fetch balances',
-              details: 'Could not retrieve wallet balances',
-              chainId,
-              network: networkName
+              error: 'Failed to fetch portfolio value',
+              details: error instanceof Error ? error.message : 'Unknown error'
             }
           };
         }
-
       } catch (error) {
-        console.error('Error in wallet balance check:', error);
+        console.error('Wallet balance error:', error);
         return {
           type: 'tool-result',
           result: {
-            error: 'Failed to check wallet balance',
+            error: 'Failed to get wallet balance',
             details: error instanceof Error ? error.message : 'Unknown error'
           }
         };
@@ -630,41 +612,42 @@ export async function POST(request: Request) {
           },
         },
         onFinish: async ({ responseMessages }) => {
-          if (user && user.id) {
-            try {
+          try {
+            if (user && user.id) {
               const responseMessagesWithoutIncompleteToolCalls =
-                  sanitizeResponseMessages(responseMessages);
+                sanitizeResponseMessages(responseMessages);
 
               await saveMessages({
                 chatId: id,
                 messages: responseMessagesWithoutIncompleteToolCalls.map(
-                    (message) => {
-                      const messageId = generateUUID();
-                      if (message.role === 'assistant') {
-                        streamingData.appendMessageAnnotation({
-                          messageIdFromServer: messageId,
-                        });
-                      }
-                      return {
-                        id: messageId,
-                        chat_id: id,
-                        role: message.role as MessageRole,
-                        content: formatMessageContent(message),
-                        created_at: new Date().toISOString(),
-                      };
-                    }
+                  (message) => ({
+                    id: generateUUID(),
+                    chat_id: id,
+                    role: message.role as MessageRole,
+                    content: formatMessageContent(message),
+                    created_at: new Date().toISOString(),
+                  })
                 ),
               });
-            } catch (error) {
-              console.error('Failed to save chat:', error);
             }
+          } catch (error) {
+            console.error('Failed to save messages:', error);
+            streamingData.append({
+              type: 'error',
+              content: 'Failed to save messages'
+            });
+          } finally {
+            streamingData.close();
           }
+        },
+        onError: (error) => {
+          console.error('Stream error:', error);
+          streamingData.append({
+            type: 'error',
+            content: 'An error occurred during streaming'
+          });
           streamingData.close();
-        },
-        experimental_telemetry: {
-          isEnabled: true,
-          functionId: 'stream-text',
-        },
+        }
       });
 
       return result.toDataStreamResponse({
@@ -673,9 +656,14 @@ export async function POST(request: Request) {
 
     } catch (error) {
       console.error('Error in chat route:', error);
+      streamingData.append({
+        type: 'error',
+        content: 'Internal server error'
+      });
+      streamingData.close();
       return new Response(
-          JSON.stringify({ error: 'Internal server error' }),
-          { status: 500 }
+        JSON.stringify({ error: 'Internal server error' }),
+        { status: 500 }
       );
     }
   } catch (error) {
