@@ -390,79 +390,52 @@ const tools = {
           };
         }
 
-        // Validate supported network
-        let networkName: string;
-        switch (chainId) {
-          case 8453:
-            networkName = 'Base Mainnet';
-            break;
-          case 84532:
-            networkName = 'Base Sepolia';
-            break;
-          default:
-            return {
-              type: 'tool-result',
-              result: {
-                error: `Unsupported chain ID: ${chainId}`,
-                details: 'Please connect to Base Mainnet or Base Sepolia.'
-              }
-            };
-        }
-
         try {
-          // Use wagmi's useBalance hook for ETH balance
-          const { data: ethBalance } = await useBalance({
-            address,
-            chainId,
-            token: undefined, // for native ETH
-            unit: 'ether'
-          });
+          // Get portfolio value using Debank API - chain agnostic
+          const DEBANK_API_KEY = process.env.DEBANK_API_KEY;
+          const response = await fetch(
+            `https://pro-openapi.debank.com/v1/user/total_balance?id=${address}`,
+            {
+              headers: {
+                'Accept': 'application/json',
+                'AccessKey': DEBANK_API_KEY as string
+              }
+            }
+          );
 
-          // Use wagmi's useBalance hook for USDC balance
-          const usdcAddress = chainId === 8453
-            ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-            : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+          if (!response.ok) {
+            throw new Error('Failed to fetch portfolio data');
+          }
 
-          const { data: usdcBalance } = await useBalance({
-            address,
-            chainId,
-            token: usdcAddress,
-            unit: 'ether'
-          });
+          const data = await response.json();
 
           return {
             type: 'tool-result',
             result: {
               address,
-              network: networkName,
-              chainId,
-              balances: {
-                eth: ethBalance?.formatted || '0',
-                usdc: usdcBalance?.formatted || '0'
-              },
-              timestamp: new Date().toISOString()
+              portfolio: {
+                totalUsdValue: data.total_usd_value,
+                lastUpdated: new Date().toISOString()
+              }
             }
           };
 
-        } catch (balanceError) {
-          console.error('Balance fetch error:', balanceError);
+        } catch (error) {
+          console.error('Portfolio fetch error:', error);
           return {
-            type: 'tool-result',
+            type: 'tool-result', 
             result: {
-              error: 'Failed to fetch balances',
-              details: 'Could not retrieve wallet balances',
-              chainId,
-              network: networkName
+              error: 'Failed to fetch portfolio value',
+              details: error instanceof Error ? error.message : 'Unknown error'
             }
           };
         }
-
       } catch (error) {
-        console.error('Error in wallet balance check:', error);
+        console.error('Wallet balance error:', error);
         return {
           type: 'tool-result',
           result: {
-            error: 'Failed to check wallet balance',
+            error: 'Failed to get wallet balance',
             details: error instanceof Error ? error.message : 'Unknown error'
           }
         };

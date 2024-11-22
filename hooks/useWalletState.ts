@@ -1,17 +1,43 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { useAccount, useBalance, useChainId, useWalletClient } from 'wagmi';
+import { useAccount, useChainId, useWalletClient, usePublicClient } from 'wagmi';
+import { formatEther } from 'viem';
 
 export function useWalletState() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { data: walletClient } = useWalletClient();
-  
-  const { data: balanceData, isError: isBalanceError } = useBalance({
-    address,
-    chainId,
-    watch: true
-  });
+  const publicClient = usePublicClient();
+  const [balance, setBalance] = useState<{
+    formatted: string;
+    symbol: string;
+    value: bigint;
+  }>();
+
+  // Fetch balance manually
+  useEffect(() => {
+    async function getBalance() {
+      if (!address || !publicClient) return;
+      
+      try {
+        const value = await publicClient.getBalance({ address });
+        setBalance({
+          formatted: formatEther(value),
+          symbol: 'ETH',
+          value
+        });
+      } catch (err) {
+        console.error('Failed to fetch balance:', err);
+      }
+    }
+
+    getBalance();
+    
+    // Poll for balance updates
+    const interval = setInterval(getBalance, 4000);
+    
+    return () => clearInterval(interval);
+  }, [address, publicClient]);
 
   // Memoize network info
   const networkInfo = useMemo(() => {
@@ -33,23 +59,23 @@ export function useWalletState() {
           address,
           chainId,
           network: networkInfo.name,
-          balance: balanceData?.formatted
+          balance: balance?.formatted
         });
       } else {
         toast.error('Please switch to Base Mainnet or Base Sepolia');
       }
     }
-  }, [isConnected, address, chainId, networkInfo, balanceData?.formatted]);
+  }, [isConnected, address, chainId, networkInfo, balance?.formatted]);
 
   return {
     address,
-    isConnected,
+    isConnected, 
     chainId,
     walletClient,
     networkInfo,
     isCorrectNetwork: networkInfo?.isSupported ?? false,
-    balance: balanceData?.formatted,
-    balanceSymbol: balanceData?.symbol,
-    balanceValue: balanceData?.value
+    balance: balance?.formatted,
+    balanceSymbol: balance?.symbol,
+    balanceValue: balance?.value
   };
-} 
+}
