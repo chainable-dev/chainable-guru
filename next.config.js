@@ -41,16 +41,23 @@ const nextConfig = {
                 https://verify.walletconnect.com
                 https://verify.walletconnect.org
                 https://pulse.walletconnect.org
+                https://mainnet.base.org
+                https://sepolia.base.org
+                https://goerli.base.org
+                https://*.base.org
                 wss://*.supabase.co
                 wss://*.walletconnect.org
                 wss://*.walletconnect.com
+                wss://*.base.org
                 https://*.supabase.co/auth/v1/user;
               frame-src 'self' 
                 https://verify.walletconnect.com 
-                https://verify.walletconnect.org;
+                https://verify.walletconnect.org
+                https://*.base.org;
               frame-ancestors 'self' 
                 https://*.chainable.finance 
                 https://chainable.finance;
+              worker-src 'self' blob:;
             `.replace(/\s{2,}/g, ' ').trim()
           },
           {
