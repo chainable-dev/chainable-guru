@@ -3,7 +3,7 @@
 import { useChat } from "ai/react";
 import type { Message, CreateMessage, ChatRequestOptions } from "ai";
 import { AnimatePresence } from "framer-motion";
-import { KeyboardIcon } from "lucide-react";
+import { KeyboardIcon, WalletIcon } from "lucide-react";
 import { useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { useWindowSize } from "usehooks-ts";
