@@ -22,18 +22,20 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
             disclaimer: Disclaimer,
           }}
           theme={theme === 'dark' ? darkTheme({
-            accentColor: 'hsl(var(--primary))',
-            accentColorForeground: 'hsl(var(--primary-foreground))',
-            borderRadius: 'small',
+            accentColor: '#0066FF', // Primary blue
+            accentColorForeground: '#FFFFFF',
             fontStack: 'system',
             overlayBlur: 'small',
+            borderRadius: 'medium',
           }) : lightTheme({
-            accentColor: 'hsl(var(--primary))',
-            accentColorForeground: 'hsl(var(--primary-foreground))',
-            borderRadius: 'small',
+            accentColor: '#0066FF', // Primary blue 
+            accentColorForeground: '#FFFFFF',
             fontStack: 'system',
             overlayBlur: 'small',
-          })}
+            borderRadius: 'medium',
+          })
+
+        }
           modalSize="compact"
           coolMode
           showRecentTransactions={true}
