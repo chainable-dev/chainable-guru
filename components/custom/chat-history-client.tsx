@@ -1,12 +1,11 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { memo } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import useSWR from 'swr';
-
+import { ChatService } from '@/lib/services/chat-service';
 import { useSidebar } from '@/components/ui/sidebar';
 import { Chat } from '@/lib/supabase/types';
-
 import { GroupedChatList } from './chat-history-grouped-list';
 
 export function ChatHistoryClient({
@@ -18,12 +17,25 @@ export function ChatHistoryClient({
 }) {
   const { id } = useParams();
   const { setOpenMobile } = useSidebar();
+  const [chatService, setChatService] = useState<ChatService | null>(null);
 
-  // Use SWR with initial data from server
-  const { data: chats } = useSWR<Chat[]>(['chats', userId], null, {
-    fallbackData: initialChats,
-    revalidateOnFocus: false,
-  });
+  useEffect(() => {
+    setChatService(ChatService.getInstance());
+  }, []);
+
+  const fetchChats = useCallback(async () => {
+    if (!chatService) return initialChats;
+    return chatService.getChats(userId);
+  }, [chatService, userId, initialChats]);
+
+  const { data: chats } = useSWR<Chat[]>(
+    chatService ? ['chats', userId] : null,
+    fetchChats,
+    {
+      fallbackData: initialChats,
+      revalidateOnFocus: false,
+    }
+  );
 
   if (!chats?.length) {
     return (
@@ -42,7 +54,6 @@ export function ChatHistoryClient({
   );
 }
 
-// Memoized chat list component
 const ChatList = memo(function ChatList({
   chats,
   currentChatId,
