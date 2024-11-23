@@ -1,19 +1,35 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
-  <!-- Outer Circle -->
-  <circle cx="50" cy="50" r="48" stroke="#4CAF50" stroke-width="4" fill="none" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" fill="none" width="400" height="400">
+  <!-- Background Glow -->
+  <defs>
+    <radialGradient id="brain-glow" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#00FFC6" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#008080" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+  <circle cx="200" cy="200" r="180" fill="url(#brain-glow)" opacity="0.6" />
 
-  <!-- Inner Neural Lines -->
-  <path d="M30 50 C40 30, 60 30, 70 50" stroke="#4CAF50" stroke-width="2" fill="none" />
-  <path d="M30 50 C40 70, 60 70, 70 50" stroke="#4CAF50" stroke-width="2" fill="none" />
+  <!-- Brain Structure -->
+  <path d="M200 100 Q150 120, 120 200 Q150 280, 200 300 Q250 280, 280 200 Q250 120, 200 100" fill="none" stroke="#00FFC6" stroke-width="10" />
+  
+  <!-- Circuitry -->
+  <path d="M200 100 V50" stroke="#FFD700" stroke-width="6" />
+  <circle cx="200" cy="50" r="6" fill="#FFD700" />
+  <path d="M120 200 H70" stroke="#FFD700" stroke-width="6" />
+  <circle cx="70" cy="200" r="6" fill="#FFD700" />
+  <path d="M280 200 H330" stroke="#FFD700" stroke-width="6" />
+  <circle cx="330" cy="200" r="6" fill="#FFD700" />
+  <path d="M200 300 V350" stroke="#FFD700" stroke-width="6" />
+  <circle cx="200" cy="350" r="6" fill="#FFD700" />
 
-  <!-- Connecting Dots -->
-  <circle cx="30" cy="50" r="3" fill="#4CAF50" />
-  <circle cx="50" cy="30" r="3" fill="#4CAF50" />
-  <circle cx="50" cy="70" r="3" fill="#4CAF50" />
-  <circle cx="70" cy="50" r="3" fill="#4CAF50" />
+  <!-- Neural Paths -->
+  <path d="M200 120 Q180 150, 150 180" stroke="#00FFC6" stroke-width="4" />
+  <path d="M200 120 Q220 150, 250 180" stroke="#00FFC6" stroke-width="4" />
+  <path d="M150 220 Q170 240, 200 260" stroke="#00FFC6" stroke-width="4" />
+  <path d="M250 220 Q230 240, 200 260" stroke="#00FFC6" stroke-width="4" />
+  <circle cx="150" cy="180" r="6" fill="#00FFC6" />
+  <circle cx="250" cy="180" r="6" fill="#00FFC6" />
+  <circle cx="200" cy="260" r="6" fill="#00FFC6" />
 
-  <!-- Elron Name -->
-  <text x="50" y="90" font-size="10" fill="#4CAF50" text-anchor="middle" font-family="Arial, sans-serif">
-    Elron
-  </text>
+  <!-- Outer Border -->
+  <path d="M200 100 Q150 120, 120 200 Q150 280, 200 300 Q250 280, 280 200 Q250 120, 200 100" fill="none" stroke="#00FFC6" stroke-width="3" />
 </svg>

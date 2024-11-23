@@ -39,7 +39,7 @@ export const Overview = () => {
         <div className="flex items-center space-x-4">
           <div className="relative w-12 h-12">
             <Image
-              src="/logos/elron2.svg"
+              src="/logos/elron.svg"
               alt="Elron Bot"
               fill
               className="rounded-full object-cover"
@@ -105,7 +105,7 @@ export const Overview = () => {
           className="relative w-[120px] h-[30px]"
         >
           <Image 
-            src="/logos/favicon-dark.ico"
+            src="/logos/chainable-logo.png"
             alt="Chainable Logo"
             fill
             className="opacity-80 dark:opacity-100 object-contain hover:opacity-100 transition-opacity"
