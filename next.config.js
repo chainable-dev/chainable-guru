@@ -24,17 +24,8 @@ const nextConfig = {
     deviceSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     imageSizes: [16, 32, 48, 64, 96, 128, 256],
   },
-  webpack(config) {
-    // SVG Configuration
-    config.module.rules.push({
-      test: /\.svg$/,
-      use: ['@svgr/webpack'],
-    });
-    return config;
-  },
   experimental: {
-    optimizeCss: true,
-    optimizeImages: true,
+    optimizeCss: true
   }
 }
 
