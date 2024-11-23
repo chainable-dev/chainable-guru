@@ -35,8 +35,7 @@ import { kv } from "@vercel/kv";
 
 import { useAccount, useBalance, useChainId } from "wagmi";
 
-import { generateTitleFromUserMessage } from "@/actions";
-
+import { generateTitleFromUserMessage } from "../../actions";
 export const maxDuration = 60;
 
 interface WeatherParams {
