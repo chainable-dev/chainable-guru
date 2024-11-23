@@ -567,11 +567,11 @@ export function MultimodalInput({
 						<div key={attachment.url} className="relative group">
 							<PreviewAttachment
 								attachment={attachment}
-								onRemove={() => {
+								onRemove={() =>
 									setAttachments((current) =>
-										current.filter((a) => a.url !== attachment.url),
-									);
-								}}
+										current.filter((a) => a.url !== attachment.url)
+									)
+								}
 							/>
 						</div>
 					))}
