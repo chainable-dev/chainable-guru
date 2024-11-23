@@ -84,7 +84,18 @@ const tools: Record<string, CoreTool> = FEATURES.WEB_SEARCH
     }
   : baseTools;
 
+// Handle favicon requests
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  if (url.pathname === '/favicon.ico') {
+    return new Response(null, { status: 204 });
+  }
+  return new Response(null, { status: 404 });
+}
+
 export async function POST(request: Request) {
+  const streamingData = new StreamData();
+  
   try {
     const {
       id,
@@ -92,10 +103,6 @@ export async function POST(request: Request) {
       modelId,
     }: { id: string; messages: Message[]; modelId: string } = await request.json();
 
-    // Create streaming data instance
-    const streamingData = new StreamData();
-
-    // Process messages for context
     const messagesWithContext = messages.map(message => ({
       ...message,
     }));
@@ -105,18 +112,43 @@ export async function POST(request: Request) {
       messages: messagesWithContext,
       system: systemPrompt,
       maxSteps: 5,
-      experimental_activeTools: allTools, // Now using mutable string array
+      experimental_activeTools: allTools,
       tools,
     });
 
-    return result.toDataStreamResponse({
+    const response = result.toDataStreamResponse({
       data: streamingData,
     });
+
+    // Ensure stream is properly closed
+    response.body?.on('end', () => {
+      streamingData.close();
+    });
+
+    // Handle unexpected errors
+    response.body?.on('error', (error) => {
+      console.error('Stream error:', error);
+      streamingData.close();
+    });
+
+    return response;
+
   } catch (error) {
     console.error('Error in chat route:', error);
+    // Make sure to close the stream even if there's an error
+    streamingData.close();
+    
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }), 
-      { status: 500 }
+      JSON.stringify({ 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }), 
+      { 
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
     );
   }
 }
