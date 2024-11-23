@@ -20,6 +20,7 @@ import { Textarea } from "../ui/textarea";
 
 import type { Attachment } from "@/types/attachments";
 import type { Message, ChatRequestOptions } from "ai";
+import type { MultimodalInputProps } from "@/types/chat";
 
 const SUGGESTED_ACTIONS = [
 	{
@@ -51,32 +52,18 @@ interface StagedFile {
 	status: "staging" | "uploading" | "complete" | "error";
 }
 
-interface MultimodalInputProps {
-	input: string;
-	setInput: (value: string) => void;
-	isLoading: boolean;
-	stop: () => void;
-	attachments: Attachment[];
-	setAttachments: React.Dispatch<React.SetStateAction<Attachment[]>>;
-	messages: Message[];
-	append: (
-		message: Message,
-		options?: ChatRequestOptions,
-	) => Promise<string | null>;
-	chatId: string;
-	className?: string;
-}
-
 export function MultimodalInput({
+	chatId,
 	input,
 	setInput,
+	handleSubmit: formSubmit,
 	isLoading,
 	stop,
 	attachments,
 	setAttachments,
 	messages,
+	setMessages,
 	append,
-	chatId,
 	className,
 }: MultimodalInputProps) {
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -120,8 +107,7 @@ export function MultimodalInput({
 		}
 	}, [input, append, setInput]);
 
-	// Update message submission logic to include id
-	const handleSubmit = useCallback(async () => {
+	const onSubmit = useCallback(async () => {
 		if (!input && attachments.length === 0) return;
 
 		const isWalletQuery = input.toLowerCase().includes("wallet");
@@ -140,11 +126,10 @@ export function MultimodalInput({
 
 			await append(
 				{
-					id: crypto.randomUUID(),
 					role: "user",
 					content: input,
 				},
-				{ experimental_attachments: attachments },
+				{ experimental_attachments: attachments }
 			);
 
 			setInput("");
@@ -153,14 +138,7 @@ export function MultimodalInput({
 		} catch (error) {
 			toast.error("Failed to send message");
 		}
-	}, [
-		input,
-		attachments,
-		append,
-		isConnected,
-		isCorrectNetwork,
-		handleWebSearch,
-	]);
+	}, [input, attachments, append, isConnected, isCorrectNetwork, handleWebSearch]);
 
 	return (
 		<div className="relative w-full flex flex-col gap-4">
@@ -199,30 +177,17 @@ export function MultimodalInput({
 					value={input}
 					onChange={(e) => setInput(e.target.value)}
 					placeholder="Send a message..."
-					className={cx(
-						"min-h-[24px] max-h-[75vh] pr-24 resize-none rounded-xl",
-						className,
-					)}
+					className={cx("min-h-[24px] max-h-[75vh] pr-24 resize-none rounded-xl", className)}
 					onKeyDown={(e) => {
 						if (e.key === "Enter" && !e.shiftKey) {
 							e.preventDefault();
-							isLoading ? toast.error("Please wait...") : handleSubmit();
+							isLoading ? toast.error("Please wait...") : onSubmit();
 						}
 					}}
 				/>
 
 				{/* Action Buttons */}
 				<div className="absolute bottom-2 right-2 flex items-center gap-2">
-					<Button
-						size="icon"
-						variant="outline"
-						onClick={handleWebSearch}
-						disabled={isLoading || !input}
-						className="size-8 rounded-full"
-					>
-						<GlobeIcon size={16} />
-					</Button>
-
 					<Button
 						size="icon"
 						variant="outline"
@@ -236,11 +201,15 @@ export function MultimodalInput({
 					<Button
 						size="icon"
 						variant={input ? "default" : "outline"}
-						onClick={() => (isLoading ? stop() : handleSubmit())}
+						onClick={() => isLoading ? stop() : onSubmit()}
 						disabled={!input && !attachments.length}
 						className="size-8 rounded-full"
 					>
-						{isLoading ? <StopIcon size={16} /> : <ArrowUpIcon size={16} />}
+						{isLoading ? (
+							<StopIcon size={16} />
+						) : (
+							<ArrowUpIcon size={16} />
+						)}
 					</Button>
 				</div>
 			</div>

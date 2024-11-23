@@ -123,6 +123,14 @@ const useDocumentContent = (
 	}, [documents, index]);
 };
 
+interface BlockProps extends Omit<MultimodalInputProps, 'attachments' | 'setAttachments'> {
+	block: UIBlock;
+	setBlock: React.Dispatch<React.SetStateAction<UIBlock>>;
+	votes?: Array<Vote>;
+	attachments: AIAttachment[];
+	setAttachments: React.Dispatch<React.SetStateAction<AIAttachment[]>>;
+}
+
 export function Block({
 	chatId,
 	input,
@@ -138,30 +146,7 @@ export function Block({
 	messages,
 	setMessages,
 	votes,
-}: {
-	chatId: string;
-	input: string;
-	setInput: (input: string) => void;
-	isLoading: boolean;
-	stop: () => void;
-	attachments: Array<Attachment>;
-	setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
-	block: UIBlock;
-	setBlock: Dispatch<SetStateAction<UIBlock>>;
-	messages: Array<Message>;
-	setMessages: Dispatch<SetStateAction<Array<Message>>>;
-	votes: Array<Vote> | undefined;
-	append: (
-		message: Message | CreateMessage,
-		chatRequestOptions?: ChatRequestOptions,
-	) => Promise<string | null | undefined>;
-	handleSubmit: (
-		event?: {
-			preventDefault?: () => void;
-		},
-		chatRequestOptions?: ChatRequestOptions,
-	) => void;
-}) {
+}: BlockProps) {
 	const [messagesContainerRef, messagesEndRef] =
 		useScrollToBottom<HTMLDivElement>();
 
@@ -455,7 +440,7 @@ export function Block({
 							ref={messagesContainerRef}
 							className="flex flex-col gap-4 h-full items-center overflow-y-scroll px-4 pt-20"
 						>
-							{messages.map((message, index) => (
+							{messages.map((message: Message, index: number) => (
 								<PreviewMessage
 									chatId={chatId}
 									key={message.id}
