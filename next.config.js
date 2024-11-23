@@ -1,115 +1,137 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
+    domains: [
+      'avatar.vercel.sh',
+      'chainable.guru',
+      'avatars.githubusercontent.com',
+      'img.clerk.com'
+    ],
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: '**.public.blob.vercel-storage.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: '**.vercel-storage.com',
-        port: '',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: '**.supabase.co',
-        port: '',
+        hostname: 'avatar.vercel.sh',
         pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: '**.githubusercontent.com',
-        port: '',
+        hostname: 'avatars.githubusercontent.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.clerk.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.vercel.app',
+        pathname: '/**',
+      },
+      // Add blockchain-specific patterns
+      {
+        protocol: 'https',
+        hostname: '**.opensea.io',
         pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: '**.nftstorage.link',
-        port: '',
         pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'ipfs.io',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.arweave.net',
-        port: '',
-        pathname: '/**',
-      },
-      // Add common blockchain/NFT image sources
-      {
-        protocol: 'https',
-        hostname: '**.opensea.io',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.alchemyapi.io',
-        port: '',
-        pathname: '/**',
-      },
-      // Add general purpose image hosts
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.cloudfront.net',
-        port: '',
-        pathname: '/**',
-      },
-      // Add Vercel Blob specific pattern
-      {
-        protocol: 'https',
-        hostname: '**.public.blob.vercel-storage.com',
-        port: '',
-        pathname: '/**',
-      },
-      // Add Vercel Avatar pattern
-      {
-        protocol: 'https',
-        hostname: 'avatar.vercel.sh',
-        port: '',
         pathname: '/**',
       }
     ],
-    // Optional: Configure image optimization
+    // Configure local image handling
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // Optimize images
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    formats: ['image/webp'],
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
+    // Allow local logos
+    loader: 'default',
+    loaderFile: undefined,
+    path: '/_next/image',
+    disableStaticImages: false,
+    unoptimized: process.env.NODE_ENV === 'development',
   },
-  // Enable experimental features if needed
-  experimental: {
-    serverActions: true,
-  },
-  // Typescript configuration
+  // Other config
   typescript: {
-    ignoreBuildErrors: false,
+    ignoreBuildErrors: true,
   },
-  // Optional: Add headers for CORS if needed
-  async headers() {
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['localhost:3000', 'chainable.guru'],
+      bodySizeLimit: '2mb'
+    }
+  },
+  // Add webpack configuration for handling local images
+  webpack(config) {
+    config.module.rules.push({
+      test: /\.(png|jpe?g|gif|svg|webp|avif)$/i,
+      issuer: /\.[jt]sx?$/,
+      use: [
+        {
+          loader: 'url-loader',
+          options: {
+            limit: 10000,
+            name: 'static/media/[name].[hash:8].[ext]',
+            publicPath: '/_next',
+          },
+        },
+      ],
+    });
+
+    return config;
+  },
+  // Add public directory handling
+  async rewrites() {
     return [
       {
-        source: '/api/:path*',
-        headers: [
-          { key: 'Access-Control-Allow-Credentials', value: 'true' },
-          { key: 'Access-Control-Allow-Origin', value: '*' },
-          { key: 'Access-Control-Allow-Methods', value: 'GET,POST,OPTIONS' },
-          { key: 'Access-Control-Allow-Headers', value: 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version' },
-        ],
+        source: '/logos/:path*',
+        destination: '/public/logos/:path*',
       },
     ];
   },
-  // Optional: Add rewrites for API endpoints if needed
-  async rewrites() {
-    return [];
+  // Add headers for cache control
+  async headers() {
+    return [
+      {
+        source: '/favicon.ico',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
+          },
+        ],
+      },
+      {
+        source: '/icon.svg',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
+          },
+        ],
+      },
+    ]
   },
-};
+}
 
 module.exports = nextConfig; 

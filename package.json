@@ -14,7 +14,11 @@
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .next node_modules .turbo && pnpm install",
     "clean:cache": "rm -rf .next .turbo",
-    "clean:packages": "rm -rf node_modules && pnpm install"
+    "clean:packages": "rm -rf node_modules && pnpm install",
+    "generate-icons": "tsx scripts/generate-icons.ts",
+    "create-favicon": "tsx scripts/create-favicon.ts",
+    "create-text-icon": "tsx scripts/create-text-icon.ts",
+    "create-chainable-icon": "tsx scripts/create-chainable-icon.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.60",
@@ -106,6 +110,7 @@
     "postcss": "^8.4.49",
     "prettier": "^3.3.3",
     "react-error-boundary": "^4.1.2",
+    "sharp": "^0.32.6",
     "tailwindcss": "^3.4.15",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3",

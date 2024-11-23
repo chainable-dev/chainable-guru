@@ -7,24 +7,17 @@ import '../styles/dark-mode.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://chainable.guru'),
-  title: 'Elron',
-  description: 'AI-powered Web3 assistant',
+  title: 'use',
+  description: 'AI Chat Bot with Blockchain Integration',
   icons: {
     icon: [
-      { url: '/favicon.ico', sizes: '16x16 32x32 48x48', type: 'image/x-icon' },
-      { url: '/logos/chainable.png', type: 'image/png', sizes: '32x32' }
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.svg', type: 'image/svg+xml', sizes: 'any' }
+    ],
+    apple: [
+      { url: '/apple-icon.png', sizes: '180x180' }
     ],
     shortcut: '/favicon.ico',
-    apple: '/logos/chainable.png',
-  },
-  other: {
-    'msapplication-TileColor': '#000000',
-    'theme-color': '#000000',
-  },
-  manifest: '/manifest.json',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
   },
 }
 
@@ -37,6 +30,8 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-icon.png" />
       </head>
       <body className="antialiased" suppressHydrationWarning>
         <RootProvider>

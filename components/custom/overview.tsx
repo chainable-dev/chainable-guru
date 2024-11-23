@@ -39,7 +39,7 @@ export const Overview = () => {
         <div className="flex items-center space-x-4">
           <div className="relative w-12 h-12">
             <Image
-              src="/logos/elron.svg"
+              src="/logos/elron.ico"
               alt="Elron Bot"
               fill
               className="rounded-full object-cover"
