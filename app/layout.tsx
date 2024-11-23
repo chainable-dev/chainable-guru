@@ -7,8 +7,8 @@ import '../styles/dark-mode.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://chainable.guru'),
-  title: 'use',
-  description: 'AI Chat Bot with Blockchain Integration',
+  title: 'Elron - AI web3 chatbot',
+  description: 'Elron is an AI chatbot that integrates with blockchain technologies.',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
