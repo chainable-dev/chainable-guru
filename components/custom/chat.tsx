@@ -227,9 +227,7 @@ export function Chat({
 				)}
 			</AnimatePresence>
 			</React.Fragment>
-
 			<BlockStreamHandler streamingData={streamingData} setBlock={setBlock} />
-
 			<div className="fixed bottom-4 right-4 opacity-50 hover:opacity-100 transition-opacity">
 				<Tooltip>
 					<TooltipTrigger asChild>
