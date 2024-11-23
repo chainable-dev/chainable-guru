@@ -17,7 +17,8 @@
     "clean:packages": "rm -rf node_modules && pnpm install",
     "generate-icons": "tsx scripts/generate-icons.ts",
     "create-favicon": "tsx scripts/create-favicon.ts",
-    "create-text-icon": "tsx scripts/create-text-icon.ts"
+    "create-text-icon": "tsx scripts/create-text-icon.ts",
+    "create-chainable-icon": "tsx scripts/create-chainable-icon.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.60",
