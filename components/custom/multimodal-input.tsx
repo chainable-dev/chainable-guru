@@ -12,7 +12,7 @@ import {
 	PaperclipIcon,
 	StopIcon,
 	WalletIcon,
-} from "@/components/custom/icons";
+} from "lucide-react";
 import GlobeIcon from "@/components/custom/icons/GlobeIcon";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
