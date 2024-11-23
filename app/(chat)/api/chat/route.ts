@@ -743,7 +743,7 @@ export async function POST(request: Request) {
 							}),
 					},
 				},
-				onFinish: async ({ responseMessages }: { responseMessages: any }) => {
+				onFinish: async ({ responseMessages }: { responseMessages: Message[] }) => {
 					if (user && user.id) {
 						try {
 							const responseMessagesWithoutIncompleteToolCalls =
