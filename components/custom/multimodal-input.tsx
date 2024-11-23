@@ -23,6 +23,7 @@ import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
+import { ChatSkeleton } from './chat-skeleton'
 
 import type { Attachment as SupabaseAttachment } from '@/types/supabase';
 import type { Attachment, ChatRequestOptions, CreateMessage, Message } from 'ai';
@@ -117,6 +118,7 @@ export function MultimodalInput({
 
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
+  const [expectingText, setExpectingText] = useState(false);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -195,6 +197,9 @@ export function MultimodalInput({
     const isWalletQuery = input.toLowerCase().includes('wallet') ||
                          input.toLowerCase().includes('balance');
 
+    // Set expecting text based on input type
+    setExpectingText(true);
+
     if (isWalletQuery) {
       if (!isConnected) {
         toast.error('Please connect your wallet first');
@@ -241,6 +246,9 @@ export function MultimodalInput({
     } catch (error) {
       console.error('Error sending message:', error);
       toast.error('Failed to send message');
+    } finally {
+      // Reset expectingText when response is received
+      setExpectingText(false);
     }
   }, [
     input,
@@ -431,6 +439,8 @@ export function MultimodalInput({
 
   return (
     <div className="relative w-full flex flex-col gap-4">
+      {isLoading && expectingText && <ChatSkeleton />}
+      
       {messages.length === 0 &&
         attachments.length === 0 &&
         stagedFiles.length === 0 && (

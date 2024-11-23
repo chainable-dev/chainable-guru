@@ -29,6 +29,13 @@ import {
 } from '@/lib/utils';
 import { searchDuckDuckGo, searchOpenSearch } from '@/lib/search/search-utils';
 import { FEATURES } from '@/lib/features';
+import { useWalletState } from '@/hooks/useWalletState';
+import { getServerWalletState } from '@/hooks/useServerWalletState'
+import { kv } from '@vercel/kv'
+
+import { useAccount, useBalance, useChainId } from 'wagmi'
+
+
 
 import { generateTitleFromUserMessage } from '../../actions';
 
@@ -166,6 +173,25 @@ interface WalletMessageContent {
     type: string;
   }>;
 }
+
+// Add interface for wallet state
+interface WalletState {
+  address: string | null
+  isConnected: boolean
+  chainId?: number
+  networkInfo?: {
+    name: string
+    id: number
+  }
+  isCorrectNetwork: boolean
+  balances?: {
+    eth?: string
+    usdc?: string
+  }
+  lastUpdated?: string
+}
+
+const WALLET_KEY_PREFIX = 'wallet-state:'
 
 // Update the tools object to properly handle tool results
 const tools = {
@@ -387,12 +413,13 @@ const tools = {
       chainId: number;
     }) => {
       try {
-        // Validate wallet connection
-        if (!address) {
+        const walletState = await kv.get<WalletState>(`${WALLET_KEY_PREFIX}${address}`)
+        
+        if (!walletState) {
           return {
             type: 'tool-result',
             result: {
-              error: 'No wallet address provided',
+              error: 'No wallet state found',
               details: 'Please connect your wallet first'
             }
           };
@@ -434,17 +461,27 @@ const tools = {
         // Get USDC balance
         const usdcBalance = await usdcContract.balanceOf(address);
 
+        // Update wallet state with new balances
+        const updatedState = {
+          ...walletState,
+          balances: {
+            eth: ethers.formatEther(ethBalance),
+            usdc: ethers.formatUnits(usdcBalance, 6)
+          },
+          lastUpdated: new Date().toISOString()
+        }
+
+        // Save updated state
+        await kv.set(`${WALLET_KEY_PREFIX}${address}`, JSON.stringify(updatedState))
+
         return {
           type: 'tool-result',
           result: {
             address,
             network: networkName,
             chainId,
-            balances: {
-              eth: ethers.formatEther(ethBalance),
-              usdc: ethers.formatUnits(usdcBalance, 6) // USDC has 6 decimals
-            },
-            timestamp: new Date().toISOString()
+            balances: updatedState.balances,
+            timestamp: updatedState.lastUpdated
           }
         };
 
@@ -466,24 +503,37 @@ const tools = {
       address: z.string().optional().describe('The wallet address to check'),
       chainId: z.number().optional().describe('The chain ID to check')
     }),
-    execute: async ({ address, chainId }: WalletStateParams) => {
-      return {
-        type: 'tool-result',
-        result: {
-          isConnected: !!address,
-          address: address || null,
-          chainId: chainId || null,
-          network: chainId === 8453 ? 'Base Mainnet' : 
-                  chainId === 84532 ? 'Base Sepolia' : 
-                  'Unknown Network',
-          isSupported: chainId ? [8453, 84532].includes(chainId) : false,
-          supportedNetworks: [
-            { name: 'Base Mainnet', chainId: 8453 },
-            { name: 'Base Sepolia', chainId: 84532 }
-          ],
-          timestamp: new Date().toISOString()
+    execute: async ({ address }: WalletStateParams) => {
+      try {
+        const walletState = address 
+          ? await kv.get<WalletState>(`${WALLET_KEY_PREFIX}${address}`)
+          : null
+
+        return {
+          type: 'tool-result',
+          result: {
+            isConnected: !!walletState?.address,
+            address: walletState?.address || null,
+            chainId: walletState?.chainId || null,
+            network: walletState?.networkInfo?.name || 'Unknown Network',
+            isSupported: walletState?.isCorrectNetwork || false,
+            supportedNetworks: [
+              { name: 'Base Mainnet', chainId: 8453 },
+              { name: 'Base Sepolia', chainId: 84532 }
+            ],
+            timestamp: new Date().toISOString()
+          }
         }
-      };
+      } catch (error) {
+        console.error('Error checking wallet state:', error)
+        return {
+          type: 'tool-result',
+          result: {
+            error: 'Failed to check wallet state',
+            details: error instanceof Error ? error.message : 'Unknown error'
+          }
+        }
+      }
     }
   },
   ...(FEATURES.WEB_SEARCH ? {
