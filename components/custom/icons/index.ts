@@ -1,34 +1,35 @@
-// Third-party icons
-import {
-  ArrowUp,
-  Paperclip,
-  Square,
-  Wallet,
-} from "lucide-react";
+// React Icons imports
+import { 
+  IoArrowUp,
+  IoPaperclip,
+  IoStop,
+  IoClose,
+  IoCopy,
+  IoGlobe,
+  IoWallet,
+  IoSquare,
+} from "react-icons/io5";
 
-// Custom icons
-import { CrossIcon } from "./CrossIcon";
-import { CopyIcon } from "./CopyIcon";
+// Import custom icons
 import { DeltaIcon } from "./DeltaIcon";
 import { RedoIcon } from "./RedoIcon";
 import { UndoIcon } from "./UndoIcon";
-import { WalletIcon } from "./WalletIcon";
-import GlobeIcon from "./GlobeIcon";
 
-// Re-export all icons
-export {
-  // Lucide icons
-  ArrowUp,
-  Paperclip,
-  Square,
-  Wallet,
-  
-  // Custom icons
-  CrossIcon,
-  CopyIcon,
-  DeltaIcon,
-  GlobeIcon,
-  RedoIcon,
-  UndoIcon,
-  WalletIcon,
+// Re-export with consistent naming
+export const ArrowUp = IoArrowUp;
+export const Paperclip = IoPaperclip;
+export const Stop = IoStop;
+export const Cross = IoClose;
+export const Copy = IoCopy;
+export const Globe = IoGlobe;
+export const Wallet = IoWallet;
+export const Square = IoSquare;
+
+// Export custom icons
+export { DeltaIcon, RedoIcon, UndoIcon };
+
+// Export icon types
+export type IconProps = {
+  size?: number;
+  className?: string;
 }; 
