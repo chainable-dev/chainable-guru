@@ -10,7 +10,6 @@ import { CopyIcon, ThumbDownIcon, ThumbUpIcon } from "./icons";
 import { Button } from "../ui/button";
 import {
 	Tooltip,
-	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "../ui/tooltip";

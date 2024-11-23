@@ -17,7 +17,7 @@ import {
 	SidebarMenu,
 	useSidebar,
 } from "@/components/ui/sidebar";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function AppSidebar({ user }: { user: User | null }) {
 	const router = useRouter();

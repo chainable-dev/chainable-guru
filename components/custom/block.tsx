@@ -32,7 +32,7 @@ import { Toolbar } from "./toolbar";
 import { useScrollToBottom } from "./use-scroll-to-bottom";
 import { VersionFooter } from "./version-footer";
 import { Button } from "../ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { Tooltip, TooltipTrigger } from "../ui/tooltip";
 
 import type { Document, Suggestion, Vote } from "@/lib/supabase/types";
 import type { MultimodalInputProps } from "@/types/chat";

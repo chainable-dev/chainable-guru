@@ -13,7 +13,6 @@ import { useOnClickOutside } from "usehooks-ts";
 
 import {
 	Tooltip,
-	TooltipContent,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
