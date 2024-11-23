@@ -19,13 +19,16 @@ const nextConfig = {
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    formats: ['image/avif', 'image/webp'],
-    minimumCacheTTL: 60,
-    deviceSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256],
   },
   experimental: {
     optimizeCss: true
+  },
+  webpack(config) {
+    config.module.rules.push({
+      test: /\.svg$/,
+      use: ['@svgr/webpack']
+    });
+    return config;
   }
 }
 

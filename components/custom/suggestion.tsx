@@ -1,10 +1,12 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useWindowSize } from 'usehooks-ts';
+import Image from 'next/image'
 
 import { UISuggestion } from '@/lib/editor/suggestions';
+import { quotes } from '@/lib/constants/quotes'
 
 import { CrossIcon, MessageIcon } from './icons';
 import { Button } from '../ui/button';
@@ -68,3 +70,53 @@ export const Suggestion = ({
     </AnimatePresence>
   );
 };
+
+export function SuggestionOverview() {
+  const [currentQuote, setCurrentQuote] = useState('')
+
+  useEffect(() => {
+    // Update quote every 5 hours
+    const updateQuote = () => {
+      const randomIndex = Math.floor(Math.random() * quotes.length)
+      setCurrentQuote(quotes[randomIndex])
+    }
+    
+    updateQuote() // Initial quote
+    const interval = setInterval(updateQuote, 5 * 60 * 60 * 1000)
+    
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="flex flex-col items-center space-y-6 p-6 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-lg border">
+      <div className="flex items-center space-x-4">
+        <div className="relative w-12 h-12">
+          <Image
+            src="/images/elron.ico"
+            alt="Elron Bot"
+            fill
+            className="rounded-full object-cover"
+            priority
+          />
+        </div>
+        <div className="flex flex-col">
+          <h2 className="text-2xl font-bold tracking-tight">Elron</h2>
+          <p className="text-sm text-muted-foreground">Powered by chainable.co</p>
+        </div>
+      </div>
+      
+      <div className="w-full max-w-[500px] text-center">
+        <p className="text-sm italic text-muted-foreground">&ldquo;{currentQuote}&rdquo;</p>
+      </div>
+
+      <div className="relative w-[120px] h-[30px]">
+        <Image 
+          src="/images/logo-darkmode.png"
+          alt="Chainable Logo"
+          fill
+          className="opacity-80 dark:opacity-100 object-contain"
+        />
+      </div>
+    </div>
+  )
+}
