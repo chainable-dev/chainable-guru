@@ -1,21 +1,25 @@
 "use client";
 
 import cx from "classnames";
-import React, { useRef, useCallback } from "react";
+import React, { useRef, useCallback, useState } from "react";
 import { toast } from "sonner";
 import { useLocalStorage } from "usehooks-ts";
 import { useAccount } from 'wagmi';
+import { 
+	ArrowUp,
+	Paperclip,
+	Square,
+	Wallet,
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { messageAnimationVariants } from "@/lib/animation-variants";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 import { useWalletState } from "@/hooks/useWalletState";
-import {
-	ArrowUpIcon,
-	PaperclipIcon,
-	StopIcon,
-	WalletIcon,
-} from "lucide-react";
 import GlobeIcon from "@/components/custom/icons/GlobeIcon";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
+import { LoadingSkeleton } from "./loading-skeleton";
 
 import type { MultimodalInputProps } from "@/types/chat";
 
@@ -34,6 +38,16 @@ const SUGGESTED_ACTIONS = [
 		title: "Web search",
 		label: "search the web for information",
 		action: "Search the web for latest blockchain news",
+	},
+	{
+		title: "Restaurant recommendations",
+		label: "find places to eat",
+		action: "Can you recommend some good restaurants nearby?",
+	},
+	{
+		title: "Weather check",
+		label: "get weather updates",
+		action: "What's the weather like today?",
 	},
 	{
 		title: "Smart contract interaction",
@@ -62,171 +76,130 @@ export function MultimodalInput({
 	const [localInput, setLocalInput] = useLocalStorage("chat-input", "");
 	const { isConnected, isCorrectNetwork } = useWalletState();
 	const { address } = useAccount();
+	const [isWebSearchMode, setIsWebSearchMode] = useState(false);
+	const [isSearching, setIsSearching] = useState(false);
 
-	// Web search handler with better formatting
+	// Modified web search handler
 	const handleWebSearch = useCallback(async () => {
-		const searchText = input.trim();
-		if (!searchText) {
-			toast.error("Please enter a search query");
-			return;
-		}
-
-		try {
-			const response = await fetch(
-				`/api/search?query=${encodeURIComponent(searchText)}`
-			);
-			
-			if (!response.ok) {
-				throw new Error("Search failed");
-			}
-
-			const data = await response.json();
-			
-			// Improved formatting for search results
-			const formattedResults = data.results
-				.map((result: any, index: number) => (
-					`${index + 1}. ${result.Text}\n${result.FirstURL ? `   Link: ${result.FirstURL}\n` : ''}`
-				))
-				.join('\n');
-
-			const searchMessage = `🔍 **Web Search Results**\n\nQuery: "${searchText}"\n\n${formattedResults}\n\n---\nResults powered by DuckDuckGo`;
-
-			// Append search results to chat
-			await append(
-				{
-					role: "assistant",
-					content: searchMessage,
-				}
-			);
-
-			// Also append the user's query
-			await append(
-				{
-					role: "user",
-					content: `Search: ${searchText}`,
-				}
-			);
-
+		setIsWebSearchMode(!isWebSearchMode);
+		
+		if (isWebSearchMode) {
 			setInput("");
 			setLocalInput("");
-		} catch (error) {
-			console.error("Search error:", error);
-			toast.error("Failed to perform web search");
-		}
-	}, [input, append, setInput, setLocalInput]);
-
-	// Add balance check handler
-	const handleBalanceCheck = useCallback(async () => {
-		if (!address) {
-			toast.error("Please connect your wallet first");
-			return;
-		}
-
-		try {
-			// Fetch both basic balance and DeBankAPI data
-			const [ethResponse, debankResponse] = await Promise.all([
-				fetch(`/api/wallet/balance?address=${address}&network=base-sepolia`),
-				fetch(`/api/wallet/debank?address=${address}`),
-			]);
-			
-			if (!ethResponse.ok || !debankResponse.ok) {
-				throw new Error("Balance check failed");
+		} else {
+			const currentInput = input.trim();
+			if (!currentInput.toLowerCase().startsWith("search:")) {
+				setInput(`Search: ${currentInput}`);
 			}
-
-			const [ethData, debankData] = await Promise.all([
-				ethResponse.json(),
-				debankResponse.json(),
-			]);
-			
-			// Format the balance message with both ETH and token balances
-			const tokenList = debankData.tokens
-				.filter((token: any) => token.usd_value > 1) // Only show tokens worth more than $1
-				.map((token: any) => 
-					`- ${token.symbol}: ${Number(token.balance).toFixed(4)} (${token.chain}) ≈ $${token.usd_value.toFixed(2)}`
-				)
-				.join('\n');
-
-			const balanceMessage = `💰 **Wallet Balance**\n\n` +
-				`Address: \`${address}\`\n` +
-				`Network: Base Sepolia\n` +
-				`ETH Balance: ${Number(ethData.balance).toFixed(4)} ETH\n\n` +
-				`**Total Portfolio Value:** $${debankData.totalBalance.total_usd_value.toFixed(2)}\n\n` +
-				`**Token Balances:**\n${tokenList}\n\n` +
-				`---\nLast updated: ${new Date().toLocaleString()}`;
-
-			// Append balance info to chat
-			await append(
-				{
-					role: "assistant",
-					content: balanceMessage,
-				}
-			);
-
-		} catch (error) {
-			console.error("Balance check error:", error);
-			toast.error("Failed to check wallet balance");
 		}
-	}, [address, append]);
+	}, [isWebSearchMode, input, setInput, setLocalInput]);
 
-	// Update submit handler to include balance check
+	// Update submit handler to handle all combinations
 	const onSubmit = useCallback(async () => {
 		const searchText = input.trim();
-		if (!searchText && attachments.length === 0) {
+		const hasAttachments = attachments.length > 0;
+
+		// Validate input
+		if (!searchText && !hasAttachments) {
 			toast.error("Please enter a message or add an attachment");
 			return;
 		}
 
-		const isWalletQuery = searchText.toLowerCase().includes("wallet") || 
-							 searchText.toLowerCase().includes("balance");
-		const isWebSearch = searchText.toLowerCase().includes("search");
-
-		if (isWalletQuery && (!isConnected || !isCorrectNetwork)) {
-			toast.error("Please connect your wallet and ensure correct network");
-			return;
-		}
-
 		try {
-			if (isWalletQuery) {
-				await handleBalanceCheck();
-				return;
-			}
+			setIsSearching(true);
 
-			if (isWebSearch && webSearchEnabled) {
-				await handleWebSearch();
-				return;
-			}
+			if (isWebSearchMode) {
+				// Execute web search
+				const searchQuery = searchText.replace(/^search:\s*/i, '');
+				const response = await fetch(
+					`/api/search?query=${encodeURIComponent(searchQuery)}`
+				);
+				
+				if (!response.ok) {
+					throw new Error("Search failed");
+				}
 
-			await append(
-				{
+				const data = await response.json();
+				
+				// Format and append results
+				const formattedResults = data.results
+					.map((result: any, index: number) => (
+						`${index + 1}. ${result.Text}\n${result.FirstURL ? `   Link: ${result.FirstURL}\n` : ''}`
+					))
+					.join('\n');
+
+				// First, append user's query with attachments if any
+				await append(
+					{
 						role: "user",
 						content: searchText,
-				},
-				{ experimental_attachments: attachments }
-			);
+					},
+					hasAttachments ? { experimental_attachments: attachments } : undefined
+				);
 
+				// Then append search results
+				await append(
+					{
+						role: "assistant",
+						content: `🔍 Search Results for "${searchQuery}":\n\n${formattedResults}\n\n${hasAttachments ? "📎 Search includes attached files\n\n" : ""}---\nResults powered by DuckDuckGo`,
+					}
+				);
+			} else {
+				// Normal message with optional attachments
+				await append(
+					{
+						role: "user",
+						content: searchText,
+					},
+					hasAttachments ? { experimental_attachments: attachments } : undefined
+				);
+			}
+
+			// Clear input and reset modes
 			setInput("");
 			setAttachments([]);
 			setLocalInput("");
+			setIsWebSearchMode(false);
 		} catch (error) {
-			toast.error("Failed to send message");
+			console.error("Error:", error);
+			toast.error(isWebSearchMode ? "Failed to perform web search" : "Failed to send message");
+		} finally {
+			setIsSearching(false);
 		}
 	}, [
 		input,
 		attachments,
 		append,
-		isConnected,
-		isCorrectNetwork,
-		handleWebSearch,
-		handleBalanceCheck,
-		webSearchEnabled,
+		isWebSearchMode,
 		setInput,
 		setAttachments,
 		setLocalInput,
 	]);
 
 	return (
-		<div className="relative w-full flex flex-col gap-4">
-			{/* Suggested Actions */}
+		<motion.div 
+			className="relative w-full flex flex-col gap-4"
+			layout
+			initial={{ opacity: 0, y: 20 }}
+			animate={{ opacity: 1, y: 0 }}
+			exit={{ opacity: 0, y: 20 }}
+			transition={{ duration: 0.3 }}
+		>
+			{/* Loading Skeleton - Moved to top */}
+			{isLoading && (
+				<motion.div 
+					className="sticky top-0 z-50 w-full py-2 px-4"
+					initial={{ opacity: 0, y: -20 }}
+					animate={{ opacity: 1, y: 0 }}
+					exit={{ opacity: 0, y: -20 }}
+				>
+					<div className="bg-background/80 backdrop-blur-sm rounded-lg p-4 shadow-lg border">
+						<LoadingSkeleton className="w-full max-w-[300px] mx-auto" />
+					</div>
+				</motion.div>
+			)}
+
+			{/* Suggested Actions - No opacity change during loading */}
 			{messages.length === 0 && (
 				<div className="grid sm:grid-cols-2 gap-2">
 					{SUGGESTED_ACTIONS.map((action) => (
@@ -235,6 +208,7 @@ export function MultimodalInput({
 							variant="ghost"
 							onClick={() => setInput(action.action)}
 							className="text-left h-auto py-3"
+							disabled={isLoading}
 						>
 							<span className="flex flex-col">
 								<span className="font-medium">{action.title}</span>
@@ -247,13 +221,14 @@ export function MultimodalInput({
 				</div>
 			)}
 
-			{/* Input Area */}
+			{/* Input Area - Remains fully visible during loading */}
 			<div className="relative flex items-end gap-2">
 				<Textarea
 					ref={textareaRef}
 					value={input}
 					onChange={(e) => setInput(e.target.value)}
 					placeholder="Send a message..."
+					disabled={isLoading}
 					className={cx(
 						"min-h-[24px] max-h-[75vh] pr-24 resize-none rounded-xl",
 						className
@@ -266,29 +241,51 @@ export function MultimodalInput({
 					}}
 				/>
 
-				{/* Action Buttons */}
+				{/* Action Buttons - Maintain visibility during loading */}
 				<div className="absolute bottom-2 right-2 flex items-center gap-2">
 					{webSearchEnabled && (
-						<Button
-							size="icon"
-							variant="outline"
-							onClick={handleWebSearch}
-							disabled={isLoading || !input.trim()}
-							className="size-8 rounded-full"
-						>
-							<GlobeIcon size={16} />
-						</Button>
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									size="icon"
+									variant={isWebSearchMode ? "default" : "outline"}
+									onClick={handleWebSearch}
+									disabled={isLoading || isSearching}
+									className={cx(
+										"size-8 rounded-full transition-all duration-200",
+										{
+											"bg-primary text-primary-foreground": isWebSearchMode,
+											"hover:bg-primary/90 hover:text-primary-foreground": !isWebSearchMode,
+										}
+									)}
+								>
+									<GlobeIcon 
+										size={16} 
+										className={cx(
+											"transition-all",
+											{
+												"text-primary-foreground": isWebSearchMode,
+											}
+										)} 
+									/>
+									<span className="sr-only">
+										{isWebSearchMode ? 
+											attachments.length > 0 ? 
+												"Web search mode with attachments" : 
+												"Web search mode active" 
+											: "Enable web search"}
+									</span>
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>
+								{isWebSearchMode ? 
+									attachments.length > 0 ? 
+										"Web search mode with attachments" : 
+										"Web search mode active" 
+									: "Enable web search"}
+							</TooltipContent>
+						</Tooltip>
 					)}
-
-					<Button
-						size="icon"
-						variant="outline"
-						onClick={handleBalanceCheck}
-						disabled={isLoading || !isConnected}
-						className="size-8 rounded-full"
-					>
-						<WalletIcon size={16} />
-					</Button>
 
 					<Button
 						size="icon"
@@ -297,20 +294,26 @@ export function MultimodalInput({
 						disabled={isLoading}
 						className="size-8 rounded-full"
 					>
-						<PaperclipIcon size={16} />
+						<Paperclip size={16} />
 					</Button>
 
 					<Button
 						size="icon"
-							variant={input ? "default" : "outline"}
-							onClick={() => (isLoading ? stop() : onSubmit())}
-							disabled={!input && !attachments.length}
-							className="size-8 rounded-full"
+						variant={input ? "default" : "outline"}
+						onClick={() => (isLoading ? stop() : onSubmit())}
+						disabled={!input && !attachments.length}
+						className="size-8 rounded-full"
 					>
-						{isLoading ? <StopIcon size={16} /> : <ArrowUpIcon size={16} />}
+						{isLoading ? (
+							<Square size={16} className="animate-pulse" />
+						) : input ? (
+							<ArrowUp size={16} />
+						) : (
+							<Square size={16} />
+						)}
 					</Button>
 				</div>
 			</div>
-		</div>
+		</motion.div>
 	);
 }
