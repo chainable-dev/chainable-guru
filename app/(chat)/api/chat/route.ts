@@ -398,67 +398,48 @@ const tools = {
           };
         }
 
-        // Get RPC URL based on chainId
-        let rpcUrl: string;
-        let networkName: string;
-        
-        switch (chainId) {
-          case 8453: // Base Mainnet
-            rpcUrl = 'https://mainnet.base.org';
-            networkName = 'Base Mainnet';
-            break;
-          case 84532: // Base Sepolia
-            rpcUrl = 'https://sepolia.base.org';
-            networkName = 'Base Sepolia';
-            break;
-          default:
-            return {
-              type: 'tool-result',
-              result: {
-                error: `Unsupported chain ID: ${chainId}`,
-                details: 'Please connect to Base Mainnet or Base Sepolia.'
-              }
-            };
-        }
-
-        try {
-          const provider = new ethers.JsonRpcProvider(rpcUrl);
-          await provider.getNetwork();
-          const balance = await provider.getBalance(address);
-          
-          const usdcAddress = chainId === 8453
-            ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-            : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
-
-          const usdcAbi = ['function balanceOf(address) view returns (uint256)'];
-          const usdcContract = new ethers.Contract(usdcAddress, usdcAbi, provider);
-          const usdcBalance = await usdcContract.balanceOf(address);
-          
+        // Validate supported network
+        if (![8453, 84532].includes(chainId)) {
           return {
             type: 'tool-result',
             result: {
-              address,
-              network: networkName,
-              chainId,
-              balances: {
-                eth: ethers.formatEther(balance),
-                usdc: (Number(usdcBalance) / 1e6).toString()
-              },
-              timestamp: new Date().toISOString()
-            }
-          };
-        } catch (providerError) {
-          console.error('Provider error:', providerError);
-          return {
-            type: 'tool-result',
-            result: {
-              error: 'Failed to connect to network',
-              details: 'Please check your network connection and try again',
-              chainId,
-              network: networkName
+              error: `Unsupported chain ID: ${chainId}`,
+              details: 'Please connect to Base Mainnet or Base Sepolia.'
             }
           };
         }
+
+        const networkName = chainId === 8453 ? 'Base Mainnet' : 'Base Sepolia';
+        const usdcAddress = chainId === 8453
+          ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' // Base Mainnet USDC
+          : '0x036CbD53842c5426634e7929541eC2318f3dCF7e'; // Base Sepolia USDC
+
+        // Use wagmi hooks for balance fetching
+        const { data: ethBalance } = useBalance({
+          address: address as `0x${string}`,
+          chainId
+        });
+
+        const { data: usdcBalance } = useBalance({
+          address: address as `0x${string}`,
+          token: usdcAddress,
+          chainId
+        });
+
+        return {
+          type: 'tool-result',
+          result: {
+            address,
+            network: networkName,
+            chainId,
+            balances: {
+              eth: ethBalance?.formatted || '0',
+              usdc: usdcBalance?.formatted || '0'
+            },
+            timestamp: new Date().toISOString()
+          }
+        };
+
       } catch (error) {
         console.error('Error fetching wallet balance:', error);
         return {
