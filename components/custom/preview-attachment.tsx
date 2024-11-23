@@ -36,14 +36,14 @@ export function PreviewAttachment({
         <img 
           src={isBlob ? attachment.url : '/placeholder-image.png'}
           alt={altText}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover max-h-[300px]"
           onError={handleImageError}
         />
       );
     }
 
     return (
-      <div className="relative h-full w-full">
+      <div className="relative h-full w-full max-h-[300px]">
         <Image
           src={attachment.url}
           alt={altText}
@@ -58,7 +58,7 @@ export function PreviewAttachment({
   };
 
   return (
-    <div className="relative group">
+    <div className="relative group overflow-hidden">
       <div className={cn(
         "relative h-20 w-20 border rounded-lg overflow-hidden bg-muted",
         isUploading && "opacity-70"
@@ -76,19 +76,19 @@ export function PreviewAttachment({
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
         )}
+
+        {onRemove && !isUploading && (
+          <button
+            onClick={() => onRemove(attachment.url)}
+            className="absolute right-1 top-1 rounded-full bg-rose-500/90 p-1 text-white shadow-sm hover:bg-rose-600 transition"
+            aria-label={`Remove ${altText}`}
+          >
+            <X className="h-3 w-3" />
+          </button>
+        )}
       </div>
 
-      {onRemove && !isUploading && (
-        <button
-          onClick={() => onRemove(attachment.url)}
-          className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground opacity-0 transition-opacity group-hover:opacity-100"
-          aria-label={`Remove ${altText}`}
-        >
-          <X className="h-3 w-3" />
-        </button>
-      )}
-
-      <div className="mt-1 truncate text-center text-xs text-muted-foreground">
+      <div className="mt-1 truncate text-center text-xs text-muted-foreground max-w-[200px]">
         {altText}
       </div>
     </div>
