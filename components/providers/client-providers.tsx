@@ -22,15 +22,16 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
             disclaimer: Disclaimer,
           }}
           theme={theme === 'dark' ? darkTheme({
-            accentColor: '#0066FF', // Primary blue
-            accentColorForeground: '#FFFFFF',
+            accentColor: '#BD93F9', // Dracula purple
+            accentColorForeground: '#F8F8F2', // Dracula foreground
             fontStack: 'system',
             overlayBlur: 'small',
             borderRadius: 'medium',
+          
           }) : lightTheme({
-            accentColor: '#0066FF', // Primary blue 
-            accentColorForeground: '#FFFFFF',
-            fontStack: 'system',
+            accentColor: '#BD93F9', // Dracula purple
+            accentColorForeground: '#282A36', // Dracula background
+            fontStack: 'system', 
             overlayBlur: 'small',
             borderRadius: 'medium',
           })
