@@ -3,6 +3,7 @@
 import { useAccount, useBalance, useChainId } from 'wagmi'
 import { base, baseSepolia } from 'viem/chains'
 import { useEffect, useState } from 'react'
+import { kv } from '@vercel/kv'
 
 interface WalletState {
   address: string | null
@@ -18,6 +19,8 @@ interface WalletState {
     usdc?: string
   }
 }
+
+const WALLET_KEY_PREFIX = 'wallet-state:'
 
 export function useWalletState() {
   const { address, isConnected } = useAccount()
@@ -44,23 +47,36 @@ export function useWalletState() {
   })
 
   useEffect(() => {
-    const newState = {
-      address: address || null,
-      isConnected,
-      chainId,
-      networkInfo: chainId ? {
-        name: chainId === base.id ? 'Base Mainnet' : 'Base Sepolia',
-        id: chainId
-      } : undefined,
-      isCorrectNetwork: chainId === base.id || chainId === baseSepolia.id,
-      balances: {
-        eth: ethBalance?.formatted,
-        usdc: usdcBalance?.formatted
+    const updateState = async () => {
+      const newState = {
+        address: address || null,
+        isConnected,
+        chainId,
+        networkInfo: chainId ? {
+          name: chainId === base.id ? 'Base Mainnet' : 'Base Sepolia',
+          id: chainId
+        } : undefined,
+        isCorrectNetwork: chainId === base.id || chainId === baseSepolia.id,
+        balances: {
+          eth: ethBalance?.formatted,
+          usdc: usdcBalance?.formatted
+        }
+      }
+
+      setState(newState)
+
+      // Store in KV if user is connected
+      if (isConnected && address) {
+        try {
+          await kv.set(`${WALLET_KEY_PREFIX}${address}`, JSON.stringify(newState))
+        } catch (error) {
+          console.error('Failed to store wallet state:', error)
+        }
       }
     }
 
-    setState(newState)
+    updateState()
   }, [address, isConnected, chainId, ethBalance, usdcBalance])
 
   return state
-}
+} 

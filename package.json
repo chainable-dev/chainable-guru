@@ -20,7 +20,8 @@
     "create-text-icon": "tsx scripts/create-text-icon.ts",
     "create-chainable-icon": "tsx scripts/create-chainable-icon.ts",
     "setup-favicons": "pnpm optimize-images && tsx scripts/setup-favicons.ts",
-    "optimize-images": "tsx scripts/optimize-images.ts"
+    "optimize-images": "tsx scripts/optimize-images.ts",
+    "test:watch": "vitest watch"
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.60",
