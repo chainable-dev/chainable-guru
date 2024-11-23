@@ -287,7 +287,9 @@ export function MultimodalInput({
     const files = Array.from(event.target.files || []);
 
     // Create staged files with blob URLs
-    const newStagedFiles = files.map(createStagedFile);
+    const newStagedFiles = files
+      .map(createStagedFile)
+      .filter(newFile => !stagedFiles.some(stagedFile => stagedFile.file.name === newFile.file.name));
     setStagedFiles(prev => [...prev, ...newStagedFiles]);
 
     try {
