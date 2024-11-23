@@ -16,7 +16,7 @@ const QUOTES = [
 	"Bridging traditional and decentralized finance",
 	"Powering the next generation of dApps",
 	"Simplifying smart contract interactions",
-] as const;
+];
 
 const LINKS = {
 	chainable: "https://chainable.co",
