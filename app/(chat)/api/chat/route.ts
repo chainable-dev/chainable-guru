@@ -87,7 +87,7 @@ const allTools: AllowedTools[] = [
 	...weatherTools,
 	"getWalletBalance" as AllowedTools,
 	"checkWalletState" as AllowedTools,
-	...(FEATURES.WEB_SEARCH ? ["webSearch" as AllowedTools] : []),
+	"webSearch" as AllowedTools,
 ];
 
 async function getUser() {
@@ -545,54 +545,50 @@ const tools = {
 			}
 		},
 	},
-	...(FEATURES.WEB_SEARCH
-		? {
-				webSearch: {
-					description: "Search the web using DuckDuckGo",
-					parameters: z.object({
-						query: z.string().describe("The search query"),
-						searchType: z
-							.enum(["duckduckgo", "opensearch"])
-							.describe("The search engine to use"),
-					}),
-					execute: async ({
-						query,
-						searchType,
-					}: {
-						query: string;
-						searchType: "duckduckgo" | "opensearch";
-					}) => {
-						try {
-							let results;
-							if (searchType === "duckduckgo") {
-								results = await searchDuckDuckGo(query);
-							} else {
-								results = await searchOpenSearch(query);
-							}
+	webSearch: {
+		description: "Search the web using DuckDuckGo",
+		parameters: z.object({
+			query: z.string().describe("The search query"),
+			searchType: z
+				.enum(["duckduckgo", "opensearch"])
+				.describe("The search engine to use"),
+		}),
+		execute: async ({
+			query,
+			searchType,
+		}: {
+			query: string;
+			searchType: "duckduckgo" | "opensearch";
+		}) => {
+			try {
+				let results;
+				if (searchType === "duckduckgo") {
+					results = await searchDuckDuckGo(query);
+				} else {
+					results = await searchOpenSearch(query);
+				}
 
-							return {
-								type: "tool-result",
-								result: {
-									searchEngine: searchType,
-									query,
-									results,
-									timestamp: new Date().toISOString(),
-								},
-							};
-						} catch (error) {
-							return {
-								type: "tool-result",
-								result: {
-									error: "Search failed",
-									details:
-										error instanceof Error ? error.message : "Unknown error",
-								},
-							};
-						}
+				return {
+					type: "tool-result",
+					result: {
+						searchEngine: searchType,
+						query,
+						results,
+						timestamp: new Date().toISOString(),
 					},
-				},
+				};
+			} catch (error) {
+				return {
+					type: "tool-result",
+					result: {
+						error: "Search failed",
+						details:
+							error instanceof Error ? error.message : "Unknown error",
+					},
+				};
 			}
-		: {}),
+		},
+	},
 };
 
 export async function POST(request: Request) {
