@@ -19,7 +19,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
 	Tooltip,
-	TooltipProvider,
+	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 
@@ -554,7 +554,7 @@ const SidebarMenuButton = React.forwardRef<
 	React.ComponentProps<"button"> & {
 		asChild?: boolean;
 		isActive?: boolean;
-		tooltip?: string | React.ComponentProps<typeof BetterTooltip>;
+		tooltip?: string | React.ComponentProps<typeof TooltipContent>;
 	} & VariantProps<typeof sidebarMenuButtonVariants>
 >(
 	(
@@ -596,7 +596,7 @@ const SidebarMenuButton = React.forwardRef<
 		return (
 			<Tooltip>
 				<TooltipTrigger asChild>{button}</TooltipTrigger>
-				<BetterTooltip
+				<TooltipContent
 					side="right"
 					align="center"
 					hidden={state !== "collapsed" || isMobile}

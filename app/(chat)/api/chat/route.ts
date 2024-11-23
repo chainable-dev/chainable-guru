@@ -748,7 +748,7 @@ export async function POST(request: Request) {
 					if (user && user.id) {
 						try {
 							const responseMessagesWithoutIncompleteToolCalls =
-								sanitizeResponseMessages(responseMessages as Message[]);
+								sanitizeResponseMessages(responseMessages as (CoreAssistantMessage | CoreToolMessage)[]);
 
 							await saveMessages({
 								chatId: id,

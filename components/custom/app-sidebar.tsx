@@ -17,7 +17,7 @@ import {
 	SidebarMenu,
 	useSidebar,
 } from "@/components/ui/sidebar";
-import { Tooltip, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export function AppSidebar({ user }: { user: User | null }) {
 	const router = useRouter();
@@ -44,18 +44,18 @@ export function AppSidebar({ user }: { user: User | null }) {
 							<TooltipTrigger asChild>
 								<Button
 									variant="ghost"
-								className="p-2 h-fit"
-								onClick={() => {
-									setOpenMobile(false);
-									router.push("/");
-									router.refresh();
-								}}
-							>
-								<PlusIcon />
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent>New Chat</TooltipContent>
-					</Tooltip>
+									className="p-2 h-fit"
+									onClick={() => {
+										setOpenMobile(false);
+										router.push("/");
+										router.refresh();
+									}}
+								>
+									<PlusIcon />
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>New Chat</TooltipContent>
+						</Tooltip>
 					</div>
 				</SidebarMenu>
 			</SidebarHeader>
