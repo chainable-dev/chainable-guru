@@ -23,10 +23,20 @@ export interface MultimodalInputProps {
     options?: ChatRequestOptions
   ) => Promise<string | null | undefined>;
   className?: string;
+  webSearchEnabled?: boolean;
 }
 
 export interface FileUploadState {
   progress: number;
   uploading: boolean;
   error: string | null;
-} 
+}
+
+export interface AppendOptions extends ChatRequestOptions {
+  experimental_attachments?: AIAttachment[];
+}
+
+export type AppendFunction = (
+  message: CreateMessage,
+  options?: AppendOptions
+) => Promise<string | null | undefined>; 

@@ -35,6 +35,8 @@ import { Button } from "../ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 import type { Document, Suggestion, Vote } from "@/lib/supabase/types";
+import type { MultimodalInputProps } from "@/types/chat";
+import type { AIAttachment } from "@/types/attachments";
 
 export interface UIBlock {
 	title: string;

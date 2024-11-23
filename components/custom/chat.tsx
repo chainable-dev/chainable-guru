@@ -2,7 +2,7 @@
 
 import { useChat } from "ai/react";
 import type { Message, CreateMessage, ChatRequestOptions } from "ai";
-import { AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { KeyboardIcon, WalletIcon } from "lucide-react";
 import { useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
@@ -29,6 +29,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { Database } from "@/lib/supabase/types";
 import { fetcher } from "@/lib/utils";
 import { useWalletState } from "@/hooks/useWalletState";
+import { containerAnimationVariants } from "@/lib/animation-variants";
 
 type Vote = Database["public"]["Tables"]["votes"]["Row"];
 
@@ -157,32 +158,42 @@ export function Chat({ id, initialMessages, selectedModelId }: ChatProps) {
     <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader selectedModelId={selectedModelId} />
-        <div
+        <motion.div
           ref={messagesContainerRef}
           className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4"
+          variants={containerAnimationVariants}
+          initial="initial"
+          animate="animate"
         >
-          {messages.length === 0 && <Overview />}
+          <AnimatePresence mode="popLayout">
+            {messages.length === 0 && <Overview />}
 
-          {messages.map((message, index) => (
-            <PreviewMessage
-              key={message.id}
-              chatId={id}
-              message={message}
-              block={block}
-              setBlock={setBlock}
-              isLoading={isLoading && messages.length - 1 === index}
-              vote={votes?.find((vote) => vote.message_id === message.id)}
-            />
-          ))}
+            {messages.map((message, index) => (
+              <PreviewMessage
+                key={message.id}
+                chatId={id}
+                message={message}
+                block={block}
+                setBlock={setBlock}
+                isLoading={isLoading && messages.length - 1 === index}
+                vote={votes?.find((vote) => vote.message_id === message.id)}
+              />
+            ))}
 
-          {isLoading && messages.length > 0 && messages[messages.length - 1].role === "user" && (
-            <ThinkingMessage />
-          )}
+            {isLoading && messages.length > 0 && messages[messages.length - 1].role === "user" && (
+              <ThinkingMessage />
+            )}
+          </AnimatePresence>
 
-          <div ref={messagesEndRef} className="shrink-0 min-w-[24px] min-h-[24px]" />
-        </div>
+          <motion.div 
+            ref={messagesEndRef} 
+            className="shrink-0 min-w-[24px] min-h-[24px]"
+            layout
+          />
+        </motion.div>
 
-        <form
+        <motion.form
+          layout
           id="chat-form"
           name="chat-form"
           className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl"
@@ -206,7 +217,7 @@ export function Chat({ id, initialMessages, selectedModelId }: ChatProps) {
             append={append}
             webSearchEnabled={webSearchEnabled}
           />
-        </form>
+        </motion.form>
       </div>
 
       <AnimatePresence mode="wait">
