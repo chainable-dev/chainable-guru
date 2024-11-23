@@ -45,17 +45,26 @@ describe("MultimodalInput", () => {
 		);
 	});
 
-	it("should display an error message on failed upload", async () => {
-		render(<MultimodalInput {...defaultProps} />);
-		const fileInput = screen.getByLabelText(/upload/i);
-		const file = new File(["content"], "test.png", { type: "image/png" });
+	it("should trigger web search on button click", async () => {
+		render(<MultimodalInput {...defaultProps} input="blockchain news" />);
+		const webSearchButton = screen.getByRole("button", { name: /web search/i });
 
-		// Mock fetch to simulate a failed upload
-		global.fetch = vi.fn(() => Promise.resolve({ ok: false })) as jest.Mock;
+		// Mock fetch to simulate a successful search
+		global.fetch = vi.fn(() =>
+			Promise.resolve({
+				ok: true,
+				json: () => Promise.resolve({ results: "Sample search results" }),
+			}),
+		) as jest.Mock;
 
-		fireEvent.change(fileInput, { target: { files: [file] } });
+		fireEvent.click(webSearchButton);
 
-		// Check for error message
-		await screen.findByText("Failed to upload one or more files");
+		// Check if append was called with search results
+		await screen.findByText(/web search results for: blockchain news/i);
+		expect(defaultProps.append).toHaveBeenCalledWith(
+			expect.objectContaining({
+				content: expect.stringContaining("Sample search results"),
+			}),
+		);
 	});
 });
