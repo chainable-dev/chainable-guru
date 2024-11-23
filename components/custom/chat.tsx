@@ -1,11 +1,11 @@
 "use client";
 
 import { useChat } from "ai/react";
-import type { Message } from "ai";
+import type { Message, CreateMessage } from "ai";
 import type { Attachment } from "@/types/attachments";
 import { AnimatePresence } from "framer-motion";
 import { KeyboardIcon } from "lucide-react";
-import { useState, type ClipboardEvent } from "react";
+import { useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { useWindowSize } from "usehooks-ts";
 import { Progress } from "@/components/ui/progress";
@@ -22,7 +22,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 import { Database } from "@/lib/supabase/types";
 import { fetcher } from "@/lib/utils";
-import { useAccount, useBalance, useChainId } from "wagmi";
 import { useWalletState } from "@/hooks/useWalletState";
 
 type Vote = Database["public"]["Tables"]["votes"]["Row"];
@@ -63,14 +62,6 @@ export function Chat({
     },
   });
 
-  const append = async (
-    message: Message,
-    options?: { experimental_attachments?: Attachment[] }
-  ): Promise<string | null> => {
-    const result = await rawAppend(message, options);
-    return result || null;
-  };
-
   const [block, setBlock] = useState<UIBlock>({
     documentId: "init",
     content: "",
@@ -85,11 +76,7 @@ export function Chat({
     },
   });
 
-  const { data: votes } = useSWR<Array<Vote>>(
-    `/api/vote?chatId=${id}`,
-    fetcher,
-  );
-
+  const { data: votes } = useSWR<Array<Vote>>(`/api/vote?chatId=${id}`, fetcher);
   const [messagesContainerRef, messagesEndRef] = useScrollToBottom<HTMLDivElement>();
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const [fileUpload, setFileUpload] = useState<FileUploadState>({
@@ -97,6 +84,22 @@ export function Chat({
     uploading: false,
     error: null,
   });
+
+  // Wrapper for append function to handle types correctly
+  const append = async (
+    message: CreateMessage | Message,
+    options?: { experimental_attachments?: Attachment[] }
+  ): Promise<string | null> => {
+    const messageWithId: Message = {
+      id: crypto.randomUUID(),
+      ...message,
+    } as Message;
+    
+    const result = await rawAppend(messageWithId, {
+      experimental_attachments: options?.experimental_attachments,
+    });
+    return result || null;
+  };
 
   const handleFileUpload = async (file: File) => {
     if (!file) return;
@@ -107,8 +110,6 @@ export function Chat({
     }
 
     setFileUpload({ progress: 0, uploading: true, error: null });
-
-
 
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -127,6 +128,7 @@ export function Chat({
           const response = JSON.parse(xhr.responseText);
           toast.success("File uploaded successfully");
           append({
+            id: crypto.randomUUID(),
             role: "user",
             content: `[File uploaded: ${file.name}](${response.url})`,
           });
@@ -183,10 +185,7 @@ export function Chat({
             <ThinkingMessage />
           )}
 
-          <div
-            ref={messagesEndRef}
-            className="shrink-0 min-w-[24px] min-h-[24px]"
-          />
+          <div ref={messagesEndRef} className="shrink-0 min-w-[24px] min-h-[24px]" />
         </div>
 
         <form
@@ -206,8 +205,8 @@ export function Chat({
             handleSubmit={handleSubmit}
             isLoading={isLoading}
             stop={stop}
-            attachments={attachments as Attachment[]}
-            setAttachments={setAttachments as React.Dispatch<React.SetStateAction<Attachment[]>>}
+            attachments={attachments}
+            setAttachments={setAttachments}
             messages={messages}
             setMessages={setMessages}
             append={append}
@@ -215,7 +214,7 @@ export function Chat({
         </form>
       </div>
 
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {block && block.isVisible && (
           <Block
             chatId={id}
