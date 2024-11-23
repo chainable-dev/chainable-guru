@@ -297,6 +297,7 @@ export function MultimodalInput({
 			toast.error("Failed to perform web search");
 		}
 	}, [input]);
+	const handleSuggestedAction = useCallback(
 		(action: string) => {
 			const isWalletAction =
 				action.toLowerCase().includes("wallet") ||
@@ -316,7 +317,7 @@ export function MultimodalInput({
 			setInput(action);
 			submitForm();
 		},
-		[isConnected, isCorrectNetwork, setInput, submitForm],
+		[isConnected, isCorrectNetwork, setInput, submitForm]
 	);
 
 	const handleFileChange = useCallback(
