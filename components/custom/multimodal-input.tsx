@@ -1,8 +1,8 @@
-"use client";
+"use client"
 
-import cx from "classnames";
-import { motion } from "framer-motion";
-import { X } from "lucide-react";
+import cx from "classnames"
+import { motion } from "framer-motion"
+import { X } from "lucide-react"
 import React, {
 	useRef,
 	useEffect,
@@ -11,27 +11,27 @@ import React, {
 	Dispatch,
 	SetStateAction,
 	ChangeEvent,
-} from "react";
-import { toast } from "sonner";
-import { useLocalStorage, useWindowSize } from "usehooks-ts";
+} from "react"
+import { toast } from "sonner"
+import { useLocalStorage, useWindowSize } from "usehooks-ts"
 
-import { useWalletState } from "@/hooks/useWalletState";
-import { createClient } from "@/lib/supabase/client";
-import { sanitizeUIMessages } from "@/lib/utils";
+import { useWalletState } from "@/hooks/useWalletState"
+import { createClient } from "@/lib/supabase/client"
+import { sanitizeUIMessages } from "@/lib/utils"
 
-import { ArrowUpIcon, PaperclipIcon, StopIcon } from "./icons";
-import { PreviewAttachment } from "./preview-attachment";
-import { Button } from "../ui/button";
-import { Textarea } from "../ui/textarea";
-import { ChatSkeleton } from "./chat-skeleton";
+import { ArrowUpIcon, PaperclipIcon, StopIcon } from "./icons"
+import { PreviewAttachment } from "./preview-attachment"
+import { Button } from "../ui/button"
+import { Textarea } from "../ui/textarea"
+import { ChatSkeleton } from "./chat-skeleton"
 
-import type { Attachment as SupabaseAttachment } from "@/types/supabase";
+import type { Attachment as SupabaseAttachment } from "@/types/supabase"
 import type {
 	Attachment,
 	ChatRequestOptions,
 	CreateMessage,
 	Message,
-} from "ai";
+} from "ai"
 
 const suggestedActions = [
 	{
@@ -132,7 +132,7 @@ export function MultimodalInput({
 		if (textareaRef.current) {
 			adjustHeight();
 		}
-	}, []);
+	}, [])
 
 	const adjustHeight = () => {
 		if (textareaRef.current) {
@@ -141,10 +141,7 @@ export function MultimodalInput({
 		}
 	};
 
-	const [localStorageInput, setLocalStorageInput] = useLocalStorage(
-		"input",
-		"",
-	);
+	const [localStorageInput, setLocalStorageInput] = useLocalStorage("input", "")
 
 	useEffect(() => {
 		if (textareaRef.current) {
@@ -156,7 +153,7 @@ export function MultimodalInput({
 		}
 		// Only run once after hydration
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [])
 
 	useEffect(() => {
 		setLocalStorageInput(input);
@@ -177,7 +174,7 @@ export function MultimodalInput({
 			previewUrl: URL.createObjectURL(file),
 			status: "staging",
 		};
-	}, []);
+	}, [])
 
 	// Clean up blob URLs when files are removed
 	const removeStagedFile = useCallback((fileId: string) => {
@@ -192,7 +189,7 @@ export function MultimodalInput({
 			}
 			return updatedFiles;
 		});
-	}, []);
+	}, [])
 
 	// Clean up all blob URLs on unmount
 	useEffect(() => {
@@ -393,7 +390,7 @@ export function MultimodalInput({
 			textareaRef.current?.focus();
 		}, 100);
 		return () => clearTimeout(timer);
-	}, []);
+	}, [])
 
 	const handlePaste = useCallback(
 		async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
