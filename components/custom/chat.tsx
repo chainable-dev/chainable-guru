@@ -5,7 +5,7 @@ import type { Message } from "ai";
 import type { Attachment } from "@/types/attachments";
 import { AnimatePresence } from "framer-motion";
 import { KeyboardIcon } from "lucide-react";
-import { useState, useEffect, type ClipboardEvent } from "react";
+import { useState, type ClipboardEvent } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { useWindowSize } from "usehooks-ts";
 import { Progress } from "@/components/ui/progress";
@@ -179,11 +179,9 @@ export function Chat({
             />
           ))}
 
-          {isLoading &&
-            messages.length > 0 &&
-            messages[messages.length - 1].role === "user" && (
-              <ThinkingMessage />
-            )}
+          {isLoading && messages.length > 0 && messages[messages.length - 1].role === "user" && (
+            <ThinkingMessage />
+          )}
 
           <div
             ref={messagesEndRef}
