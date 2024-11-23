@@ -1,45 +1,137 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['avatar.vercel.sh', 'chainable.guru'],
+    domains: [
+      'avatar.vercel.sh',
+      'chainable.guru',
+      'avatars.githubusercontent.com',
+      'img.clerk.com'
+    ],
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '*.public.blob.vercel-storage.com',
+        hostname: '**.public.blob.vercel-storage.com',
+        pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: 'vercel-storage.com',
+        hostname: '**.vercel-storage.com',
+        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'avatar.vercel.sh',
+        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'avatars.githubusercontent.com',
+        pathname: '/**',
       },
       {
         protocol: 'https',
         hostname: 'img.clerk.com',
+        pathname: '/**',
       },
       {
         protocol: 'https',
-        hostname: '*.vercel.app',
+        hostname: '**.vercel.app',
+        pathname: '/**',
+      },
+      // Add blockchain-specific patterns
+      {
+        protocol: 'https',
+        hostname: '**.opensea.io',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '**.nftstorage.link',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'ipfs.io',
+        pathname: '/**',
       }
     ],
-    domains: [
-      'avatar.vercel.sh',
-      'avatars.githubusercontent.com',
-      'img.clerk.com'
-    ]
+    // Configure local image handling
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // Optimize images
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
+    // Allow local logos
+    loader: 'default',
+    loaderFile: undefined,
+    path: '/_next/image',
+    disableStaticImages: false,
+    unoptimized: process.env.NODE_ENV === 'development',
   },
+  // Other config
   typescript: {
     ignoreBuildErrors: true,
   },
   experimental: {
-    serverActions: true,
+    serverActions: {
+      allowedOrigins: ['localhost:3000', 'chainable.guru'],
+      bodySizeLimit: '2mb'
+    }
+  },
+  // Add webpack configuration for handling local images
+  webpack(config) {
+    config.module.rules.push({
+      test: /\.(png|jpe?g|gif|svg|webp|avif)$/i,
+      issuer: /\.[jt]sx?$/,
+      use: [
+        {
+          loader: 'url-loader',
+          options: {
+            limit: 10000,
+            name: 'static/media/[name].[hash:8].[ext]',
+            publicPath: '/_next',
+          },
+        },
+      ],
+    });
+
+    return config;
+  },
+  // Add public directory handling
+  async rewrites() {
+    return [
+      {
+        source: '/logos/:path*',
+        destination: '/public/logos/:path*',
+      },
+    ];
+  },
+  // Add headers for cache control
+  async headers() {
+    return [
+      {
+        source: '/favicon.ico',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
+          },
+        ],
+      },
+      {
+        source: '/icon.svg',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate',
+          },
+        ],
+      },
+    ]
   },
 }
 
-module.exports = nextConfig 
+module.exports = nextConfig; 
