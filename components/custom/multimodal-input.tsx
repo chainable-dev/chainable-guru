@@ -449,18 +449,7 @@ export function MultimodalInput({
 
   return (
     <div className="relative w-full flex flex-col gap-4">
-      {isLoading && expectingText && (
-        <div className="animate-pulse flex space-x-4">
-          <div className="rounded-full bg-gray-300 h-10 w-10"></div>
-          <div className="flex-1 space-y-4 py-1">
-            <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-            <div className="space-y-2">
-              <div className="h-4 bg-gray-300 rounded"></div>
-              <div className="h-4 bg-gray-300 rounded w-5/6"></div>
-            </div>
-          </div>
-        </div>
-      )}
+      {isLoading && expectingText && <ChatSkeleton />}
       
       {messages.length === 0 &&
         attachments.length === 0 &&
@@ -473,15 +462,20 @@ export function MultimodalInput({
                 exit={{ opacity: 0, y: 20 }}
                 transition={{ delay: 0.05 * index }}
                 key={index}
-                className={index > 1 ? 'hidden sm:block' : 'block'}
+                className={cx(
+                  'group',
+                  index > 1 ? 'hidden sm:block' : 'block'
+                )}
               >
                 <Button
                   variant="ghost"
                   onClick={() => handleSuggestedAction(suggestedAction.action)}
-                  className="text-left border rounded-xl px-4 py-3.5 text-sm flex-1 gap-1 sm:flex-col w-full h-auto justify-start items-start"
+                  className="text-left border rounded-xl px-4 py-3.5 text-sm w-full h-auto flex flex-col items-start gap-1 transition-colors hover:bg-muted/80"
                 >
-                  <span className="font-medium">{suggestedAction.title}</span>
-                  <span className="text-muted-foreground">
+                  <span className="font-medium group-hover:text-primary">
+                    {suggestedAction.title}
+                  </span>
+                  <span className="text-muted-foreground text-xs">
                     {suggestedAction.label}
                   </span>
                 </Button>
@@ -492,15 +486,16 @@ export function MultimodalInput({
 
       <input
         type="file"
-        className="fixed -top-4 -left-4 size-0.5 opacity-0 pointer-events-none"
+        className="sr-only"
         ref={fileInputRef}
         multiple
         onChange={handleFileChange}
         tabIndex={-1}
+        aria-hidden="true"
       />
 
       {(attachments.length > 0 || stagedFiles.length > 0) && (
-        <div className="flex flex-row gap-4 overflow-x-auto pb-2">
+        <div className="flex flex-row gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
           {stagedFiles.map((stagedFile) => (
             <div key={stagedFile.id} className="relative group">
               <PreviewAttachment
@@ -535,66 +530,64 @@ export function MultimodalInput({
         </div>
       )}
 
-      <Textarea
-        ref={textareaRef}
-        placeholder="Send a message..."
-        value={input}
-        onChange={handleInput}
-        onPaste={handlePaste}
-        className={cx(
-          'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-xl text-base bg-muted',
-          className
-        )}
-        rows={3}
-        autoFocus
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
-
-            if (isLoading) {
-              toast.error('Please wait for the model to finish its response!');
-            } else {
-              submitForm();
+      <div className="relative flex items-end gap-2">
+        <Textarea
+          ref={textareaRef}
+          placeholder="Send a message..."
+          value={input}
+          onChange={handleInput}
+          onPaste={handlePaste}
+          className={cx(
+            'min-h-[24px] max-h-[calc(75dvh)] pr-24',
+            'overflow-hidden resize-none rounded-xl text-base',
+            'bg-muted border-muted-foreground/20',
+            'focus:ring-1 focus:ring-primary/20',
+            'placeholder:text-muted-foreground/50',
+            className
+          )}
+          rows={1}
+          autoFocus
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
+              if (isLoading) {
+                toast.error('Please wait for the model to finish its response!');
+              } else {
+                submitForm();
+              }
             }
-          }
-        }}
-      />
-
-      {isLoading ? (
-        <Button
-          className="rounded-full p-1.5 h-fit absolute bottom-2 right-2 m-0.5 border dark:border-zinc-600"
-          onClick={(event) => {
-            event.preventDefault();
-            stop();
-            setMessages((messages) => sanitizeUIMessages(messages));
           }}
-        >
-          <StopIcon size={14} />
-        </Button>
-      ) : (
-        <Button
-          className="rounded-full p-1.5 h-fit absolute bottom-2 right-2 m-0.5 border dark:border-zinc-600"
-          onClick={(event) => {
-            event.preventDefault();
-            submitForm();
-          }}
-          disabled={input.length === 0 || stagedFiles.length > 0}
-        >
-          <ArrowUpIcon size={14} />
-        </Button>
-      )}
+        />
 
-      <Button
-        className="rounded-full p-1.5 h-fit absolute bottom-2 right-11 m-0.5 dark:border-zinc-700"
-        onClick={(event) => {
-          event.preventDefault();
-          fileInputRef.current?.click();
-        }}
-        variant="outline"
-        disabled={isLoading}
-      >
-        <PaperclipIcon size={14} />
-      </Button>
+        <div className="absolute bottom-2 right-2 flex items-center gap-2">
+          <Button
+            size="icon"
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isLoading}
+            className="size-8 rounded-full"
+          >
+            <PaperclipIcon className="size-4" />
+          </Button>
+
+          <Button
+            size="icon"
+            variant={input.length > 0 ? "default" : "outline"}
+            onClick={(e) => {
+              e.preventDefault();
+              isLoading ? stop() : submitForm();
+            }}
+            disabled={input.length === 0 || stagedFiles.length > 0}
+            className="size-8 rounded-full"
+          >
+            {isLoading ? (
+              <StopIcon className="size-4" />
+            ) : (
+              <ArrowUpIcon className="size-4" />
+            )}
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
