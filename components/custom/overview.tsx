@@ -105,7 +105,7 @@ export const Overview = () => {
           className="relative w-[120px] h-[30px]"
         >
           <Image 
-            src="/logos/chainable-logo.png"
+            src="/logos/favicon-dark.ico"
             alt="Chainable Logo"
             fill
             className="opacity-80 dark:opacity-100 object-contain hover:opacity-100 transition-opacity"
