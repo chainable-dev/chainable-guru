@@ -147,7 +147,7 @@ export function Chat({
 	};
 
 	return (
-		<>
+		<React.Fragment>
 			<div className="flex flex-col min-w-0 h-dvh bg-background">
 				<ChatHeader selectedModelId={selectedModelId} />
 				<div
@@ -226,6 +226,7 @@ export function Chat({
 					/>
 				)}
 			</AnimatePresence>
+			</React.Fragment>
 
 			<BlockStreamHandler streamingData={streamingData} setBlock={setBlock} />
 
