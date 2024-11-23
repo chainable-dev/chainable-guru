@@ -37,7 +37,7 @@ export const Overview = () => {
 						alt="Elron Bot"
 						width={48}
 						height={48}
-						className="rounded-full"
+						className="rounded-full shadow-lg"
 						priority
 					/>
 					<div className="text-left">
@@ -79,7 +79,7 @@ export const Overview = () => {
 						src="/logos/favicon-dark.ico"
 						alt="Chainable Logo"
 						fill
-						className="opacity-80 dark:opacity-100 object-contain hover:opacity-100 transition-opacity"
+						className="opacity-90 dark:opacity-100 object-contain hover:opacity-100 transition-opacity shadow-md"
 					/>
 				</Link>
 			</div>
