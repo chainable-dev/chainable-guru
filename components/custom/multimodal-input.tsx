@@ -119,6 +119,7 @@ export function MultimodalInput({
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
   const [expectingText, setExpectingText] = useState(false);
+  const stagedFileNames = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -178,7 +179,11 @@ export function MultimodalInput({
       if (file) {
         URL.revokeObjectURL(file.previewUrl);
       }
-      return prev.filter(f => f.id !== fileId);
+      const updatedFiles = prev.filter(f => f.id !== fileId);
+      if (file) {
+        stagedFileNames.current.delete(file.file.name);
+      }
+      return updatedFiles;
     });
   }, []);
 
@@ -288,8 +293,11 @@ export function MultimodalInput({
 
     // Create staged files with blob URLs
     const newStagedFiles = files
-      .map(createStagedFile)
-      .filter(newFile => !stagedFiles.some(stagedFile => stagedFile.file.name === newFile.file.name));
+      .filter(file => !stagedFileNames.current.has(file.name))
+      .map(file => {
+        stagedFileNames.current.add(file.name);
+        return createStagedFile(file);
+      });
     setStagedFiles(prev => [...prev, ...newStagedFiles]);
 
     try {
