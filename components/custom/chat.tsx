@@ -1,7 +1,8 @@
 "use client";
 
 import { useChat } from "ai/react";
-import type { Message, Attachment } from "ai";
+import type { Message } from "ai";
+import type { Attachment } from "@/types/attachments";
 import { AnimatePresence } from "framer-motion";
 import { KeyboardIcon } from "lucide-react";
 import { useState, useEffect, type ClipboardEvent } from "react";
@@ -21,251 +22,264 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 import { Database } from "@/lib/supabase/types";
 import { fetcher } from "@/lib/utils";
+import { useAccount, useBalance, useChainId } from "wagmi";
+import { useWalletState } from "@/hooks/useWalletState";
 
 type Vote = Database["public"]["Tables"]["votes"]["Row"];
 
 interface FileUploadState {
-	progress: number;
-	uploading: boolean;
-	error: string | null;
+  progress: number;
+  uploading: boolean;
+  error: string | null;
 }
 
 export function Chat({
-	id,
-	initialMessages,
-	selectedModelId,
+  id,
+  initialMessages,
+  selectedModelId,
 }: {
-	id: string;
-	initialMessages: Array<Message>;
-	selectedModelId: string;
+  id: string;
+  initialMessages: Array<Message>;
+  selectedModelId: string;
 }) {
-	const { mutate } = useSWRConfig();
-	const { width: windowWidth = 1920, height: windowHeight = 1080 } =
-		useWindowSize();
+  const { mutate } = useSWRConfig();
+  const { width: windowWidth = 1920, height: windowHeight = 1080 } = useWindowSize();
 
-	const {
-		messages,
-		setMessages,
-		handleSubmit,
-		input,
-		setInput,
-		append,
-		isLoading,
-		stop,
-		data: streamingData,
-	} = useChat({
-		body: { id, modelId: selectedModelId },
-		initialMessages,
-		onFinish: () => {
-			mutate("/api/history");
-		},
-	});
+  const {
+    messages,
+    setMessages,
+    handleSubmit,
+    input,
+    setInput,
+    append: rawAppend,
+    isLoading,
+    stop,
+    data: streamingData,
+  } = useChat({
+    body: { id, modelId: selectedModelId },
+    initialMessages,
+    onFinish: () => {
+      mutate("/api/history");
+    },
+  });
 
-	const [block, setBlock] = useState<UIBlock>({
-		documentId: "init",
-		content: "",
-		title: "",
-		status: "idle",
-		isVisible: false,
-		boundingBox: {
-			top: windowHeight / 4,
-			left: windowWidth / 4,
-			width: 250,
-			height: 50,
-		},
-	});
+  const append = async (
+    message: Message,
+    options?: { experimental_attachments?: Attachment[] }
+  ): Promise<string | null> => {
+    const result = await rawAppend(message, options);
+    return result || null;
+  };
 
-	const { data: votes } = useSWR<Array<Vote>>(
-		`/api/vote?chatId=${id}`,
-		fetcher,
-	);
+  const [block, setBlock] = useState<UIBlock>({
+    documentId: "init",
+    content: "",
+    title: "",
+    status: "idle",
+    isVisible: false,
+    boundingBox: {
+      top: windowHeight / 4,
+      left: windowWidth / 4,
+      width: 250,
+      height: 50,
+    },
+  });
 
-	const [messagesContainerRef, messagesEndRef] =
-		useScrollToBottom<HTMLDivElement>();
-	const [attachments, setAttachments] = useState<Array<Attachment>>([]);
-	const [fileUpload, setFileUpload] = useState<FileUploadState>({
-		progress: 0,
-		uploading: false,
-		error: null,
-	});
+  const { data: votes } = useSWR<Array<Vote>>(
+    `/api/vote?chatId=${id}`,
+    fetcher,
+  );
 
-	const handleFileUpload = async (file: File) => {
-		if (!file) return;
+  const [messagesContainerRef, messagesEndRef] = useScrollToBottom<HTMLDivElement>();
+  const [attachments, setAttachments] = useState<Array<Attachment>>([]);
+  const [fileUpload, setFileUpload] = useState<FileUploadState>({
+    progress: 0,
+    uploading: false,
+    error: null,
+  });
 
-		if (file.size > 10 * 1024 * 1024) {
-			toast.error("File size must be less than 10MB");
-			return;
-		}
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
 
-		setFileUpload({ progress: 0, uploading: true, error: null });
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size must be less than 10MB");
+      return;
+    }
 
-		return new Promise((resolve, reject) => {
-			const xhr = new XMLHttpRequest();
-			const formData = new FormData();
-			formData.append("file", file);
+    setFileUpload({ progress: 0, uploading: true, error: null });
 
-			xhr.upload.addEventListener("progress", (e) => {
-				if (e.lengthComputable) {
-					const progress = Math.round((e.loaded * 100) / e.total);
-					setFileUpload((prev) => ({ ...prev, progress }));
-				}
-			});
 
-			xhr.addEventListener("load", () => {
-				if (xhr.status === 200) {
-					const response = JSON.parse(xhr.responseText);
-					toast.success("File uploaded successfully");
-					append({
-						role: "user",
-						content: `[File uploaded: ${file.name}](${response.url})`,
-					});
-					resolve(response);
-				} else {
-					setFileUpload((prev) => ({
-						...prev,
-						error: "Upload failed",
-					}));
-					toast.error("Failed to upload file");
-					reject(new Error("Upload failed"));
-				}
-				setFileUpload((prev) => ({ ...prev, uploading: false }));
-			});
 
-			xhr.addEventListener("error", () => {
-				setFileUpload((prev) => ({
-					...prev,
-					error: "Upload failed",
-					uploading: false,
-				}));
-				toast.error("Failed to upload file");
-				reject(new Error("Upload failed"));
-			});
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const formData = new FormData();
+      formData.append("file", file);
 
-			xhr.open("POST", "/api/upload");
-			xhr.send(formData);
-		});
-	};
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) {
+          const progress = Math.round((e.loaded * 100) / e.total);
+          setFileUpload((prev) => ({ ...prev, progress }));
+        }
+      });
 
-	return (
-		<React.Fragment>
-			<div className="flex flex-col min-w-0 h-dvh bg-background">
-				<ChatHeader selectedModelId={selectedModelId} />
-				<div
-					ref={messagesContainerRef}
-					className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4"
-				>
-					{messages.length === 0 && <Overview />}
+      xhr.addEventListener("load", () => {
+        if (xhr.status === 200) {
+          const response = JSON.parse(xhr.responseText);
+          toast.success("File uploaded successfully");
+          append({
+            role: "user",
+            content: `[File uploaded: ${file.name}](${response.url})`,
+          });
+          resolve(response);
+        } else {
+          setFileUpload((prev) => ({
+            ...prev,
+            error: "Upload failed",
+          }));
+          toast.error("Failed to upload file");
+          reject(new Error("Upload failed"));
+        }
+        setFileUpload((prev) => ({ ...prev, uploading: false }));
+      });
 
-					{messages.map((message, index) => (
-						<PreviewMessage
-							key={message.id}
-							chatId={id}
-							message={message}
-							block={block}
-							setBlock={setBlock}
-							isLoading={isLoading && messages.length - 1 === index}
-							vote={votes?.find((vote) => vote.message_id === message.id)}
-						/>
-					))}
+      xhr.addEventListener("error", () => {
+        setFileUpload((prev) => ({
+          ...prev,
+          error: "Upload failed",
+          uploading: false,
+        }));
+        toast.error("Failed to upload file");
+        reject(new Error("Upload failed"));
+      });
 
-					{isLoading &&
-						messages.length > 0 &&
-						messages[messages.length - 1].role === "user" && (
-							<ThinkingMessage />
-						)}
+      xhr.open("POST", "/api/upload");
+      xhr.send(formData);
+    });
+  };
 
-					<div
-						ref={messagesEndRef}
-						className="shrink-0 min-w-[24px] min-h-[24px]"
-					/>
-				</div>
+  return (
+    <>
+      <div className="flex flex-col min-w-0 h-dvh bg-background">
+        <ChatHeader selectedModelId={selectedModelId} />
+        <div
+          ref={messagesContainerRef}
+          className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4"
+        >
+          {messages.length === 0 && <Overview />}
 
-				<form
-					id="chat-form"
-					name="chat-form"
-					className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl"
-					onSubmit={(e) => {
-						e.preventDefault();
-						handleSubmit(e);
-					}}
-					aria-label="Chat input form"
-				>
-					<MultimodalInput
-						chatId={id}
-						input={input}
-						setInput={setInput}
-						handleSubmit={handleSubmit}
-						isLoading={isLoading}
-						stop={stop}
-						attachments={attachments}
-						setAttachments={setAttachments}
-						messages={messages}
-						setMessages={setMessages}
-						append={append}
-					/>
-				</form>
-			</div>
+          {messages.map((message, index) => (
+            <PreviewMessage
+              key={message.id}
+              chatId={id}
+              message={message}
+              block={block}
+              setBlock={setBlock}
+              isLoading={isLoading && messages.length - 1 === index}
+              vote={votes?.find((vote) => vote.message_id === message.id)}
+            />
+          ))}
 
-			<AnimatePresence>
-				{block && block.isVisible && (
-					<Block
-						chatId={id}
-						input={input}
-						setInput={setInput}
-						handleSubmit={handleSubmit}
-						isLoading={isLoading}
-						stop={stop}
-						attachments={attachments}
-						setAttachments={setAttachments}
-						append={append}
-						block={block}
-						setBlock={setBlock}
-						messages={messages}
-						setMessages={setMessages}
-						votes={votes}
-					/>
-				)}
-			</AnimatePresence>
-			</React.Fragment>
-			<BlockStreamHandler streamingData={streamingData} setBlock={setBlock} />
-			<div className="fixed bottom-4 right-4 opacity-50 hover:opacity-100 transition-opacity">
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<button
-							className="p-2 rounded-full bg-muted"
-							type="button"
-							aria-label="Keyboard shortcuts"
-						></button>
-					</TooltipTrigger>
-					<TooltipContent>
-						<div className="text-sm">
-							<p>⌘ / to focus input</p>
-							<p>⌘ K to clear chat</p>
-							<p>ESC to stop generation</p>
-						</div>
-					</TooltipContent>
-				</Tooltip>
-			</div>
+          {isLoading &&
+            messages.length > 0 &&
+            messages[messages.length - 1].role === "user" && (
+              <ThinkingMessage />
+            )}
 
-			{fileUpload.uploading && (
-				<div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md mx-auto p-4 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg">
-					<Progress value={fileUpload.progress} className="w-full" />
-					<p className="text-sm text-muted-foreground mt-2 text-center">
-						Uploading... {fileUpload.progress}%
-					</p>
-				</div>
-			)}
+          <div
+            ref={messagesEndRef}
+            className="shrink-0 min-w-[24px] min-h-[24px]"
+          />
+        </div>
 
-			<input
-				type="file"
-				onChange={(e) => {
-					const file = e.target.files?.[0];
-					if (file) handleFileUpload(file);
-				}}
-				className="hidden"
-				id="file-upload"
-				accept="image/*,.pdf,.doc,.docx,.txt"
-			/>
-		</>
-	);
+        <form
+          id="chat-form"
+          name="chat-form"
+          className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit(e);
+          }}
+          aria-label="Chat input form"
+        >
+          <MultimodalInput
+            chatId={id}
+            input={input}
+            setInput={setInput}
+            handleSubmit={handleSubmit}
+            isLoading={isLoading}
+            stop={stop}
+            attachments={attachments as Attachment[]}
+            setAttachments={setAttachments as React.Dispatch<React.SetStateAction<Attachment[]>>}
+            messages={messages}
+            setMessages={setMessages}
+            append={append}
+          />
+        </form>
+      </div>
+
+      <AnimatePresence>
+        {block && block.isVisible && (
+          <Block
+            chatId={id}
+            input={input}
+            setInput={setInput}
+            handleSubmit={handleSubmit}
+            isLoading={isLoading}
+            stop={stop}
+            attachments={attachments}
+            setAttachments={setAttachments}
+            append={append}
+            block={block}
+            setBlock={setBlock}
+            messages={messages}
+            setMessages={setMessages}
+            votes={votes}
+          />
+        )}
+      </AnimatePresence>
+
+      <BlockStreamHandler streamingData={streamingData} setBlock={setBlock} />
+
+      <div className="fixed bottom-4 right-4 opacity-50 hover:opacity-100 transition-opacity">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              className="p-2 rounded-full bg-muted"
+              type="button"
+              aria-label="Keyboard shortcuts"
+            >
+              <KeyboardIcon className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <div className="text-sm">
+              <p>⌘ / to focus input</p>
+              <p>⌘ K to clear chat</p>
+              <p>ESC to stop generation</p>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </div>
+
+      {fileUpload.uploading && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md mx-auto p-4 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg">
+          <Progress value={fileUpload.progress} className="w-full" />
+          <p className="text-sm text-muted-foreground mt-2 text-center">
+            Uploading... {fileUpload.progress}%
+          </p>
+        </div>
+      )}
+
+      <input
+        type="file"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handleFileUpload(file);
+        }}
+        className="hidden"
+        id="file-upload"
+        accept="image/*,.pdf,.doc,.docx,.txt"
+      />
+    </>
+  );
 }
