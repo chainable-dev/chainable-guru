@@ -1,9 +1,11 @@
-import { render, screen } from '@testing-library/react';
-import {Button} from './button'; // Ensure this is the correct import
+import { describe, expect, it } from 'vitest';
+import { render, screen } from '@/__tests__/test-utils';
+import { Button } from './button';
 
 describe('Button Component', () => {
   it('renders correctly', () => {
-    render(<Button>Click Me</Button>); 
-    expect(screen.getByText('Click Me')).toBeInTheDocument();
+    render(<Button>Click Me</Button>);
+    const button = screen.getByText('Click Me');
+    expect(button).toBeInTheDocument();
   });
 }); 

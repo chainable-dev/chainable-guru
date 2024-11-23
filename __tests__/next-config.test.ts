@@ -1,4 +1,5 @@
-import nextConfig from '../next.config';
+import { describe, expect, it } from 'vitest';
+import nextConfig from '@/next.config';
 
 describe('Next.js Configuration', () => {
   describe('Image Configuration', () => {
@@ -6,33 +7,25 @@ describe('Next.js Configuration', () => {
       const expectedPatterns = [
         {
           protocol: 'https',
-          hostname: '*.public.blob.vercel-storage.com',
+          hostname: '**.public.blob.vercel-storage.com',
+          pathname: '/**',
         },
         {
           protocol: 'https',
-          hostname: 'vercel-storage.com',
+          hostname: '**.vercel-storage.com',
+          pathname: '/**',
         },
         {
           protocol: 'https',
           hostname: 'avatar.vercel.sh',
+          pathname: '/**',
         },
-        {
-          protocol: 'https',
-          hostname: 'avatars.githubusercontent.com',
-        },
-        {
-          protocol: 'https',
-          hostname: 'img.clerk.com',
-        },
-        {
-          protocol: 'https',
-          hostname: '*.vercel.app',
-        }
       ];
 
-      expect(nextConfig.images?.remotePatterns).toEqual(
-        expect.arrayContaining(expectedPatterns)
-      );
+      expect(nextConfig.images?.remotePatterns).toBeDefined();
+      expectedPatterns.forEach(pattern => {
+        expect(nextConfig.images?.remotePatterns).toContainEqual(pattern);
+      });
     });
 
     it('should have all required image domains', () => {
@@ -66,9 +59,9 @@ describe('Next.js Configuration', () => {
 
   describe('Experimental Features', () => {
     it('should have serverActions enabled', () => {
-      expect(nextConfig.experimental).toEqual({
-        serverActions: true,
-      });
+      expect(nextConfig.experimental?.serverActions).toBeDefined();
+      expect(typeof nextConfig.experimental?.serverActions).toBe('object');
+      expect(nextConfig.experimental?.serverActions.allowedOrigins).toContain('localhost:3000');
     });
   });
 

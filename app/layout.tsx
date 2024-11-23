@@ -42,6 +42,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
+        <link rel="shortcut icon" href="/favicon.ico" />
       </head>
       <body className="antialiased bg-background text-foreground dark:bg-gray-900">
         <RootProvider>

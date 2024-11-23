@@ -27,6 +27,8 @@ import {
   getMostRecentUserMessage,
   sanitizeResponseMessages,
 } from '@/lib/utils';
+import { searchDuckDuckGo, searchOpenSearch } from '@/lib/search/search-utils';
+import { FEATURES } from '@/lib/features';
 
 import { generateTitleFromUserMessage } from '../../actions';
 
@@ -64,7 +66,8 @@ type AllowedTools =
   | 'requestSuggestions'
   | 'getWeather'
   | 'getWalletBalance'
-  | 'checkWalletState';
+  | 'checkWalletState'
+  | 'webSearch';
 
 const blocksTools: AllowedTools[] = [
   'createDocument',
@@ -74,7 +77,13 @@ const blocksTools: AllowedTools[] = [
 
 const weatherTools: AllowedTools[] = ['getWeather'];
 
-const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, 'getWalletBalance', 'checkWalletState'];
+const allTools: AllowedTools[] = [
+  ...blocksTools,
+  ...weatherTools,
+  'getWalletBalance' as AllowedTools,
+  'checkWalletState' as AllowedTools,
+  ...(FEATURES.WEB_SEARCH ? ['webSearch' as AllowedTools] : []),
+];
 
 async function getUser() {
   const supabase = await createClient();
@@ -487,7 +496,47 @@ const tools = {
         }
       };
     }
-  }
+  },
+  ...(FEATURES.WEB_SEARCH ? {
+    webSearch: {
+      description: 'Search the web using DuckDuckGo',
+      parameters: z.object({
+        query: z.string().describe('The search query'),
+        searchType: z.enum(['duckduckgo', 'opensearch']).describe('The search engine to use')
+      }),
+      execute: async ({ query, searchType }: { 
+        query: string;
+        searchType: 'duckduckgo' | 'opensearch';
+      }) => {
+        try {
+          let results;
+          if (searchType === 'duckduckgo') {
+            results = await searchDuckDuckGo(query);
+          } else {
+            results = await searchOpenSearch(query);
+          }
+          
+          return {
+            type: 'tool-result',
+            result: {
+              searchEngine: searchType,
+              query,
+              results,
+              timestamp: new Date().toISOString()
+            }
+          };
+        } catch (error) {
+          return {
+            type: 'tool-result',
+            result: {
+              error: 'Search failed',
+              details: error instanceof Error ? error.message : 'Unknown error'
+            }
+          };
+        }
+      }
+    }
+  } : {}),
 };
 
 export async function POST(request: Request) {

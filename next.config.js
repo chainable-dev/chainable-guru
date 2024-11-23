@@ -60,16 +60,16 @@ const nextConfig = {
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
     // Optimize images
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256],
     formats: ['image/webp', 'image/avif'],
-    minimumCacheTTL: 60,
+    minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
     // Allow local logos
     loader: 'default',
     loaderFile: undefined,
     path: '/_next/image',
     disableStaticImages: false,
-    unoptimized: process.env.NODE_ENV === 'development',
+    unoptimized: process.env.NODE_ENV === 'production',
   },
   // Other config
   typescript: {
@@ -104,8 +104,20 @@ const nextConfig = {
   async rewrites() {
     return [
       {
+        source: '/favicon.ico',
+        destination: '/public/favicon.ico',
+      },
+      {
         source: '/logos/:path*',
         destination: '/public/logos/:path*',
+      },
+      {
+        source: '/api/search/:path*',
+        destination: 'https://api.duckduckgo.com/:path*',
+      },
+      {
+        source: '/api/opensearch/:path*',
+        destination: 'https://api.bing.microsoft.com/:path*',
       },
     ];
   },
@@ -117,7 +129,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=0, must-revalidate',
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },
@@ -126,11 +138,49 @@ const nextConfig = {
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=0, must-revalidate',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/api/search/:path*',
+        headers: [
+          {
+            key: 'Access-Control-Allow-Origin',
+            value: '*',
+          },
+        ],
+      },
+      {
+        source: '/(.*).(jpg|jpeg|png|webp|avif|ico|svg)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },
     ]
+  },
+  // Add webpack configuration for static files
+  webpack(config) {
+    config.module.rules.push({
+      test: /\.(ico|png|jpe?g|gif|svg|webp|avif)$/i,
+      issuer: /\.[jt]sx?$/,
+      use: [
+        {
+          loader: 'url-loader',
+          options: {
+            limit: 10000,
+            name: 'static/media/[name].[hash:8].[ext]',
+            publicPath: '/_next',
+            fallback: 'file-loader',
+          },
+        },
+      ],
+    });
+
+    return config;
   },
 }
 
