@@ -27,13 +27,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="dark">
       <head>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            try {
+              if (localStorage.theme === 'light') document.documentElement.classList.remove('dark')
+              else document.documentElement.classList.add('dark')
+            } catch (_) {}
+          `,
+        }} />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
       </head>
-      <body className="antialiased" suppressHydrationWarning>
+      <body className="antialiased dark:bg-gray-900">
         <RootProvider>
           {children}
         </RootProvider>
