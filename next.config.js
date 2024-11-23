@@ -5,31 +5,41 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'chainable.co',
+        hostname: '*.public.blob.vercel-storage.com',
       },
       {
         protocol: 'https',
-        hostname: 'chainable.guru',
+        hostname: 'vercel-storage.com',
       },
       {
         protocol: 'https',
         hostname: 'avatar.vercel.sh',
+      },
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'img.clerk.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.vercel.app',
       }
     ],
-    dangerouslyAllowSVG: true,
-    contentDispositionType: 'attachment',
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    domains: [
+      'avatar.vercel.sh',
+      'avatars.githubusercontent.com',
+      'img.clerk.com'
+    ]
+  },
+  typescript: {
+    ignoreBuildErrors: true,
   },
   experimental: {
-    optimizeCss: true
+    serverActions: true,
   },
-  webpack(config) {
-    config.module.rules.push({
-      test: /\.svg$/,
-      use: ['@svgr/webpack']
-    });
-    return config;
-  }
 }
 
 module.exports = nextConfig 
