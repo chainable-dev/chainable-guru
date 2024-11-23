@@ -21,6 +21,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 
 import { Database } from '@/lib/supabase/types';
 import { fetcher } from '@/lib/utils';
+import { useActionsStore } from '@/lib/stores/use-actions-store';
 
 type Vote = Database['public']['Tables']['votes']['Row'];
 
@@ -140,6 +141,8 @@ export function Chat({ id, initialMessages, selectedModelId }: {
     });
   };
 
+  const { isEnabled: actionsEnabled } = useActionsStore();
+
   return (
     <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
@@ -257,6 +260,10 @@ export function Chat({ id, initialMessages, selectedModelId }: {
         id="file-upload"
         accept="image/*,.pdf,.doc,.docx,.txt"
       />
+
+      {actionsEnabled && (
+        // Your existing actions/tools JSX
+      )}
     </>
   );
 }
