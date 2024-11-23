@@ -35,7 +35,8 @@ type AllowedTools =
   | 'createDocument'
   | 'updateDocument'
   | 'requestSuggestions'
-  | 'getWeather';
+  | 'getWeather'
+  | 'getWalletData';
 
 const blocksTools: AllowedTools[] = [
   'createDocument',
@@ -45,7 +46,9 @@ const blocksTools: AllowedTools[] = [
 
 const weatherTools: AllowedTools[] = ['getWeather'];
 
-const allTools: AllowedTools[] = [...blocksTools, ...weatherTools];
+const walletTools: AllowedTools[] = ['getWalletData'];
+
+const allTools: AllowedTools[] = [...blocksTools, ...weatherTools, ...walletTools];
 
 async function getUser() {
   const supabase = await createClient();
@@ -109,6 +112,28 @@ function formatMessageContent(message: CoreMessage): string {
   return '';
 }
 
+// First, let's define proper types for our wallet data
+type WalletData = {
+  type: 'tool-result';
+  toolName: 'getWalletData';
+  result: {
+    balance: string;
+    tokens: Array<{
+      symbol: string;
+      balance: string;
+    }>;
+    nfts: Array<{
+      tokenId: string;
+      collection: string;
+    }>;
+    transactions: Array<{
+      hash: string;
+      timestamp: string;
+      type: string;
+    }>;
+  };
+};
+
 export async function POST(request: Request) {
   const {
     id,
@@ -138,6 +163,7 @@ export async function POST(request: Request) {
 
   try {
     const chat = await getChatById(id);
+    const streamingData = new StreamData();
 
     if (!chat) {
       const title = await generateTitleFromUserMessage({
@@ -160,8 +186,6 @@ export async function POST(request: Request) {
         },
       ],
     });
-
-    const streamingData = new StreamData();
 
     const result = await streamText({
       model: customModel(model.apiIdentifier),
@@ -453,6 +477,45 @@ export async function POST(request: Request) {
             };
           },
         },
+        getWalletData: {
+          description: 'Get wallet data and balances (read-only)',
+          parameters: z.object({
+            address: z.string().optional(),
+            network: z.string().optional(),
+            includeNFTs: z.boolean().optional(),
+          }),
+          execute: async ({ address, network, includeNFTs }) => {
+            try {
+              const walletData: WalletData = {
+                type: 'tool-result',
+                toolName: 'getWalletData',
+                result: {
+                  balance: '0.0',
+                  tokens: [],
+                  nfts: [],
+                  transactions: []
+                }
+              };
+
+              // Convert to a plain object that matches JSONValue type
+              streamingData.append({
+                type: 'tool-result',
+                content: JSON.parse(JSON.stringify(walletData))
+              });
+
+              return walletData;
+            } catch (error) {
+              console.error('Error fetching wallet data:', error);
+              return {
+                type: 'tool-result',
+                toolName: 'getWalletData',
+                result: {
+                  error: 'Failed to fetch wallet data'
+                }
+              };
+            }
+          }
+        }
       },
       onFinish: async ({ responseMessages }) => {
         if (user && user.id) {
@@ -472,6 +535,23 @@ export async function POST(request: Request) {
                     });
                   }
 
+                  // Handle tool results properly
+                  if (message.role === 'tool' && Array.isArray(message.content)) {
+                    const walletData = message.content.find(
+                      content => 
+                        content.type === 'tool-result' && 
+                        content.toolName === 'getWalletData'
+                    );
+                    
+                    if (walletData) {
+                      // Convert to a plain object that matches JSONValue type
+                      streamingData.append({
+                        type: 'tool-result',
+                        content: JSON.parse(JSON.stringify(walletData))
+                      });
+                    }
+                  }
+
                   return {
                     id: messageId,
                     chat_id: id,
@@ -484,6 +564,10 @@ export async function POST(request: Request) {
             });
           } catch (error) {
             console.error('Failed to save chat:', error);
+            streamingData.append({
+              type: 'error',
+              content: 'Failed to save chat messages'
+            });
           }
         }
 
@@ -500,22 +584,68 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error('Error in chat route:', error);
-    if (error instanceof Error && error.message === 'Chat ID already exists') {
-      // If chat already exists, just continue with the message saving
-      await saveMessages({
-        chatId: id,
-        messages: [
-          {
-            id: generateUUID(),
-            chat_id: id,
-            role: userMessage.role as MessageRole,
-            content: formatMessageContent(userMessage),
-            created_at: new Date().toISOString(),
-          },
-        ],
+    
+    // Create new StreamData instance for error handling
+    const errorStreamData = new StreamData();
+    
+    // Handle image-related errors
+    if (error instanceof Error && error.message.includes('next/image')) {
+      errorStreamData.append({
+        type: 'error',
+        content: {
+          message: 'Image loading failed',
+          details: error.message,
+          type: 'image-error'
+        }
       });
+
+      return new Response(
+        JSON.stringify({
+          error: 'Image loading failed',
+          details: error.message
+        }),
+        {
+          status: 400,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    } else if (error instanceof Error && error.message === 'Chat ID already exists') {
+      // Handle existing chat ID case
+      return new Response(
+        JSON.stringify({
+          error: 'Chat ID already exists'
+        }),
+        {
+          status: 409,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
     } else {
-      throw error; // Re-throw other errors
+      // Handle other errors
+      errorStreamData.append({
+        type: 'error',
+        content: {
+          message: 'An unexpected error occurred',
+          details: error instanceof Error ? error.message : 'Unknown error',
+          type: 'general-error'
+        }
+      });
+
+      return new Response(
+        JSON.stringify({
+          error: 'An unexpected error occurred'
+        }),
+        {
+          status: 500,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
     }
   }
 }
