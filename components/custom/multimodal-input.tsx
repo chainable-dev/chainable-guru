@@ -332,7 +332,7 @@ export function MultimodalInput({
         setStagedFiles(prev =>
           prev.map(f => f.id === stagedFile.id ? { ...f, status: 'complete' } : f)
         );
-        setTimeout(() => removeStagedFile(stagedFile.id), 500);
+        removeStagedFile(stagedFile.id);
       }
 
       toast.success('Files uploaded successfully');
