@@ -1,13 +1,78 @@
 import { NextResponse } from "next/server";
+import { rateLimit } from "@/lib/rate-limit";
+
+// Initialize rate limiter
+const limiter = rateLimit({
+  interval: 60 * 1000, // 60 seconds
+  uniqueTokenPerInterval: 500,
+});
+
+// Define search providers
+const searchProviders = {
+  async duckduckgo(query: string) {
+    const response = await fetch(
+      `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`,
+      {
+        headers: {
+          'Accept': 'application/json',
+          'User-Agent': 'Chainable Search Bot/1.0',
+        },
+        next: { revalidate: 3600 }
+      }
+    );
+
+    if (!response.ok) throw new Error('DuckDuckGo search failed');
+    
+    const data = await response.json();
+    return {
+      results: [
+        ...(data.Abstract ? [{
+          Text: data.Abstract,
+          FirstURL: data.AbstractURL,
+          Source: data.AbstractSource,
+          isAbstract: true,
+        }] : []),
+        ...(data.RelatedTopics?.map((topic: any) => ({
+          Text: topic.Text,
+          FirstURL: topic.FirstURL,
+          Icon: topic.Icon?.URL,
+        })) || [])
+      ].filter((result: any) => result.Text && result.Text.trim()),
+      source: 'DuckDuckGo'
+    };
+  },
+
+  async serp(query: string) {
+    const SERP_API_KEY = process.env.SERP_API_KEY;
+    if (!SERP_API_KEY) throw new Error('SERP API key not configured');
+
+    const response = await fetch(
+      `https://serpapi.com/search.json?q=${encodeURIComponent(query)}&api_key=${SERP_API_KEY}`,
+      { next: { revalidate: 3600 } }
+    );
+
+    if (!response.ok) throw new Error('SERP search failed');
+    
+    const data = await response.json();
+    return {
+      results: data.organic_results?.map((result: any) => ({
+        Text: result.snippet,
+        FirstURL: result.link,
+        Title: result.title,
+      })) || [],
+      source: 'SERP'
+    };
+  }
+} as const;
 
 export async function GET(request: Request) {
   try {
     await limiter.check(request, 10);
     
-    const { searchParams } = new URL(request.url);
-    const searchQuery = searchParams.get("query");
+    const url = new URL(request.url);
+    const query = url.searchParams.get("query");
 
-    if (!searchQuery) {
+    if (!query) {
       return NextResponse.json({ error: "Query is required" }, { status: 400 });
     }
 
@@ -18,7 +83,7 @@ export async function GET(request: Request) {
 
     for (const [providerName, provider] of Object.entries(searchProviders)) {
       try {
-        const searchResult = await provider(searchQuery);
+        const searchResult = await provider(query);
         if (searchResult.results && searchResult.results.length > 0) {
           results = searchResult.results;
           source = searchResult.source;
@@ -33,7 +98,7 @@ export async function GET(request: Request) {
     // If no results found from any provider
     if (!results || results.length === 0) {
       // Provide a fallback response with blockchain-specific information
-      if (searchQuery.toLowerCase().includes('blockchain') || searchQuery.toLowerCase().includes('crypto')) {
+      if (query.toLowerCase().includes('blockchain') || query.toLowerCase().includes('crypto')) {
         return NextResponse.json({
           results: [{
             Text: "No recent results found. Here are some reliable blockchain resources:\n" +
@@ -44,7 +109,7 @@ export async function GET(request: Request) {
             FirstURL: "https://base.org",
             isAbstract: true
           }],
-          query: searchQuery,
+          query,
           source: 'Fallback',
           timestamp: new Date().toISOString(),
         });
@@ -52,7 +117,7 @@ export async function GET(request: Request) {
 
       return NextResponse.json({
         results: [],
-        query: searchQuery,
+        query,
         error: "No results found",
         message: searchError?.message || "No matching results found",
         timestamp: new Date().toISOString(),
@@ -61,7 +126,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       results: results.slice(0, 5),
-      query: searchQuery,
+      query,
       source,
       timestamp: new Date().toISOString(),
     }, {
@@ -71,13 +136,13 @@ export async function GET(request: Request) {
     });
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     console.error("Search error:", error);
+    const url = new URL(request.url);
     return NextResponse.json(
       { 
         error: "Failed to perform search",
-        message: errorMessage,
-        query: searchParams?.get("query"),
+        message: error instanceof Error ? error.message : "Unknown error",
+        query: url.searchParams.get("query"),
         timestamp: new Date().toISOString(),
       },
       { status: 500 }

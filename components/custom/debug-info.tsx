@@ -23,6 +23,13 @@ export function DebugInfo() {
 	const [show, setShow] = useState(false);
 	const { width, height } = useWindowSize();
 
+	const memoryInfo = typeof performance !== 'undefined' && 
+		// @ts-ignore - Chrome-specific API
+		performance.memory ? 
+		// @ts-ignore - Chrome-specific API
+		`${(performance.memory.usedJSHeapSize || 0) / 1024 / 1024}MB` :
+		'N/A';
+
 	const debugInfo: DebugInfo = {
 		buildNumber: process.env.NEXT_PUBLIC_BUILD_NUMBER || "dev",
 		version: process.env.NEXT_PUBLIC_VERSION || "0.0.1",
@@ -34,10 +41,7 @@ export function DebugInfo() {
 			screen: `${width}x${height}`,
 			userAgent:
 				typeof window !== "undefined" ? window.navigator.userAgent : "",
-			memory:
-				typeof window !== "undefined"
-					? `${(performance?.memory?.usedJSHeapSize || 0) / 1024 / 1024}MB`
-					: "",
+			memory: memoryInfo,
 			cpu:
 				typeof window !== "undefined"
 					? navigator?.hardwareConcurrency?.toString() || ""

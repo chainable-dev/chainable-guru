@@ -32,7 +32,7 @@ import { Toolbar } from "./toolbar";
 import { useScrollToBottom } from "./use-scroll-to-bottom";
 import { VersionFooter } from "./version-footer";
 import { Button } from "../ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { Tooltip, BetterTooltip, TooltipTrigger } from "../ui/tooltip";
 
 import type { Document, Suggestion, Vote } from "@/lib/supabase/types";
 import type { MultimodalInputProps } from "@/types/chat";
@@ -602,7 +602,7 @@ export function Block({
 									<CopyIcon size={18} />
 								</Button>
 							</TooltipTrigger>
-							<TooltipContent>Copy to clipboard</TooltipContent>
+							<BetterTooltip content="Copy to clipboard" />
 						</Tooltip>
 						<Tooltip>
 							<TooltipTrigger asChild>
@@ -631,14 +631,7 @@ export function Block({
 									<UndoIcon size={18} />
 								</Button>
 							</TooltipTrigger>
-							<TooltipContent className="flex flex-col space-y-1">
-								<span className="text-[10px] text-muted-foreground">
-									{documents?.length
-										? `${currentVersionIndex} / ${documents.length}`
-										: ""}
-								</span>{" "}
-								<p>View Previous version</p>
-							</TooltipContent>
+							<BetterTooltip content={`View Previous version\n${documents?.length ? `${currentVersionIndex} / ${documents.length}` : ""}`} />
 						</Tooltip>
 						<Tooltip>
 							<TooltipTrigger asChild>
@@ -653,7 +646,7 @@ export function Block({
 									<RedoIcon size={18} />
 								</Button>
 							</TooltipTrigger>
-							<TooltipContent>View Next version</TooltipContent>
+							<BetterTooltip content="View Next version" />
 						</Tooltip>
 						<Tooltip>
 							<TooltipTrigger asChild>
@@ -689,12 +682,7 @@ export function Block({
 									/>
 								</Button>
 							</TooltipTrigger>
-							<TooltipContent className="flex flex-col space-y-1">
-								<span className="text-[10px] text-muted-foreground">
-									{mode === "diff" ? "diff mode" : "edit mode"}
-								</span>{" "}
-								<p>Toggle mode to {mode === "diff" ? "edit" : "diff"}</p>
-							</TooltipContent>
+							<BetterTooltip content={`Toggle mode to ${mode === "diff" ? "edit" : "diff"}\n${mode === "diff" ? "diff mode" : "edit mode"}`} />
 						</Tooltip>
 					</div>
 				</div>

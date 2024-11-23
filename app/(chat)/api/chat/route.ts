@@ -743,11 +743,12 @@ export async function POST(request: Request) {
 							}),
 					},
 				},
-				onFinish: async ({ responseMessages }) => {
+				onFinish: async (event) => {
+				  const { responseMessages } = event;
 					if (user && user.id) {
 						try {
 							const responseMessagesWithoutIncompleteToolCalls =
-								sanitizeResponseMessages(responseMessages);
+								sanitizeResponseMessages(responseMessages as (CoreAssistantMessage | CoreToolMessage)[]);
 
 							await saveMessages({
 								chatId: id,

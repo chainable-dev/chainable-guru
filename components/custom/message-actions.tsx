@@ -10,7 +10,7 @@ import { CopyIcon, ThumbDownIcon, ThumbUpIcon } from "./icons";
 import { Button } from "../ui/button";
 import {
 	Tooltip,
-	TooltipContent,
+	BetterTooltip,
 	TooltipProvider,
 	TooltipTrigger,
 } from "../ui/tooltip";
@@ -50,7 +50,7 @@ export function MessageActions({
 							<CopyIcon />
 						</Button>
 					</TooltipTrigger>
-					<TooltipContent>Copy</TooltipContent>
+					<BetterTooltip content="Copy" />
 				</Tooltip>
 
 				<Tooltip>
@@ -105,7 +105,7 @@ export function MessageActions({
 							<ThumbUpIcon />
 						</Button>
 					</TooltipTrigger>
-					<TooltipContent>Upvote Response</TooltipContent>
+					<BetterTooltip content="Upvote Response" />
 				</Tooltip>
 
 				<Tooltip>
@@ -160,7 +160,7 @@ export function MessageActions({
 							<ThumbDownIcon />
 						</Button>
 					</TooltipTrigger>
-					<TooltipContent>Downvote Response</TooltipContent>
+					<BetterTooltip content="Downvote Response" />
 				</Tooltip>
 			</div>
 		</TooltipProvider>

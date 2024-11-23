@@ -13,20 +13,25 @@ import { useOnClickOutside } from "usehooks-ts";
 
 import {
 	Tooltip,
-	TooltipContent,
+	BetterTooltip,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { sanitizeUIMessages } from "@/lib/utils";
 
-import {
-	ArrowUpIcon,
-	MessageIcon,
-	PenIcon,
-	StopIcon,
-	SummarizeIcon,
-} from "./icons";
-import { Button } from "../ui/button";
+import { 
+	IoArrowUpOutline,
+	IoStopOutline,
+	IoPencilOutline,
+	IoChatboxOutline,
+	IoTextOutline,
+} from "react-icons/io5";
+
+const ArrowUpIcon = () => <IoArrowUpOutline className="size-4" />;
+const StopIcon = () => <IoStopOutline className="size-4" />;
+const PenIcon = () => <IoPencilOutline className="size-4" />;
+const MessageIcon = () => <IoChatboxOutline className="size-4" />;
+const SummarizeIcon = () => <IoTextOutline className="size-4" />;
 
 type ToolProps = {
 	type: "final-polish" | "request-suggestions" | "adjust-reading-level";
@@ -104,7 +109,7 @@ const Tool = ({
 			<TooltipTrigger asChild>
 				<motion.div
 					className={cx("p-3 rounded-full", {
-						"bg-primary !text-primary-foreground": selectedTool === type,
+						"bg-primary text-primary-foreground": selectedTool === type,
 					})}
 					onHoverStart={() => {
 						setIsHovered(true);
@@ -129,17 +134,14 @@ const Tool = ({
 					onClick={() => {
 						handleSelect();
 					}}
+					role="button"
+					tabIndex={0}
+					aria-label={description}
 				>
 					{selectedTool === type ? <ArrowUpIcon /> : icon}
 				</motion.div>
 			</TooltipTrigger>
-			<TooltipContent
-				side="left"
-				sideOffset={16}
-				className="bg-foreground text-background rounded-2xl p-3 px-4"
-			>
-				{description}
-			</TooltipContent>
+			<BetterTooltip content={description} />
 		</Tooltip>
 	);
 };
@@ -240,13 +242,7 @@ const ReadingLevelSelector = ({
 							{currentLevel === 2 ? <SummarizeIcon /> : <ArrowUpIcon />}
 						</motion.div>
 					</TooltipTrigger>
-					<TooltipContent
-						side="left"
-						sideOffset={16}
-						className="bg-foreground text-background text-sm rounded-2xl p-3 px-4"
-					>
-						{LEVELS[currentLevel]}
-					</TooltipContent>
+					<BetterTooltip content={LEVELS[currentLevel]} />
 				</Tooltip>
 			</TooltipProvider>
 		</div>

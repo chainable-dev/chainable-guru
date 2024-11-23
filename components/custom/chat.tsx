@@ -4,7 +4,7 @@ import { useChat } from "ai/react";
 import type { Message, CreateMessage, ChatRequestOptions } from "ai";
 import { AnimatePresence, motion } from "framer-motion";
 import { KeyboardIcon, WalletIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { useWindowSize } from "usehooks-ts";
 import { Progress } from "@/components/ui/progress";
@@ -24,18 +24,40 @@ import { MultimodalInput } from "@/components/custom/multimodal-input";
 import { Overview } from "@/components/custom/overview";
 import { PreviewMessage, ThinkingMessage } from "@/components/custom/message";
 import { useScrollToBottom } from "@/components/custom/use-scroll-to-bottom";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { Tooltip, BetterTooltip, TooltipTrigger } from "../ui/tooltip";
 
 import { Database } from "@/lib/supabase/types";
 import { fetcher } from "@/lib/utils";
 import { useWalletState } from "@/hooks/useWalletState";
 import { containerAnimationVariants } from "@/lib/animation-variants";
+import { LoadingPage } from "./loading-page";
 
 type Vote = Database["public"]["Tables"]["votes"]["Row"];
 
 export function Chat({ id, initialMessages, selectedModelId }: ChatProps) {
   const { mutate } = useSWRConfig();
   const { width: windowWidth = 1920, height: windowHeight = 1080 } = useWindowSize();
+  const [messagesContainerRef, messagesEndRef] = useScrollToBottom<HTMLDivElement>();
+  const [attachments, setAttachments] = useState<AIAttachment[]>([]);
+  const [fileUpload, setFileUpload] = useState<FileUploadState>({
+    progress: 0,
+    uploading: false,
+    error: null,
+  });
+  const [webSearchEnabled] = useState(true);
+  const [block, setBlock] = useState<UIBlock>({
+    documentId: "init",
+    content: "",
+    title: "",
+    status: "idle",
+    isVisible: false,
+    boundingBox: {
+      top: windowHeight / 4,
+      left: windowWidth / 4,
+      width: 250,
+      height: 50,
+    },
+  });
 
   const {
     messages,
@@ -55,30 +77,14 @@ export function Chat({ id, initialMessages, selectedModelId }: ChatProps) {
     },
   });
 
-  const [block, setBlock] = useState<UIBlock>({
-    documentId: "init",
-    content: "",
-    title: "",
-    status: "idle",
-    isVisible: false,
-    boundingBox: {
-      top: windowHeight / 4,
-      left: windowWidth / 4,
-      width: 250,
-      height: 50,
-    },
-  });
+  const { data: votes, isLoading: isVotesLoading } = useSWR<Array<Vote>>(
+    `/api/vote?chatId=${id}`,
+    fetcher
+  );
 
-  const { data: votes } = useSWR<Array<Vote>>(`/api/vote?chatId=${id}`, fetcher);
-  const [messagesContainerRef, messagesEndRef] = useScrollToBottom<HTMLDivElement>();
-  const [attachments, setAttachments] = useState<AIAttachment[]>([]);
-  const [fileUpload, setFileUpload] = useState<FileUploadState>({
-    progress: 0,
-    uploading: false,
-    error: null,
-  });
-
-  const [webSearchEnabled] = useState(true);
+  if (isVotesLoading) {
+    return <LoadingPage />;
+  }
 
   const append = async (
     message: CreateMessage,
@@ -158,39 +164,41 @@ export function Chat({ id, initialMessages, selectedModelId }: ChatProps) {
     <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader selectedModelId={selectedModelId} />
-        <motion.div
-          ref={messagesContainerRef}
-          className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4"
-          variants={containerAnimationVariants}
-          initial="initial"
-          animate="animate"
-        >
-          <AnimatePresence mode="popLayout">
-            {messages.length === 0 && <Overview />}
+        <Suspense fallback={<LoadingPage />}>
+          <motion.div
+            ref={messagesContainerRef}
+            className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4"
+            variants={containerAnimationVariants}
+            initial="initial"
+            animate="animate"
+          >
+            <AnimatePresence mode="popLayout">
+              {messages.length === 0 && <Overview />}
 
-            {messages.map((message, index) => (
-              <PreviewMessage
-                key={message.id}
-                chatId={id}
-                message={message}
-                block={block}
-                setBlock={setBlock}
-                isLoading={isLoading && messages.length - 1 === index}
-                vote={votes?.find((vote) => vote.message_id === message.id)}
-              />
-            ))}
+              {messages.map((message, index) => (
+                <PreviewMessage
+                  key={message.id}
+                  chatId={id}
+                  message={message}
+                  block={block}
+                  setBlock={setBlock}
+                  isLoading={isLoading && messages.length - 1 === index}
+                  vote={votes?.find((vote) => vote.message_id === message.id)}
+                />
+              ))}
 
-            {isLoading && messages.length > 0 && messages[messages.length - 1].role === "user" && (
-              <ThinkingMessage />
-            )}
-          </AnimatePresence>
+              {isLoading && messages.length > 0 && messages[messages.length - 1].role === "user" && (
+                <ThinkingMessage />
+              )}
+            </AnimatePresence>
 
-          <motion.div 
-            ref={messagesEndRef} 
-            className="shrink-0 min-w-[24px] min-h-[24px]"
-            layout
-          />
-        </motion.div>
+            <motion.div 
+              ref={messagesEndRef} 
+              className="shrink-0 min-w-[24px] min-h-[24px]"
+              layout
+            />
+          </motion.div>
+        </Suspense>
 
         <motion.form
           layout
@@ -254,13 +262,13 @@ export function Chat({ id, initialMessages, selectedModelId }: ChatProps) {
               <KeyboardIcon className="h-4 w-4" />
             </button>
           </TooltipTrigger>
-          <TooltipContent>
+          <BetterTooltip content="⌘ / to focus input\n⌘ K to clear chat\nESC to stop generation">
             <div className="text-sm">
               <p>⌘ / to focus input</p>
               <p>⌘ K to clear chat</p>
               <p>ESC to stop generation</p>
             </div>
-          </TooltipContent>
+          </BetterTooltip>
         </Tooltip>
       </div>
 
