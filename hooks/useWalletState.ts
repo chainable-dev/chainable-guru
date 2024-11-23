@@ -1,66 +1,45 @@
-'use client'
-
-import { useAccount, useBalance, useChainId } from 'wagmi'
-import { base, baseSepolia } from 'viem/chains'
-import { useEffect, useState } from 'react'
-
-interface WalletState {
-  address: string | null
-  isConnected: boolean
-  chainId?: number
-  networkInfo?: {
-    name: string
-    id: number
-  }
-  isCorrectNetwork: boolean
-  balances?: {
-    eth?: string
-    usdc?: string
-  }
-}
+import { useAccount, useChainId, useWalletClient } from 'wagmi';
+import { useEffect, useMemo } from 'react';
+import { toast } from 'sonner';
 
 export function useWalletState() {
-  const { address, isConnected } = useAccount()
-  const chainId = useChainId()
-  const [state, setState] = useState<WalletState>({
-    address: null,
-    isConnected: false,
-    isCorrectNetwork: false
-  })
+  const { address, isConnected } = useAccount();
+  const chainId = useChainId();
+  const { data: walletClient } = useWalletClient();
 
-  // Get ETH balance
-  const { data: ethBalance } = useBalance({
-    address: address as `0x${string}`,
-    chainId
-  })
+  // Memoize network info
+  const networkInfo = useMemo(() => {
+    if (!chainId) return null;
 
-  // Get USDC balance
-  const { data: usdcBalance } = useBalance({
-    address: address as `0x${string}`,
-    token: chainId === base.id 
-      ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' // Base Mainnet USDC
-      : '0x036CbD53842c5426634e7929541eC2318f3dCF7e', // Base Sepolia USDC
-    chainId
-  })
+    return {
+      name: chainId === 8453 ? 'Base Mainnet' : 
+            chainId === 84532 ? 'Base Sepolia' : 
+            'Unsupported Network',
+      isSupported: [8453, 84532].includes(chainId)
+    };
+  }, [chainId]);
 
+  // Watch for wallet state changes
   useEffect(() => {
-    const newState = {
-      address: address || null,
-      isConnected,
-      chainId,
-      networkInfo: chainId ? {
-        name: chainId === base.id ? 'Base Mainnet' : 'Base Sepolia',
-        id: chainId
-      } : undefined,
-      isCorrectNetwork: chainId === base.id || chainId === baseSepolia.id,
-      balances: {
-        eth: ethBalance?.formatted,
-        usdc: usdcBalance?.formatted
+    if (isConnected && address) {
+      if (networkInfo?.isSupported) {
+        console.log('Wallet connected:', {
+          address,
+          chainId,
+          network: networkInfo.name
+        });
+      } else {
+        toast.error('Please switch to Base Mainnet or Base Sepolia');
       }
     }
+  }, [isConnected, address, chainId, networkInfo]);
 
-    setState(newState)
-  }, [address, isConnected, chainId, ethBalance, usdcBalance])
-
-  return state
-}
+  return {
+    address,
+    isConnected,
+    chainId,
+    walletClient,
+    networkInfo,
+    isCorrectNetwork: networkInfo?.isSupported ?? false
+  };
+} 

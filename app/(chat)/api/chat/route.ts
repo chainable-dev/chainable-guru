@@ -33,6 +33,10 @@ import { useWalletState } from '@/hooks/useWalletState';
 import { getServerWalletState } from '@/hooks/useServerWalletState'
 import { kv } from '@vercel/kv'
 
+import { useAccount, useBalance, useChainId } from 'wagmi'
+
+
+
 import { generateTitleFromUserMessage } from '../../actions';
 
 export const maxDuration = 60;
@@ -409,11 +413,11 @@ const tools = {
       chainId: number;
     }) => {
       try {
-        const walletState = await getServerWalletState(address);
+        const walletState = await kv.get<WalletState>(`${WALLET_KEY_PREFIX}${address}`)
         
         if (!walletState) {
           return {
-            type: 'tool-result', 
+            type: 'tool-result',
             result: {
               error: 'No wallet state found',
               details: 'Please connect your wallet first'
@@ -421,36 +425,63 @@ const tools = {
           };
         }
 
-        // Validate wallet connection
-        if (!walletState.isConnected || !walletState.address) {
-          return {
-            type: 'tool-result',
-            result: {
-              error: 'Wallet not connected',
-              details: 'Please connect your wallet first'
-            }
-          };
-        }
-
         // Validate supported network
-        if (!walletState.isCorrectNetwork) {
+        if (![8453, 84532].includes(chainId)) {
           return {
             type: 'tool-result',
             result: {
-              error: `Unsupported network`,
+              error: `Unsupported chain ID: ${chainId}`,
               details: 'Please connect to Base Mainnet or Base Sepolia.'
             }
           };
         }
 
+        const networkName = chainId === 8453 ? 'Base Mainnet' : 'Base Sepolia';
+        const usdcAddress = chainId === 8453
+          ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' // Base Mainnet USDC
+          : '0x036CbD53842c5426634e7929541eC2318f3dCF7e'; // Base Sepolia USDC
+
+        // Create provider based on network
+        const provider = new ethers.JsonRpcProvider(
+          chainId === 8453 
+            ? 'https://mainnet.base.org' 
+            : 'https://sepolia.base.org'
+        );
+
+        // Get ETH balance
+        const ethBalance = await provider.getBalance(address);
+        
+        // Create USDC contract instance
+        const usdcContract = new ethers.Contract(
+          usdcAddress,
+          ['function balanceOf(address) view returns (uint256)'],
+          provider
+        );
+        
+        // Get USDC balance
+        const usdcBalance = await usdcContract.balanceOf(address);
+
+        // Update wallet state with new balances
+        const updatedState = {
+          ...walletState,
+          balances: {
+            eth: ethers.formatEther(ethBalance),
+            usdc: ethers.formatUnits(usdcBalance, 6)
+          },
+          lastUpdated: new Date().toISOString()
+        }
+
+        // Save updated state
+        await kv.set(`${WALLET_KEY_PREFIX}${address}`, JSON.stringify(updatedState))
+
         return {
           type: 'tool-result',
           result: {
-            address: walletState.address,
-            network: walletState.networkInfo?.name || 'Unknown Network',
-            chainId: walletState.chainId,
-            balances: walletState.balances,
-            timestamp: new Date().toISOString()
+            address,
+            network: networkName,
+            chainId,
+            balances: updatedState.balances,
+            timestamp: updatedState.lastUpdated
           }
         };
 
@@ -464,6 +495,7 @@ const tools = {
           }
         };
       }
+    }
   },
   checkWalletState: {
     description: 'Check the current state of the connected wallet',
