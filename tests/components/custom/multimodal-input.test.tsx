@@ -39,11 +39,35 @@ describe('MultimodalInput Component', () => {
     expect(screen.getByText('📎 1 attachment included')).toBeInTheDocument();
   });
 
-  it('toggles web search mode', () => {
+  it('toggles web search mode correctly', () => {
     render(<MultimodalInput {...defaultProps} />);
     const button = screen.getByRole('button', { name: /globe/i });
     fireEvent.click(button);
     expect(defaultProps.setInput).toHaveBeenCalledWith('Search: ');
+    fireEvent.click(button);
+    expect(defaultProps.setInput).toHaveBeenCalledWith('');
+  });
+
+  it('handles file upload correctly', () => {
+    const file = new File(['hello'], 'hello.png', { type: 'image/png' });
+    render(<MultimodalInput {...defaultProps} />);
+    const input = screen.getByLabelText('Upload file');
+    fireEvent.change(input, { target: { files: [file] } });
+    expect(defaultProps.setAttachments).toHaveBeenCalledWith([file]);
+  });
+
+  it('displays correct placeholder in web search mode', () => {
+    render(<MultimodalInput {...defaultProps} />);
+    const button = screen.getByRole('button', { name: /globe/i });
+    fireEvent.click(button);
+    const inputElement = screen.getByPlaceholderText('Enter your search query...');
+    expect(inputElement).toBeInTheDocument();
+  });
+
+  it('displays correct placeholder in chat mode', () => {
+    render(<MultimodalInput {...defaultProps} />);
+    const inputElement = screen.getByPlaceholderText('Send a message...');
+    expect(inputElement).toBeInTheDocument();
   });
 it('toggles web search mode correctly', () => {
   render(<MultimodalInput {...defaultProps} />);
