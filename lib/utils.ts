@@ -244,3 +244,23 @@ export function getMessageIdFromAnnotations(message: Message) {
 
   return annotation.messageIdFromServer;
 }
+
+/**
+ * Format a number with commas and optional decimal places
+ */
+export function formatNumber(num: number, decimals: number = 2): string {
+  // Handle edge cases
+  if (num === undefined || num === null) return '0'
+  if (typeof num !== 'number') return '0'
+  
+  // Format with commas and decimals
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  }).format(num)
+}
+
+// Example usage:
+// formatNumber(1234.5678) -> "1,234.57"
+// formatNumber(1234.5678, 3) -> "1,234.568"
+// formatNumber(1234) -> "1,234.00"

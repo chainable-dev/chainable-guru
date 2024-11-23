@@ -1,8 +1,8 @@
 'use client';
 
 import cx from 'classnames';
-import { motion } from 'framer-motion';
-import { X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, ChevronDown, ChevronUp } from 'lucide-react';
 import React, {
   useRef,
   useEffect,
@@ -29,34 +29,34 @@ import type { Attachment, ChatRequestOptions, CreateMessage, Message } from 'ai'
 
 const suggestedActions = [
   {
-    title: 'Create a new document',
-    label: 'with the title "My New Document"',
-    action: 'Create a new document with the title "My New Document"',
+    title: 'Check Total Portfolio',
+    label: 'across all chains',
+    action: 'Show my total portfolio value across all chains',
   },
   {
-    title: 'Update an existing document',
-    label: 'with the description "Add more details"',
-    action: 'Update the document with ID "123" with the description "Add more details"',
+    title: 'Base Chain Balance',
+    label: 'show my Base tokens',
+    action: 'Show my token balances on Base chain',
   },
   {
-    title: 'Request suggestions for a document',
-    label: 'with ID "123"',
-    action: 'Request suggestions for the document with ID "123"',
+    title: 'Chain Comparison',
+    label: 'compare chain values',
+    action: 'Compare my balances across different chains',
   },
   {
-    title: 'Get the current weather',
-    label: 'in San Francisco',
-    action: 'Get the current weather in San Francisco',
+    title: 'Token Analysis',
+    label: 'analyze holdings',
+    action: 'Analyze my portfolio distribution',
   },
   {
-    title: 'Check wallet balance',
-    label: 'for my connected wallet',
-    action: 'Check the balance of my connected wallet',
+    title: 'Create Document',
+    label: 'start writing',
+    action: 'Create a new document',
   },
   {
-    title: 'Check wallet state',
-    label: 'for my connected wallet',
-    action: 'Check the state of my connected wallet',
+    title: 'Get Weather',
+    label: 'current conditions',
+    action: 'Get the current weather',
   },
 ];
 // Add type for temp attachments
@@ -117,6 +117,7 @@ export function MultimodalInput({
 
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
+  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(true);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -434,29 +435,52 @@ export function MultimodalInput({
       {messages.length === 0 &&
         attachments.length === 0 &&
         stagedFiles.length === 0 && (
-          <div className="grid sm:grid-cols-2 gap-2 w-full">
-            {suggestedActions.map((suggestedAction, index) => (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 20 }}
-                transition={{ delay: 0.05 * index }}
-                key={index}
-                className={index > 1 ? 'hidden sm:block' : 'block'}
-              >
-                <Button
-                  variant="ghost"
-                  onClick={() => handleSuggestedAction(suggestedAction.action)}
-                  className="text-left border rounded-xl px-4 py-3.5 text-sm flex-1 gap-1 sm:flex-col w-full h-auto justify-start items-start"
+          <>
+            <Button
+              variant="ghost"
+              onClick={() => setIsSuggestionsOpen(!isSuggestionsOpen)}
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {isSuggestionsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              <span>Suggestions</span>
+            </Button>
+            
+            <AnimatePresence>
+              {isSuggestionsOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
                 >
-                  <span className="font-medium">{suggestedAction.title}</span>
-                  <span className="text-muted-foreground">
-                    {suggestedAction.label}
-                  </span>
-                </Button>
-              </motion.div>
-            ))}
-          </div>
+                  <div className="grid sm:grid-cols-2 gap-2 w-full">
+                    {suggestedActions.map((suggestedAction, index) => (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 20 }}
+                        transition={{ delay: 0.05 * index }}
+                        key={index}
+                        className={index > 1 ? 'hidden sm:block' : 'block'}
+                      >
+                        <Button
+                          variant="ghost"
+                          onClick={() => handleSuggestedAction(suggestedAction.action)}
+                          className="text-left border rounded-xl px-4 py-3.5 text-sm flex-1 gap-1 sm:flex-col w-full h-auto justify-start items-start"
+                        >
+                          <span className="font-medium">{suggestedAction.title}</span>
+                          <span className="text-muted-foreground">
+                            {suggestedAction.label}
+                          </span>
+                        </Button>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </>
         )}
 
       <input
