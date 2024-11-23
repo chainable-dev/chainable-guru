@@ -54,6 +54,10 @@
 		"coverage",
 		"dist",
 		"__test__",
-		"**/__tests__/**"
+		"**/__tests__/**",
+		"**/*.test.ts",
+		"**/*.test.tsx",
+		"**/*.spec.ts",
+		"**/*.spec.tsx"
 	]
 }
