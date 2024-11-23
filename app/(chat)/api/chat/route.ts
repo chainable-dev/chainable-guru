@@ -414,17 +414,25 @@ const tools = {
           ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' // Base Mainnet USDC
           : '0x036CbD53842c5426634e7929541eC2318f3dCF7e'; // Base Sepolia USDC
 
-        // Use wagmi hooks for balance fetching
-        const { data: ethBalance } = useBalance({
-          address: address as `0x${string}`,
-          chainId
-        });
+        // Create provider based on network
+        const provider = new ethers.JsonRpcProvider(
+          chainId === 8453 
+            ? 'https://mainnet.base.org' 
+            : 'https://sepolia.base.org'
+        );
 
-        const { data: usdcBalance } = useBalance({
-          address: address as `0x${string}`,
-          token: usdcAddress,
-          chainId
-        });
+        // Get ETH balance
+        const ethBalance = await provider.getBalance(address);
+        
+        // Create USDC contract instance
+        const usdcContract = new ethers.Contract(
+          usdcAddress,
+          ['function balanceOf(address) view returns (uint256)'],
+          provider
+        );
+        
+        // Get USDC balance
+        const usdcBalance = await usdcContract.balanceOf(address);
 
         return {
           type: 'tool-result',
@@ -433,8 +441,8 @@ const tools = {
             network: networkName,
             chainId,
             balances: {
-              eth: ethBalance?.formatted || '0',
-              usdc: usdcBalance?.formatted || '0'
+              eth: ethers.formatEther(ethBalance),
+              usdc: ethers.formatUnits(usdcBalance, 6) // USDC has 6 decimals
             },
             timestamp: new Date().toISOString()
           }
