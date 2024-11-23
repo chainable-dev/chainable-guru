@@ -1,8 +1,7 @@
 "use client";
 
 import { useChat } from "ai/react";
-import type { Message, CreateMessage } from "ai";
-import type { Attachment } from "@/types/attachments";
+import type { Message, CreateMessage, ChatRequestOptions } from "ai";
 import { AnimatePresence } from "framer-motion";
 import { KeyboardIcon } from "lucide-react";
 import { useState } from "react";
@@ -11,6 +10,13 @@ import { useWindowSize } from "usehooks-ts";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 
+import type { 
+  ChatProps, 
+  FileUploadState, 
+  AppendFunction, 
+  AppendOptions 
+} from "@/types/chat";
+import type { Attachment, AIAttachment } from "@/types/attachments";
 import { Block, UIBlock } from "@/components/custom/block";
 import { BlockStreamHandler } from "@/components/custom/block-stream-handler";
 import { ChatHeader } from "@/components/custom/chat-header";
@@ -26,21 +32,7 @@ import { useWalletState } from "@/hooks/useWalletState";
 
 type Vote = Database["public"]["Tables"]["votes"]["Row"];
 
-interface FileUploadState {
-  progress: number;
-  uploading: boolean;
-  error: string | null;
-}
-
-export function Chat({
-  id,
-  initialMessages,
-  selectedModelId,
-}: {
-  id: string;
-  initialMessages: Array<Message>;
-  selectedModelId: string;
-}) {
+export function Chat({ id, initialMessages, selectedModelId }: ChatProps) {
   const { mutate } = useSWRConfig();
   const { width: windowWidth = 1920, height: windowHeight = 1080 } = useWindowSize();
 
@@ -78,25 +70,25 @@ export function Chat({
 
   const { data: votes } = useSWR<Array<Vote>>(`/api/vote?chatId=${id}`, fetcher);
   const [messagesContainerRef, messagesEndRef] = useScrollToBottom<HTMLDivElement>();
-  const [attachments, setAttachments] = useState<Array<Attachment>>([]);
+  const [attachments, setAttachments] = useState<AIAttachment[]>([]);
   const [fileUpload, setFileUpload] = useState<FileUploadState>({
     progress: 0,
     uploading: false,
     error: null,
   });
 
-  // Wrapper for append function to handle types correctly
   const append = async (
-    message: CreateMessage | Message,
-    options?: { experimental_attachments?: Attachment[] }
-  ): Promise<string | null> => {
-    const messageWithId: Message = {
+    message: CreateMessage,
+    options?: ChatRequestOptions
+  ) => {
+    const messageWithId = {
       id: crypto.randomUUID(),
       ...message,
-    } as Message;
+    };
     
     const result = await rawAppend(messageWithId, {
-      experimental_attachments: options?.experimental_attachments,
+      ...options,
+      experimental_attachments: options?.experimental_attachments as AIAttachment[]
     });
     return result || null;
   };
