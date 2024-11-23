@@ -3,11 +3,16 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import { useWindowSize } from 'usehooks-ts';
-
-import { UISuggestion } from '@/lib/editor/suggestions';
-
-import { CrossIcon, MessageIcon } from './icons';
+import { MessageSquare, X } from 'lucide-react';
 import { Button } from '../ui/button';
+import { Card, CardContent, CardHeader, CardFooter } from '../ui/card';
+
+type UISuggestion = {
+  id: string;
+  title: string;
+  description: string;
+  code?: string;
+};
 
 export const Suggestion = ({
   suggestion,
@@ -23,46 +28,52 @@ export const Suggestion = ({
     <AnimatePresence>
       {!isExpanded ? (
         <motion.div
-          className="absolute cursor-pointer text-muted-foreground -right-8 p-1"
-          onClick={() => {
-            setIsExpanded(true);
-          }}
+          className="absolute cursor-pointer text-muted-foreground hover:text-foreground -right-8 p-1 transition-colors"
+          onClick={() => setIsExpanded(true)}
           whileHover={{ scale: 1.1 }}
         >
-          <MessageIcon size={windowWidth && windowWidth < 768 ? 16 : 14} />
+          <MessageSquare size={windowWidth && windowWidth < 768 ? 16 : 14} />
         </motion.div>
       ) : (
         <motion.div
           key={suggestion.id}
-          className="absolute bg-background p-3 flex flex-col gap-3 rounded-2xl border text-sm w-56 shadow-xl z-50 -right-12 md:-right-16"
+          className="absolute z-50 -right-12 md:-right-16"
           transition={{ type: 'spring', stiffness: 500, damping: 30 }}
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: -20 }}
           exit={{ opacity: 0, y: -10 }}
-          whileHover={{ scale: 1.05 }}
         >
-          <div className="flex flex-row items-center justify-between">
-            <div className="flex flex-row items-center gap-2">
-              <div className="size-4 bg-muted-foreground/25 rounded-full" />
-              <div className="font-medium">Assistant</div>
-            </div>
-            <div
-              className="text-xs text-gray-500 cursor-pointer"
-              onClick={() => {
-                setIsExpanded(false);
-              }}
-            >
-              <CrossIcon size={12} />
-            </div>
-          </div>
-          <div>{suggestion.description}</div>
-          <Button
-            variant="outline"
-            className="w-fit py-1.5 px-3 rounded-full"
-            onClick={onApply}
-          >
-            Apply
-          </Button>
+          <Card className="w-56 bg-card/95 backdrop-blur border-border shadow-lg">
+            <CardHeader className="p-3 pb-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="size-4 bg-primary/20 rounded-full" />
+                  <div className="font-medium text-foreground">Assistant</div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  onClick={() => setIsExpanded(false)}
+                >
+                  <X size={12} className="text-muted-foreground hover:text-foreground" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="p-3 text-sm text-foreground/90">
+              {suggestion.description}
+            </CardContent>
+            <CardFooter className="p-3 pt-0">
+              <Button
+                variant="secondary"
+                size="sm"
+                className="rounded-full w-fit"
+                onClick={onApply}
+              >
+                Apply
+              </Button>
+            </CardFooter>
+          </Card>
         </motion.div>
       )}
     </AnimatePresence>
