@@ -398,67 +398,56 @@ const tools = {
           };
         }
 
-        // Get RPC URL based on chainId
-        let rpcUrl: string;
-        let networkName: string;
+        // Validate supported network
+        if (![8453, 84532].includes(chainId)) {
+          return {
+            type: 'tool-result',
+            result: {
+              error: `Unsupported chain ID: ${chainId}`,
+              details: 'Please connect to Base Mainnet or Base Sepolia.'
+            }
+          };
+        }
+
+        const networkName = chainId === 8453 ? 'Base Mainnet' : 'Base Sepolia';
+        const usdcAddress = chainId === 8453
+          ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' // Base Mainnet USDC
+          : '0x036CbD53842c5426634e7929541eC2318f3dCF7e'; // Base Sepolia USDC
+
+        // Create provider based on network
+        const provider = new ethers.JsonRpcProvider(
+          chainId === 8453 
+            ? 'https://mainnet.base.org' 
+            : 'https://sepolia.base.org'
+        );
+
+        // Get ETH balance
+        const ethBalance = await provider.getBalance(address);
         
-        switch (chainId) {
-          case 8453: // Base Mainnet
-            rpcUrl = 'https://mainnet.base.org';
-            networkName = 'Base Mainnet';
-            break;
-          case 84532: // Base Sepolia
-            rpcUrl = 'https://sepolia.base.org';
-            networkName = 'Base Sepolia';
-            break;
-          default:
-            return {
-              type: 'tool-result',
-              result: {
-                error: `Unsupported chain ID: ${chainId}`,
-                details: 'Please connect to Base Mainnet or Base Sepolia.'
-              }
-            };
-        }
+        // Create USDC contract instance
+        const usdcContract = new ethers.Contract(
+          usdcAddress,
+          ['function balanceOf(address) view returns (uint256)'],
+          provider
+        );
+        
+        // Get USDC balance
+        const usdcBalance = await usdcContract.balanceOf(address);
 
-        try {
-          const provider = new ethers.JsonRpcProvider(rpcUrl);
-          await provider.getNetwork();
-          const balance = await provider.getBalance(address);
-          
-          const usdcAddress = chainId === 8453
-            ? '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913'
-            : '0x036CbD53842c5426634e7929541eC2318f3dCF7e';
+        return {
+          type: 'tool-result',
+          result: {
+            address,
+            network: networkName,
+            chainId,
+            balances: {
+              eth: ethers.formatEther(ethBalance),
+              usdc: ethers.formatUnits(usdcBalance, 6) // USDC has 6 decimals
+            },
+            timestamp: new Date().toISOString()
+          }
+        };
 
-          const usdcAbi = ['function balanceOf(address) view returns (uint256)'];
-          const usdcContract = new ethers.Contract(usdcAddress, usdcAbi, provider);
-          const usdcBalance = await usdcContract.balanceOf(address);
-          
-          return {
-            type: 'tool-result',
-            result: {
-              address,
-              network: networkName,
-              chainId,
-              balances: {
-                eth: ethers.formatEther(balance),
-                usdc: (Number(usdcBalance) / 1e6).toString()
-              },
-              timestamp: new Date().toISOString()
-            }
-          };
-        } catch (providerError) {
-          console.error('Provider error:', providerError);
-          return {
-            type: 'tool-result',
-            result: {
-              error: 'Failed to connect to network',
-              details: 'Please check your network connection and try again',
-              chainId,
-              network: networkName
-            }
-          };
-        }
       } catch (error) {
         console.error('Error fetching wallet balance:', error);
         return {
