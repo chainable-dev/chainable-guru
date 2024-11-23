@@ -11,7 +11,7 @@
 		"setup-favicons": "pnpm optimize-images && tsx scripts/setup-favicons.ts",
 		"optimize-images": "tsx scripts/optimize-images.ts",
 		"biome:clean": "npx biome format --write && npx biome lint --fix",
-		"clean": "pnpmm clean"
+		"clean": "rimraf dist .next"
 	},
 	"dependencies": {
 		"@ai-sdk/openai": "^0.0.60",
