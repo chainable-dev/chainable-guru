@@ -91,74 +91,6 @@ interface MultimodalInputProps {
   chatId: string;
 }
 
-const ThinkingIndicator = () => (
-  <div className="absolute -top-10 left-0 right-0 flex justify-center">
-    <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background/80 px-3 py-1.5 rounded-full shadow-sm border">
-      <motion.div
-        className="flex gap-1"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.2 }}
-      >
-        <motion.div
-          className="h-2 w-2 rounded-full bg-gradient-to-r from-purple-500 to-blue-500"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [1, 0.7, 1]
-          }}
-          transition={{
-            duration: 1,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
-        />
-        <motion.div
-          className="h-2 w-2 rounded-full bg-gradient-to-r from-purple-500 to-blue-500"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [1, 0.7, 1]
-          }}
-          transition={{
-            duration: 1,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 0.2
-          }}
-        />
-        <motion.div
-          className="h-2 w-2 rounded-full bg-gradient-to-r from-purple-500 to-blue-500"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [1, 0.7, 1]
-          }}
-          transition={{
-            duration: 1,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 0.4
-          }}
-        />
-      </motion.div>
-      <span className="relative">
-        <motion.span
-          className="absolute inset-0 overflow-hidden whitespace-nowrap"
-          animate={{
-            width: ["0%", "100%"]
-          }}
-          transition={{
-            duration: 1,
-            repeat: Infinity,
-            ease: "linear"
-          }}
-        >
-          Thinking...
-        </motion.span>
-        <span className="invisible">Thinking...</span>
-      </span>
-    </div>
-  </div>
-);
-
 export function MultimodalInput({
   input,
   setInput,
@@ -507,12 +439,7 @@ export function MultimodalInput({
 
   return (
     <div className="relative w-full flex flex-col gap-4">
-      {isLoading && (
-        <>
-          <ThinkingIndicator />
-          {expectingText && <ChatSkeleton />}
-        </>
-      )}
+      {isLoading && expectingText && <ChatSkeleton />}
       
       {messages.length === 0 &&
         attachments.length === 0 &&
