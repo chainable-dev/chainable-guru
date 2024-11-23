@@ -14,6 +14,11 @@ import {
 import { motion } from "framer-motion";
 import { messageAnimationVariants } from "@/lib/animation-variants";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+	HoverCard,
+	HoverCardContent,
+	HoverCardTrigger,
+} from "@/components/ui/hover-card";
 
 import { useWalletState } from "@/hooks/useWalletState";
 import GlobeIcon from "@/components/custom/icons/GlobeIcon";
@@ -55,6 +60,54 @@ const SUGGESTED_ACTIONS = [
 		action: "Show me how to interact with a smart contract",
 	},
 ] as const;
+
+// Add hover animation variants
+const cardVariants = {
+	initial: { 
+		scale: 1,
+		backgroundColor: "var(--background)" 
+	},
+	hover: { 
+		scale: 1.02,
+		backgroundColor: "var(--accent)",
+		transition: {
+			type: "spring",
+			stiffness: 400,
+			damping: 17
+		}
+	},
+	tap: { 
+		scale: 0.98,
+		backgroundColor: "var(--accent)",
+		transition: {
+			type: "spring",
+			stiffness: 400,
+			damping: 17
+		}
+	}
+};
+
+// Add info tooltips for actions
+const ACTION_INFO = {
+	webSearch: {
+		title: "Web Search",
+		description: "Search the web for information. You can include attachments with your search.",
+		shortcuts: ["Click globe icon", "Type 'search:'"],
+		examples: ["search: latest blockchain news", "search: weather in London"],
+	},
+	attachments: {
+		title: "Attachments",
+		description: "Upload files to include with your message. Supports images, PDFs, and documents.",
+		formats: ["Images (PNG, JPG)", "Documents (PDF, DOC)", "Text files"],
+		maxSize: "10MB",
+	},
+	send: {
+		title: "Send Message",
+		description: "Send your message or execute search",
+		shortcuts: ["Enter", "Click arrow"],
+		modes: ["Normal message", "Web search", "With attachments"],
+	},
+} as const;
 
 export function MultimodalInput({
 	chatId,
@@ -199,53 +252,98 @@ export function MultimodalInput({
 				</motion.div>
 			)}
 
-			{/* Suggested Actions - No opacity change during loading */}
+			{/* Enhanced Suggested Actions */}
 			{messages.length === 0 && (
 				<div className="grid sm:grid-cols-2 gap-2">
 					{SUGGESTED_ACTIONS.map((action) => (
-						<Button
+						<motion.div
 							key={action.title}
-							variant="ghost"
-							onClick={() => setInput(action.action)}
-							className="text-left h-auto py-3"
-							disabled={isLoading}
+							variants={cardVariants}
+							initial="initial"
+							whileHover="hover"
+							whileTap="tap"
+							className="overflow-hidden"
 						>
-							<span className="flex flex-col">
-								<span className="font-medium">{action.title}</span>
-								<span className="text-xs text-muted-foreground">
-									{action.label}
-								</span>
-							</span>
-						</Button>
+							<Button
+								variant="ghost"
+								onClick={() => {
+									setInput(action.action);
+									// Add focus to textarea
+									textareaRef.current?.focus();
+								}}
+								className="w-full text-left h-auto py-3 relative group"
+								disabled={isLoading}
+							>
+								<motion.span 
+									className="flex flex-col relative z-10"
+									initial={{ x: 0 }}
+									whileHover={{ x: 4 }}
+									transition={{ type: "spring", stiffness: 300, damping: 25 }}
+								>
+									<span className="font-medium flex items-center gap-2">
+										{action.title}
+										<motion.span
+											initial={{ opacity: 0, x: -10 }}
+											animate={{ opacity: 1, x: 0 }}
+											transition={{ delay: 0.1 }}
+											className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100"
+										>
+											Try it →
+										</motion.span>
+									</span>
+									<span className="text-xs text-muted-foreground">
+										{action.label}
+									</span>
+								</motion.span>
+							</Button>
+						</motion.div>
 					))}
 				</div>
 			)}
 
-			{/* Input Area - Remains fully visible during loading */}
+			{/* Input Area with Enhanced Info */}
 			<div className="relative flex items-end gap-2">
-				<Textarea
-					ref={textareaRef}
-					value={input}
-					onChange={(e) => setInput(e.target.value)}
-					placeholder="Send a message..."
-					disabled={isLoading}
-					className={cx(
-						"min-h-[24px] max-h-[75vh] pr-24 resize-none rounded-xl",
-						className
-					)}
-					onKeyDown={(e) => {
-						if (e.key === "Enter" && !e.shiftKey) {
-							e.preventDefault();
-							isLoading ? toast.error("Please wait...") : onSubmit();
-						}
-					}}
-				/>
+				<HoverCard openDelay={300} closeDelay={100}>
+					<HoverCardTrigger asChild>
+						<Textarea
+							ref={textareaRef}
+							value={input}
+							onChange={(e) => setInput(e.target.value)}
+							placeholder={isWebSearchMode ? "Enter your search query..." : "Send a message..."}
+							disabled={isLoading}
+							className={cx(
+								"min-h-[24px] max-h-[75vh] pr-24 resize-none rounded-xl",
+								className,
+								isWebSearchMode && "border-primary/50"
+							)}
+							onKeyDown={(e) => {
+								if (e.key === "Enter" && !e.shiftKey) {
+									e.preventDefault();
+									isLoading ? toast.error("Please wait...") : onSubmit();
+								}
+							}}
+						/>
+					</HoverCardTrigger>
+					<HoverCardContent className="w-80">
+						<div className="space-y-2">
+							<h4 className="font-medium">Input Mode: {isWebSearchMode ? "Web Search" : "Chat"}</h4>
+							<p className="text-sm text-muted-foreground">
+								{isWebSearchMode ? ACTION_INFO.webSearch.description : "Type your message and press Enter to send."}
+							</p>
+							{attachments.length > 0 && (
+								<p className="text-xs text-muted-foreground">
+									📎 {attachments.length} attachment{attachments.length > 1 ? "s" : ""} included
+								</p>
+							)}
+						</div>
+					</HoverCardContent>
+				</HoverCard>
 
-				{/* Action Buttons - Maintain visibility during loading */}
+				{/* Action Buttons with Enhanced Info */}
 				<div className="absolute bottom-2 right-2 flex items-center gap-2">
 					{webSearchEnabled && (
-						<Tooltip>
-							<TooltipTrigger asChild>
+						<HoverCard openDelay={300} closeDelay={100}>
+							<HoverCardTrigger asChild>
 								<Button
 									size="icon"
 									variant={isWebSearchMode ? "default" : "outline"}
@@ -259,59 +357,93 @@ export function MultimodalInput({
 										}
 									)}
 								>
-									<GlobeIcon 
-										size={16} 
-										className={cx(
-											"transition-all",
-											{
-												"text-primary-foreground": isWebSearchMode,
-											}
-										)} 
-									/>
-									<span className="sr-only">
-										{isWebSearchMode ? 
-											attachments.length > 0 ? 
-												"Web search mode with attachments" : 
-												"Web search mode active" 
-											: "Enable web search"}
-									</span>
+									<GlobeIcon size={16} />
 								</Button>
-							</TooltipTrigger>
-							<TooltipContent>
-								{isWebSearchMode ? 
-									attachments.length > 0 ? 
-										"Web search mode with attachments" : 
-										"Web search mode active" 
-									: "Enable web search"}
-							</TooltipContent>
-						</Tooltip>
+							</HoverCardTrigger>
+							<HoverCardContent className="w-80">
+								<div className="space-y-2">
+									<h4 className="font-medium">{ACTION_INFO.webSearch.title}</h4>
+									<p className="text-sm">{ACTION_INFO.webSearch.description}</p>
+									<div className="mt-2 space-y-1">
+										<p className="text-xs font-medium">Shortcuts:</p>
+										<ul className="text-xs text-muted-foreground">
+											{ACTION_INFO.webSearch.shortcuts.map((shortcut) => (
+												<li key={shortcut}>• {shortcut}</li>
+											))}
+										</ul>
+									</div>
+								</div>
+							</HoverCardContent>
+						</HoverCard>
 					)}
 
-					<Button
-						size="icon"
-						variant="outline"
-						onClick={() => fileInputRef.current?.click()}
-						disabled={isLoading}
-						className="size-8 rounded-full"
-					>
-						<Paperclip size={16} />
-					</Button>
+					<HoverCard openDelay={300} closeDelay={100}>
+						<HoverCardTrigger asChild>
+							<Button
+								size="icon"
+								variant="outline"
+								onClick={() => fileInputRef.current?.click()}
+								disabled={isLoading}
+								className="size-8 rounded-full"
+							>
+								<Paperclip size={16} />
+							</Button>
+						</HoverCardTrigger>
+						<HoverCardContent className="w-80">
+							<div className="space-y-2">
+								<h4 className="font-medium">{ACTION_INFO.attachments.title}</h4>
+								<p className="text-sm">{ACTION_INFO.attachments.description}</p>
+								<div className="mt-2 space-y-1">
+									<p className="text-xs font-medium">Supported formats:</p>
+									<ul className="text-xs text-muted-foreground">
+										{ACTION_INFO.attachments.formats.map((format) => (
+											<li key={format}>• {format}</li>
+										))}
+									</ul>
+									<p className="text-xs text-muted-foreground">
+										Maximum file size: {ACTION_INFO.attachments.maxSize}
+									</p>
+								</div>
+							</div>
+						</HoverCardContent>
+					</HoverCard>
 
-					<Button
-						size="icon"
-						variant={input ? "default" : "outline"}
-						onClick={() => (isLoading ? stop() : onSubmit())}
-						disabled={!input && !attachments.length}
-						className="size-8 rounded-full"
-					>
-						{isLoading ? (
-							<Square size={16} className="animate-pulse" />
-						) : input ? (
-							<ArrowUp size={16} />
-						) : (
-							<Square size={16} />
-						)}
-					</Button>
+					<HoverCard openDelay={300} closeDelay={100}>
+						<HoverCardTrigger asChild>
+							<Button
+								size="icon"
+								variant={input ? "default" : "outline"}
+								onClick={() => (isLoading ? stop() : onSubmit())}
+								disabled={!input && !attachments.length}
+								className="size-8 rounded-full"
+							>
+								{isLoading ? (
+									<Square size={16} className="animate-pulse" />
+								) : input ? (
+									<ArrowUp size={16} />
+								) : (
+									<Square size={16} />
+								)}
+							</Button>
+						</HoverCardTrigger>
+						<HoverCardContent className="w-80">
+							<div className="space-y-2">
+								<h4 className="font-medium">{ACTION_INFO.send.title}</h4>
+								<p className="text-sm">{ACTION_INFO.send.description}</p>
+								<div className="mt-2 space-y-1">
+									<p className="text-xs font-medium">Shortcuts:</p>
+									<ul className="text-xs text-muted-foreground">
+										{ACTION_INFO.send.shortcuts.map((shortcut) => (
+											<li key={shortcut}>• {shortcut}</li>
+										))}
+									</ul>
+									<p className="text-xs text-muted-foreground">
+										Current mode: {isWebSearchMode ? "Web Search" : "Normal"}{attachments.length > 0 ? " with attachments" : ""}
+									</p>
+								</div>
+							</div>
+						</HoverCardContent>
+					</HoverCard>
 				</div>
 			</div>
 		</motion.div>
