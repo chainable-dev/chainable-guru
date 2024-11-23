@@ -25,40 +25,32 @@ import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 
 import type { Attachment as SupabaseAttachment } from '@/types/supabase';
-import type { Attachment, ChatRequestOptions, CreateMessage, Message } from 'ai';
+import type { ChatRequestOptions, CreateMessage, Message } from 'ai';
+import type { Attachment, ExtendedChatRequest } from '@/lib/types/ai';
 
 const suggestedActions = [
   {
-    title: 'Check Total Portfolio',
-    label: 'across all chains',
-    action: 'Show my total portfolio value across all chains',
+    title: 'Check Portfolio',
+    label: 'View total value',
+    action: 'Show my total portfolio value',
   },
   {
-    title: 'Base Chain Balance',
-    label: 'show my Base tokens',
-    action: 'Show my token balances on Base chain',
+    title: 'Base Balance',
+    label: 'Check Base chain',
+    action: 'Show my Base chain balance',
   },
   {
-    title: 'Chain Comparison',
-    label: 'compare chain values',
-    action: 'Compare my balances across different chains',
+    title: 'Token List',
+    label: 'View all tokens',
+    action: 'List all my tokens',
   },
   {
-    title: 'Token Analysis',
-    label: 'analyze holdings',
-    action: 'Analyze my portfolio distribution',
-  },
-  {
-    title: 'Create Document',
-    label: 'start writing',
-    action: 'Create a new document',
-  },
-  {
-    title: 'Get Weather',
-    label: 'current conditions',
+    title: 'Weather',
+    label: 'Current weather',
     action: 'Get the current weather',
-  },
-];
+  }
+] as const;
+
 // Add type for temp attachments
 type TempAttachment = {
   url: string;
@@ -84,7 +76,10 @@ interface MultimodalInputProps {
   setAttachments: Dispatch<SetStateAction<Attachment[]>>;
   messages: Message[];
   setMessages: Dispatch<SetStateAction<Message[]>>;
-  append: (message: Message | CreateMessage, chatRequestOptions?: ChatRequestOptions) => Promise<string | null | undefined>;
+  append: (
+    message: Message | CreateMessage, 
+    options?: ExtendedChatRequest
+  ) => Promise<string | null | undefined>;
   handleSubmit: (event?: { preventDefault?: () => void }, chatRequestOptions?: ChatRequestOptions) => void;
   className?: string;
   chatId: string;
@@ -117,7 +112,7 @@ export function MultimodalInput({
 
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
-  const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(true);
+  const [showSuggestions, setShowSuggestions] = useState(true);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -430,58 +425,40 @@ export function MultimodalInput({
     }
   }, [chatId, createStagedFile, removeStagedFile, setAttachments]);
 
+  const renderSuggestions = useCallback(() => {
+    if (!showSuggestions || messages.length > 0 || attachments.length > 0 || stagedFiles.length > 0) {
+      return null;
+    }
+
+    return (
+      <>
+        <button
+          onClick={() => setShowSuggestions(prev => !prev)}
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors p-2"
+        >
+          {showSuggestions ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          <span>Suggestions</span>
+        </button>
+
+        <div className="grid sm:grid-cols-2 gap-2">
+          {suggestedActions.map((action, index) => (
+            <button
+              key={action.title}
+              onClick={() => handleSuggestedAction(action.action)}
+              className="text-left border rounded-xl p-4 hover:bg-muted transition-colors"
+            >
+              <div className="font-medium">{action.title}</div>
+              <div className="text-sm text-muted-foreground">{action.label}</div>
+            </button>
+          ))}
+        </div>
+      </>
+    );
+  }, [showSuggestions, messages.length, attachments.length, stagedFiles.length, handleSuggestedAction]);
+
   return (
     <div className="relative w-full flex flex-col gap-4">
-      {messages.length === 0 &&
-        attachments.length === 0 &&
-        stagedFiles.length === 0 && (
-          <>
-            <Button
-              variant="ghost"
-              onClick={() => setIsSuggestionsOpen(!isSuggestionsOpen)}
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {isSuggestionsOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              <span>Suggestions</span>
-            </Button>
-            
-            <AnimatePresence>
-              {isSuggestionsOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
-                >
-                  <div className="grid sm:grid-cols-2 gap-2 w-full">
-                    {suggestedActions.map((suggestedAction, index) => (
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 20 }}
-                        transition={{ delay: 0.05 * index }}
-                        key={index}
-                        className={index > 1 ? 'hidden sm:block' : 'block'}
-                      >
-                        <Button
-                          variant="ghost"
-                          onClick={() => handleSuggestedAction(suggestedAction.action)}
-                          className="text-left border rounded-xl px-4 py-3.5 text-sm flex-1 gap-1 sm:flex-col w-full h-auto justify-start items-start"
-                        >
-                          <span className="font-medium">{suggestedAction.title}</span>
-                          <span className="text-muted-foreground">
-                            {suggestedAction.label}
-                          </span>
-                        </Button>
-                      </motion.div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </>
-        )}
+      {renderSuggestions()}
 
       <input
         type="file"

@@ -25,39 +25,6 @@
     "paths": {
       "@/*": [
         "./*"
-      ],
-      "@/app/*": [
-        "./app/*"
-      ],  
-      "@/components/*": [
-        "./components/*"
-      ],
-      "@/lib/*": [
-        "./lib/*"
-      ],
-      "@/hooks/*": [
-        "./hooks/*"
-      ],
-      "@/utils/*": [
-        "./utils/*"
-      ],
-      "@/tests/*": [
-        "./__tests__/*"
-      ],
-      "@/components/custom/*": [
-        "./components/custom/*"
-      ],
-      "@/ai/*": [
-        "./ai/*"
-      ],
-      "@/db/*": [
-        "./db/*"
-      ],
-      "@/actions/*": [
-        "./actions/*"
-      ],
-      "@/public/*": [
-        "./public/*"
       ]
     },
     "types": [

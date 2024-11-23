@@ -1,5 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        encoding: false
+      }
+    }
+    return config
+  },
   images: {
     remotePatterns: [
       {
@@ -7,14 +19,6 @@ const nextConfig = {
         hostname: '**',
       },
     ],
-  },
-  // Simple image handling
-  webpack: (config) => {
-    config.module.rules.push({
-      test: /\.(png|jpg|jpeg|gif|svg)$/i,
-      type: 'asset/resource'
-    })
-    return config
   }
 }
 
