@@ -7,8 +7,8 @@ import '../styles/dark-mode.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://chainable.guru'),
-  title: 'use',
-  description: 'AI Chat Bot with Blockchain Integration',
+  title: 'Elron - AI web3 chatbot',
+  description: 'Elron is an AI chatbot that integrates with blockchain technologies.',
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: 'any' },
@@ -29,19 +29,22 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="dark">
       <head>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            try {
-              if (localStorage.theme === 'light') document.documentElement.classList.remove('dark')
-              else document.documentElement.classList.add('dark')
-            } catch (_) {}
-          `,
-        }} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (!localStorage.theme) localStorage.theme = 'dark';
+                document.documentElement.classList.add('dark');
+              } catch (_) {}
+            `,
+          }}
+        />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-icon.png" />
+        <link rel="shortcut icon" href="/favicon.ico" />
       </head>
-      <body className="antialiased dark:bg-gray-900">
+      <body className="antialiased bg-background text-foreground dark:bg-gray-900">
         <RootProvider>
           {children}
         </RootProvider>

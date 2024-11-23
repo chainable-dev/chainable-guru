@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "pnpm setup-favicons && next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -18,7 +18,9 @@
     "generate-icons": "tsx scripts/generate-icons.ts",
     "create-favicon": "tsx scripts/create-favicon.ts",
     "create-text-icon": "tsx scripts/create-text-icon.ts",
-    "create-chainable-icon": "tsx scripts/create-chainable-icon.ts"
+    "create-chainable-icon": "tsx scripts/create-chainable-icon.ts",
+    "setup-favicons": "pnpm optimize-images && tsx scripts/setup-favicons.ts",
+    "optimize-images": "tsx scripts/optimize-images.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^0.0.60",
@@ -79,7 +81,8 @@
     "usehooks-ts": "^3.1.0",
     "viem": "^2.21.49",
     "wagmi": "^2.13.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "gpt3-tokenizer": "^1.1.5"
   },
   "devDependencies": {
     "@svgr/webpack": "^8.1.0",
