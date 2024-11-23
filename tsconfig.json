@@ -31,7 +31,7 @@
 			"@/db/*": ["./db/*"],
 			"@/public/*": ["./public/*"],
 			"@/types/*": ["./types/*"],
-			"@/actions/*": ["./app/actions/*"]
+			"@/actions/*": ["./actions/*"]
 		},
 		"types": [
 			"node",
