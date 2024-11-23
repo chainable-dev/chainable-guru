@@ -26,9 +26,6 @@
       "@/*": [
         "./*"
       ],
-      "@/app/*": [
-        "./app/*"
-      ],
       "@/components/*": [
         "./components/*"
       ],
@@ -46,6 +43,18 @@
       ],
       "@/components/custom/*": [
         "./components/custom/*"
+      ],
+      "@/ai/*": [
+        "./ai/*"
+      ],
+      "@/db/*": [
+        "./db/*"
+      ],
+      "@/actions/*": [
+        "./actions/*"
+      ],
+      "@/public/*": [
+        "./public/*"
       ]
     },
     "types": [
