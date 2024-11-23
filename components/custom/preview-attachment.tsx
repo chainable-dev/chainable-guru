@@ -2,7 +2,7 @@ import { FileIcon, X } from 'lucide-react';
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { toast } from "sonner";
+import { toast } from 'sonner';
 
 interface Attachment {
   url: string;
@@ -20,8 +20,8 @@ interface PreviewAttachmentProps {
 // Helper function to check for duplicate files
 const isDuplicate = (newAttachment: Attachment, existingAttachments: Attachment[] = []): boolean => {
   if (!newAttachment.name) return false;
-  
-  return existingAttachments.some(existing => 
+
+  return existingAttachments.some(existing =>
     existing.name === newAttachment.name || existing.url === newAttachment.url
   );
 };
@@ -50,7 +50,7 @@ export function PreviewAttachment({
       }
       return;
     }
-  }, [attachment, existingAttachments, altText, onRemove]);
+  }, [attachment, existingAttachments, altText, onRemove, toast]);
 
   // If it's a duplicate, don't render anything
   if (isDuplicate(attachment, existingAttachments)) {
@@ -59,7 +59,7 @@ export function PreviewAttachment({
 
   const handleImageError = () => {
     setImageError(true);
-    console.error(`Failed to load image: ${attachment.url}`);
+    console.warn(`Failed to load image: ${attachment.url}`);
   };
 
   const handleImageLoad = () => {
