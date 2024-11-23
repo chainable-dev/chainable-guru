@@ -1,17 +1,16 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
 import { useWindowSize } from 'usehooks-ts';
 import { MessageSquare, X } from 'lucide-react';
 import { Button } from '../ui/button';
-import { Card, CardContent, CardHeader, CardFooter } from '../ui/card';
 
 type UISuggestion = {
   id: string;
   title: string;
   description: string;
   code?: string;
+  diff?: string;
 };
 
 export const Suggestion = ({
@@ -22,60 +21,36 @@ export const Suggestion = ({
   onApply: () => void;
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { width: windowWidth } = useWindowSize();
+  const { width } = useWindowSize();
 
   return (
-    <AnimatePresence>
-      {!isExpanded ? (
-        <motion.div
-          className="absolute cursor-pointer text-muted-foreground hover:text-foreground -right-8 p-1 transition-colors"
-          onClick={() => setIsExpanded(true)}
-          whileHover={{ scale: 1.1 }}
-        >
-          <MessageSquare size={windowWidth && windowWidth < 768 ? 16 : 14} />
-        </motion.div>
-      ) : (
-        <motion.div
-          key={suggestion.id}
-          className="absolute z-50 -right-12 md:-right-16"
-          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: -20 }}
-          exit={{ opacity: 0, y: -10 }}
-        >
-          <Card className="w-56 bg-card/95 backdrop-blur border-border shadow-lg">
-            <CardHeader className="p-3 pb-0">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="size-4 bg-primary/20 rounded-full" />
-                  <div className="font-medium text-foreground">Assistant</div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={() => setIsExpanded(false)}
-                >
-                  <X size={12} className="text-muted-foreground hover:text-foreground" />
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-3 text-sm text-foreground/90">
-              {suggestion.description}
-            </CardContent>
-            <CardFooter className="p-3 pt-0">
-              <Button
-                variant="secondary"
-                size="sm"
-                className="rounded-full w-fit"
-                onClick={onApply}
-              >
-                Apply
-              </Button>
-            </CardFooter>
-          </Card>
-        </motion.div>
+    <div className="flex flex-col gap-2 p-4 rounded-lg border bg-background/95">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <MessageSquare className="w-5 h-5 mt-1 text-muted-foreground" />
+          <div className="flex flex-col gap-1">
+            <h3 className="font-medium">{suggestion.title}</h3>
+            <p className="text-sm text-muted-foreground">{suggestion.description}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            {isExpanded ? <X className="h-4 w-4" /> : 'View'}
+          </Button>
+          <Button size="sm" onClick={onApply}>
+            Apply
+          </Button>
+        </div>
+      </div>
+      {isExpanded && suggestion.code && (
+        <pre className="p-4 rounded bg-muted font-mono text-sm overflow-x-auto">
+          <code>{suggestion.code}</code>
+        </pre>
       )}
-    </AnimatePresence>
+    </div>
   );
 };
