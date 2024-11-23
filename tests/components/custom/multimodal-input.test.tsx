@@ -45,4 +45,19 @@ describe('MultimodalInput Component', () => {
     fireEvent.click(button);
     expect(defaultProps.setInput).toHaveBeenCalledWith('Search: ');
   });
+it('toggles web search mode correctly', () => {
+  render(<MultimodalInput {...defaultProps} />);
+  const button = screen.getByRole('button', { name: /globe/i });
+  fireEvent.click(button);
+  expect(defaultProps.setInput).toHaveBeenCalledWith('Search: ');
+  fireEvent.click(button);
+  expect(defaultProps.setInput).toHaveBeenCalledWith('');
+});
+
+it('handles file upload correctly', () => {
+  const file = new File(['hello'], 'hello.png', { type: 'image/png' });
+  render(<MultimodalInput {...defaultProps} />);
+  const input = screen.getByLabelText('Upload file');
+  fireEvent.change(input, { target: { files: [file] } });
+  expect(defaultProps.setAttachments).toHaveBeenCalledWith([file]);
 });
