@@ -10,12 +10,40 @@ import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 
 export default function LoginPage() {
 	const router = useRouter();
 	const [isLoading, setIsLoading] = useState(false);
+	const [email, setEmail] = useState("");
+	const [password, setPassword] = useState("");
 
-	async function handleLogin() {
+	async function handleEmailLogin(e: React.FormEvent) {
+		e.preventDefault();
+		try {
+			setIsLoading(true);
+			const supabase = createClient();
+
+			const { error } = await supabase.auth.signInWithPassword({
+				email,
+				password,
+			});
+
+			if (error) throw error;
+
+			router.refresh();
+			router.push("/");
+		} catch (error) {
+			console.error("Login error:", error);
+			toast.error("Failed to login");
+		} finally {
+			setIsLoading(false);
+		}
+	}
+
+	async function handleGoogleLogin() {
 		try {
 			setIsLoading(true);
 			const supabase = createClient();
@@ -23,11 +51,7 @@ export default function LoginPage() {
 			const { error } = await supabase.auth.signInWithOAuth({
 				provider: "google",
 				options: {
-					redirectTo: `${window.location.origin}/auth/callback`,
-					queryParams: {
-						access_type: 'offline',
-						prompt: 'consent',
-					},
+					redirectTo: `${window.location.origin}/`,
 				},
 			});
 
@@ -77,32 +101,83 @@ export default function LoginPage() {
 					<CardHeader className="space-y-1 text-center pb-4">
 						<h2 className="text-2xl font-semibold">Sign in</h2>
 						<p className="text-sm text-muted-foreground">
-							Continue with Google to get started
+							Choose your preferred login method
 						</p>
 					</CardHeader>
 					<CardContent className="space-y-4">
+						{/* Email/Password Form */}
+						<form onSubmit={handleEmailLogin} className="space-y-4">
+							<div className="space-y-2">
+								<Label htmlFor="email">Email</Label>
+								<Input
+									id="email"
+									type="email"
+									placeholder="Enter your email"
+									value={email}
+									onChange={(e) => setEmail(e.target.value)}
+									required
+								/>
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="password">Password</Label>
+								<Input
+									id="password"
+									type="password"
+									placeholder="Enter your password"
+									value={password}
+									onChange={(e) => setPassword(e.target.value)}
+									required
+								/>
+							</div>
+							<Button
+								type="submit"
+								className="w-full"
+								disabled={isLoading}
+							>
+								{isLoading ? "Signing in..." : "Sign in with Email"}
+							</Button>
+						</form>
+
+						<div className="relative">
+							<Separator className="my-4" />
+							<div className="absolute inset-0 flex items-center justify-center">
+								<span className="bg-background px-3 text-xs text-muted-foreground">
+									or
+								</span>
+							</div>
+						</div>
+
+						{/* Google Login */}
 						<Button
-							className="w-full h-12 text-lg relative group transition-all duration-200 hover:shadow-md"
-							onClick={handleLogin}
+							className="w-full relative group transition-all duration-200 hover:shadow-md"
+							onClick={handleGoogleLogin}
 							disabled={isLoading}
+							variant="outline"
 						>
-							<motion.div
-								className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-10 rounded-md"
-								initial={false}
-								animate={{ scale: isLoading ? 1.05 : 1 }}
-								transition={{ duration: 0.2 }}
-							/>
 							<span className="flex items-center justify-center gap-3">
 								<Image
 									src="/logos/google.svg"
-									alt="Google"
-									width={24}
-									height={24}
-									className="size-6"
+										alt="Google"
+										width={20}
+										height={20}
+										className="size-5"
 								/>
-								{isLoading ? "Connecting..." : "Continue with Google"}
+								Continue with Google
 							</span>
 						</Button>
+
+						{/* Sign Up Link */}
+						<div className="text-center space-y-2">
+							<p className="text-sm text-muted-foreground">
+								Don't have an account?{" "}
+								<Link
+									href="/register"
+									className="text-primary hover:text-primary/80 hover:underline transition-colors duration-200"
+								>
+									Sign up
+								</Link>
+							</p>
+						</div>
 					</CardContent>
 				</Card>
 
