@@ -15,21 +15,38 @@ import { DeltaIcon } from "./DeltaIcon";
 import { RedoIcon } from "./RedoIcon";
 import { UndoIcon } from "./UndoIcon";
 
-// Re-export with consistent naming
-export const ArrowUp = IoArrowUp;
-export const Paperclip = IoPaperclip;
-export const Stop = IoStop;
-export const Cross = IoClose;
-export const Copy = IoCopy;
-export const Globe = IoGlobe;
-export const Wallet = IoWallet;
-export const Square = IoSquare;
+// Re-export with consistent naming and accessibility props
+export const ArrowUp = (props: IconProps) => (
+  <IoArrowUp {...props} aria-hidden="true" role="img" />
+);
+export const Paperclip = (props: IconProps) => (
+  <IoPaperclip {...props} aria-hidden="true" role="img" />
+);
+export const Stop = (props: IconProps) => (
+  <IoStop {...props} aria-hidden="true" role="img" />
+);
+export const Cross = (props: IconProps) => (
+  <IoClose {...props} aria-hidden="true" role="img" />
+);
+export const Copy = (props: IconProps) => (
+  <IoCopy {...props} aria-hidden="true" role="img" />
+);
+export const Globe = (props: IconProps) => (
+  <IoGlobe {...props} aria-hidden="true" role="img" />
+);
+export const Wallet = (props: IconProps) => (
+  <IoWallet {...props} aria-hidden="true" role="img" />
+);
+export const Square = (props: IconProps) => (
+  <IoSquare {...props} aria-hidden="true" role="img" />
+);
 
-// Export custom icons
+// Export custom icons with accessibility props
 export { DeltaIcon, RedoIcon, UndoIcon };
 
 // Export icon types
-export type IconProps = {
+export interface IconProps {
   size?: number;
   className?: string;
-}; 
+  'aria-label'?: string;
+} 
