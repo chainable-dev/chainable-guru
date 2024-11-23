@@ -24,43 +24,12 @@ const LINKS = {
 	supabase: "https://supabase.com",
 } as const;
 
-const ROTATION_INTERVAL = 30 * 60 * 1000; // 30 minutes in milliseconds
-
 export const Overview = () => {
 	const [quote, setQuote] = useState(QUOTES[0]);
-	const [lastRotation, setLastRotation] = useState(Date.now());
 
 	useEffect(() => {
-		// Function to get a new random quote different from the current one
-		const getNewQuote = () => {
-			const currentIndex = QUOTES.indexOf(quote);
-			let newIndex;
-			do {
-				newIndex = Math.floor(Math.random() * QUOTES.length);
-			} while (newIndex === currentIndex);
-			return QUOTES[newIndex];
-		};
-
-		// Set up rotation interval
-		const rotateQuote = () => {
-			const now = Date.now();
-			if (now - lastRotation >= ROTATION_INTERVAL) {
-				setQuote(getNewQuote());
-				setLastRotation(now);
-			}
-		};
-
-		// Initial random quote
-		if (quote === QUOTES[0]) {
-			setQuote(getNewQuote());
-		}
-
-		// Set up interval
-		const interval = setInterval(rotateQuote, ROTATION_INTERVAL);
-
-		// Clean up
-		return () => clearInterval(interval);
-	}, [quote, lastRotation]);
+		setQuote(QUOTES[Math.floor(Math.random() * QUOTES.length)]);
+	}, []);
 
 	return (
 		<motion.div
@@ -94,20 +63,14 @@ export const Overview = () => {
 					</div>
 				</div>
 
-				<motion.p 
-					key={quote}
-					initial={{ opacity: 0, y: 10 }}
-					animate={{ opacity: 1, y: 0 }}
-					exit={{ opacity: 0, y: -10 }}
-					className="text-sm italic text-muted-foreground"
-				>
+				<p className="text-sm italic text-muted-foreground">
 					&ldquo;{quote}&rdquo;
-				</motion.p>
+				</p>
 
 				<div className="space-y-4 text-sm">
 					<p>
 						Welcome to Chainable Chat Bot - your AI-powered Web3 assistant.
-						 Built with Next.js and the latest Web3 technologies.
+						Built with Next.js and the latest Web3 technologies.
 					</p>
 					<p>
 						Connect your wallet to access personalized features like balance

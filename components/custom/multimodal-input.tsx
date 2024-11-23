@@ -1,30 +1,21 @@
 "use client";
 
 import cx from "classnames";
-import React, { useRef, useCallback, useState } from "react";
+import React, { useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { useLocalStorage } from "usehooks-ts";
 import { useAccount } from 'wagmi';
+
+import { useWalletState } from "@/hooks/useWalletState";
 import { 
 	ArrowUp,
 	Paperclip,
 	Square,
-	WalletIcon,
-} from "lucide-react";
-import { motion } from "framer-motion";
-import { messageAnimationVariants } from "@/lib/animation-variants";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import {
-	HoverCard,
-	HoverCardContent,
-	HoverCardTrigger,
-} from "@/components/ui/hover-card";
-
-import { useWalletState } from "@/hooks/useWalletState";
-import GlobeIcon from "@/components/custom/icons/GlobeIcon";
+	Wallet,
+	GlobeIcon,
+} from "@/components/custom/icons";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
-import { LoadingSkeleton } from "./loading-skeleton";
 
 import type { MultimodalInputProps } from "@/types/chat";
 
@@ -45,69 +36,11 @@ const SUGGESTED_ACTIONS = [
 		action: "Search the web for latest blockchain news",
 	},
 	{
-		title: "Restaurant recommendations",
-		label: "find places to eat",
-		action: "Can you recommend some good restaurants nearby?",
-	},
-	{
-		title: "Weather check",
-		label: "get weather updates",
-		action: "What's the weather like today?",
-	},
-	{
 		title: "Smart contract interaction",
 		label: "interact with contracts",
 		action: "Show me how to interact with a smart contract",
 	},
 ] as const;
-
-// Add hover animation variants
-const cardVariants = {
-	initial: { 
-		scale: 1,
-		backgroundColor: "var(--background)" 
-	},
-	hover: { 
-		scale: 1.02,
-		backgroundColor: "var(--accent)",
-		transition: {
-			type: "spring",
-			stiffness: 400,
-			damping: 17
-		}
-	},
-	tap: { 
-		scale: 0.98,
-		backgroundColor: "var(--accent)",
-		transition: {
-			type: "spring",
-			stiffness: 400,
-			damping: 17
-		}
-	}
-};
-
-// Add info tooltips for actions
-const ACTION_INFO = {
-	webSearch: {
-		title: "Web Search",
-		description: "Search the web for information. You can include attachments with your search.",
-		shortcuts: ["Click globe icon", "Type 'search:'"],
-		examples: ["search: latest blockchain news", "search: weather in London"],
-	},
-	attachments: {
-		title: "Attachments",
-		description: "Upload files to include with your message. Supports images, PDFs, and documents.",
-		formats: ["Images (PNG, JPG)", "Documents (PDF, DOC)", "Text files"],
-		maxSize: "10MB",
-	},
-	send: {
-		title: "Send Message",
-		description: "Send your message or execute search",
-		shortcuts: ["Enter", "Click arrow"],
-		modes: ["Normal message", "Web search", "With attachments"],
-	},
-} as const;
 
 export function MultimodalInput({
 	chatId,
@@ -129,323 +62,255 @@ export function MultimodalInput({
 	const [localInput, setLocalInput] = useLocalStorage("chat-input", "");
 	const { isConnected, isCorrectNetwork } = useWalletState();
 	const { address } = useAccount();
-	const [isWebSearchMode, setIsWebSearchMode] = useState(false);
-	const [isSearching, setIsSearching] = useState(false);
 
-	// Modified web search handler
+	// Web search handler with better formatting
 	const handleWebSearch = useCallback(async () => {
-		setIsWebSearchMode(!isWebSearchMode);
-		
-		if (isWebSearchMode) {
-			setInput("");
-			setLocalInput("");
-		} else {
-			const currentInput = input.trim();
-			if (!currentInput.toLowerCase().startsWith("search:")) {
-				setInput(`Search: ${currentInput}`);
-			}
-		}
-	}, [isWebSearchMode, input, setInput, setLocalInput]);
-
-	// Update submit handler to handle all combinations
-	const onSubmit = useCallback(async () => {
 		const searchText = input.trim();
-		const hasAttachments = attachments.length > 0;
-
-		// Validate input
-		if (!searchText && !hasAttachments) {
-			toast.error("Please enter a message or add an attachment");
+		if (!searchText) {
+			toast.error("Please enter a search query");
 			return;
 		}
 
 		try {
-			setIsSearching(true);
-
-			if (isWebSearchMode) {
-				// Execute web search
-				const searchQuery = searchText.replace(/^search:\s*/i, '');
-				const response = await fetch(
-					`/api/search?query=${encodeURIComponent(searchQuery)}`
-				);
-				
-				if (!response.ok) {
-					throw new Error("Search failed");
-				}
-
-				const data = await response.json();
-				
-				// Format and append results
-				const formattedResults = data.results
-					.map((result: any, index: number) => (
-						`${index + 1}. ${result.Text}\n${result.FirstURL ? `   Link: ${result.FirstURL}\n` : ''}`
-					))
-					.join('\n');
-
-				// First, append user's query with attachments if any
-				await append(
-					{
-						role: "user",
-						content: searchText,
-					},
-					hasAttachments ? { experimental_attachments: attachments } : undefined
-				);
-
-				// Then append search results
-				await append(
-					{
-						role: "assistant",
-						content: `🔍 Search Results for "${searchQuery}":\n\n${formattedResults}\n\n${hasAttachments ? "📎 Search includes attached files\n\n" : ""}---\nResults powered by DuckDuckGo`,
-					}
-				);
-			} else {
-				// Normal message with optional attachments
-				await append(
-					{
-						role: "user",
-						content: searchText,
-					},
-					hasAttachments ? { experimental_attachments: attachments } : undefined
-				);
+			const response = await fetch(
+				`/api/search?query=${encodeURIComponent(searchText)}`
+			);
+			
+			if (!response.ok) {
+				throw new Error("Search failed");
 			}
 
-			// Clear input and reset modes
+			const data = await response.json();
+			
+			// Improved formatting for search results
+			const formattedResults = data.results
+				.map((result: any, index: number) => (
+					`${index + 1}. ${result.Text}\n${result.FirstURL ? `   Link: ${result.FirstURL}\n` : ''}`
+				))
+				.join('\n');
+
+			const searchMessage = `🔍 **Web Search Results**\n\nQuery: "${searchText}"\n\n${formattedResults}\n\n---\nResults powered by DuckDuckGo`;
+
+			// Append search results to chat
+			await append(
+				{
+					role: "assistant",
+					content: searchMessage,
+				}
+			);
+
+			// Also append the user's query
+			await append(
+				{
+					role: "user",
+					content: `Search: ${searchText}`,
+				}
+			);
+
+			setInput("");
+			setLocalInput("");
+		} catch (error) {
+			console.error("Search error:", error);
+			toast.error("Failed to perform web search");
+		}
+	}, [input, append, setInput, setLocalInput]);
+
+	// Add balance check handler
+	const handleBalanceCheck = useCallback(async () => {
+		if (!address) {
+			toast.error("Please connect your wallet first");
+			return;
+		}
+
+		try {
+			// Fetch both basic balance and DeBankAPI data
+			const [ethResponse, debankResponse] = await Promise.all([
+				fetch(`/api/wallet/balance?address=${address}&network=base-sepolia`),
+				fetch(`/api/wallet/debank?address=${address}`),
+			]);
+			
+			if (!ethResponse.ok || !debankResponse.ok) {
+				throw new Error("Balance check failed");
+			}
+
+			const [ethData, debankData] = await Promise.all([
+				ethResponse.json(),
+				debankResponse.json(),
+			]);
+			
+			// Format the balance message with both ETH and token balances
+			const tokenList = debankData.tokens
+				.filter((token: any) => token.usd_value > 1) // Only show tokens worth more than $1
+				.map((token: any) => 
+					`- ${token.symbol}: ${Number(token.balance).toFixed(4)} (${token.chain}) ≈ $${token.usd_value.toFixed(2)}`
+				)
+				.join('\n');
+
+			const balanceMessage = `💰 **Wallet Balance**\n\n` +
+				`Address: \`${address}\`\n` +
+				`Network: Base Sepolia\n` +
+				`ETH Balance: ${Number(ethData.balance).toFixed(4)} ETH\n\n` +
+				`**Total Portfolio Value:** $${debankData.totalBalance.total_usd_value.toFixed(2)}\n\n` +
+				`**Token Balances:**\n${tokenList}\n\n` +
+				`---\nLast updated: ${new Date().toLocaleString()}`;
+
+			// Append balance info to chat
+			await append(
+				{
+					role: "assistant",
+					content: balanceMessage,
+				}
+			);
+
+		} catch (error) {
+			console.error("Balance check error:", error);
+			toast.error("Failed to check wallet balance");
+		}
+	}, [address, append]);
+
+	// Update submit handler to include balance check
+	const onSubmit = useCallback(async () => {
+		const searchText = input.trim();
+		if (!searchText && attachments.length === 0) {
+			toast.error("Please enter a message or add an attachment");
+			return;
+		}
+
+		const isWalletQuery = searchText.toLowerCase().includes("wallet") || 
+							 searchText.toLowerCase().includes("balance");
+		const isWebSearch = searchText.toLowerCase().includes("search");
+
+		if (isWalletQuery && (!isConnected || !isCorrectNetwork)) {
+			toast.error("Please connect your wallet and ensure correct network");
+			return;
+		}
+
+		try {
+			if (isWalletQuery) {
+				await handleBalanceCheck();
+				return;
+			}
+
+			if (isWebSearch && webSearchEnabled) {
+				await handleWebSearch();
+				return;
+			}
+
+			await append(
+				{
+						role: "user",
+						content: searchText,
+				},
+				{ experimental_attachments: attachments }
+			);
+
 			setInput("");
 			setAttachments([]);
 			setLocalInput("");
-			setIsWebSearchMode(false);
 		} catch (error) {
-			console.error("Error:", error);
-			toast.error(isWebSearchMode ? "Failed to perform web search" : "Failed to send message");
-		} finally {
-			setIsSearching(false);
+			toast.error("Failed to send message");
 		}
 	}, [
 		input,
 		attachments,
 		append,
-		isWebSearchMode,
+		isConnected,
+		isCorrectNetwork,
+		handleWebSearch,
+		handleBalanceCheck,
+		webSearchEnabled,
 		setInput,
 		setAttachments,
 		setLocalInput,
 	]);
 
 	return (
-		<motion.div 
-			className="relative w-full flex flex-col gap-4"
-			layout
-			initial={{ opacity: 0, y: 20 }}
-			animate={{ opacity: 1, y: 0 }}
-			exit={{ opacity: 0, y: 20 }}
-			transition={{ duration: 0.3 }}
-		>
-			{/* Loading Skeleton - Moved to top */}
-			{isLoading && (
-				<motion.div 
-					className="sticky top-0 z-50 w-full py-2 px-4"
-					initial={{ opacity: 0, y: -20 }}
-					animate={{ opacity: 1, y: 0 }}
-					exit={{ opacity: 0, y: -20 }}
-				>
-					<div className="bg-background/80 backdrop-blur-sm rounded-lg p-4 shadow-lg border">
-						<LoadingSkeleton className="w-full max-w-[300px] mx-auto" />
-					</div>
-				</motion.div>
-			)}
-
-			{/* Enhanced Suggested Actions */}
+		<div className="relative w-full flex flex-col gap-4">
+			{/* Suggested Actions */}
 			{messages.length === 0 && (
 				<div className="grid sm:grid-cols-2 gap-2">
 					{SUGGESTED_ACTIONS.map((action) => (
-						<motion.div
+						<Button
 							key={action.title}
-							variants={cardVariants}
-							initial="initial"
-							whileHover="hover"
-							whileTap="tap"
-							className="overflow-hidden"
+							variant="ghost"
+							onClick={() => setInput(action.action)}
+							className="text-left h-auto py-3"
 						>
-							<Button
-								variant="ghost"
-								onClick={() => {
-									setInput(action.action);
-									// Add focus to textarea
-									textareaRef.current?.focus();
-								}}
-								className="w-full text-left h-auto py-3 relative group"
-								disabled={isLoading}
-							>
-								<motion.span 
-									className="flex flex-col relative z-10"
-									initial={{ x: 0 }}
-									whileHover={{ x: 4 }}
-									transition={{ type: "spring", stiffness: 300, damping: 25 }}
-								>
-									<span className="font-medium flex items-center gap-2">
-										{action.title}
-										<motion.span
-											initial={{ opacity: 0, x: -10 }}
-											animate={{ opacity: 1, x: 0 }}
-											transition={{ delay: 0.1 }}
-											className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100"
-										>
-											Try it →
-										</motion.span>
-									</span>
-									<span className="text-xs text-muted-foreground">
-										{action.label}
-									</span>
-								</motion.span>
-							</Button>
-						</motion.div>
+							<span className="flex flex-col">
+								<span className="font-medium">{action.title}</span>
+								<span className="text-xs text-muted-foreground">
+									{action.label}
+								</span>
+							</span>
+						</Button>
 					))}
 				</div>
 			)}
 
-			{/* Input Area with Enhanced Info */}
+			{/* Input Area */}
 			<div className="relative flex items-end gap-2">
-				<HoverCard openDelay={300} closeDelay={100}>
-					<HoverCardTrigger asChild>
-						<Textarea
-							ref={textareaRef}
-							value={input}
-							onChange={(e) => setInput(e.target.value)}
-							placeholder={isWebSearchMode ? "Enter your search query..." : "Send a message..."}
-							disabled={isLoading}
-							className={cx(
-								"min-h-[24px] max-h-[75vh] pr-24 resize-none rounded-xl",
-								className,
-								isWebSearchMode && "border-primary/50"
-							)}
-							onKeyDown={(e) => {
-								if (e.key === "Enter" && !e.shiftKey) {
-									e.preventDefault();
-									isLoading ? toast.error("Please wait...") : onSubmit();
-								}
-							}}
-						/>
-					</HoverCardTrigger>
-					<HoverCardContent className="w-80">
-						<div className="space-y-2">
-							<h4 className="font-medium">Input Mode: {isWebSearchMode ? "Web Search" : "Chat"}</h4>
-							<p className="text-sm text-muted-foreground">
-								{isWebSearchMode ? ACTION_INFO.webSearch.description : "Type your message and press Enter to send."}
-							</p>
-							{attachments.length > 0 && (
-								<p className="text-xs text-muted-foreground">
-									📎 {attachments.length} attachment{attachments.length > 1 ? "s" : ""} included
-								</p>
-							)}
-						</div>
-					</HoverCardContent>
-				</HoverCard>
+				<Textarea
+					ref={textareaRef}
+					value={input}
+					onChange={(e) => setInput(e.target.value)}
+					placeholder="Send a message..."
+					className={cx(
+						"min-h-[24px] max-h-[75vh] pr-24 resize-none rounded-xl",
+						className
+					)}
+					onKeyDown={(e) => {
+						if (e.key === "Enter" && !e.shiftKey) {
+							e.preventDefault();
+							isLoading ? toast.error("Please wait...") : onSubmit();
+						}
+					}}
+				/>
 
-				{/* Action Buttons with Enhanced Info */}
+				{/* Action Buttons */}
 				<div className="absolute bottom-2 right-2 flex items-center gap-2">
 					{webSearchEnabled && (
-						<HoverCard openDelay={300} closeDelay={100}>
-							<HoverCardTrigger asChild>
-								<Button
-									size="icon"
-									variant={isWebSearchMode ? "default" : "outline"}
-									onClick={handleWebSearch}
-									disabled={isLoading || isSearching}
-									className={cx(
-										"size-8 rounded-full transition-all duration-200",
-										{
-											"bg-primary text-primary-foreground": isWebSearchMode,
-											"hover:bg-primary/90 hover:text-primary-foreground": !isWebSearchMode,
-										}
-									)}
-								>
-									<GlobeIcon size={16} />
-								</Button>
-							</HoverCardTrigger>
-							<HoverCardContent className="w-80">
-								<div className="space-y-2">
-									<h4 className="font-medium">{ACTION_INFO.webSearch.title}</h4>
-									<p className="text-sm">{ACTION_INFO.webSearch.description}</p>
-									<div className="mt-2 space-y-1">
-										<p className="text-xs font-medium">Shortcuts:</p>
-										<ul className="text-xs text-muted-foreground">
-											{ACTION_INFO.webSearch.shortcuts.map((shortcut) => (
-												<li key={shortcut}>• {shortcut}</li>
-											))}
-										</ul>
-									</div>
-								</div>
-							</HoverCardContent>
-						</HoverCard>
+						<Button
+							size="icon"
+							variant="outline"
+							onClick={handleWebSearch}
+							disabled={isLoading || !input.trim()}
+							className="size-8 rounded-full"
+						>
+							<GlobeIcon size={16} />
+						</Button>
 					)}
 
-					<HoverCard openDelay={300} closeDelay={100}>
-						<HoverCardTrigger asChild>
-							<Button
-								size="icon"
-								variant="outline"
-								onClick={() => fileInputRef.current?.click()}
-								disabled={isLoading}
-								className="size-8 rounded-full"
-							>
-								<Paperclip size={16} />
-							</Button>
-						</HoverCardTrigger>
-						<HoverCardContent className="w-80">
-							<div className="space-y-2">
-								<h4 className="font-medium">{ACTION_INFO.attachments.title}</h4>
-								<p className="text-sm">{ACTION_INFO.attachments.description}</p>
-								<div className="mt-2 space-y-1">
-									<p className="text-xs font-medium">Supported formats:</p>
-									<ul className="text-xs text-muted-foreground">
-										{ACTION_INFO.attachments.formats.map((format) => (
-											<li key={format}>• {format}</li>
-										))}
-									</ul>
-									<p className="text-xs text-muted-foreground">
-										Maximum file size: {ACTION_INFO.attachments.maxSize}
-									</p>
-								</div>
-							</div>
-						</HoverCardContent>
-					</HoverCard>
+					<Button
+						size="icon"
+						variant="outline"
+						onClick={handleBalanceCheck}
+						disabled={isLoading || !isConnected}
+						className="size-8 rounded-full"
+					>
+						<Wallet size={16} />
+					</Button>
 
-					<HoverCard openDelay={300} closeDelay={100}>
-						<HoverCardTrigger asChild>
-							<Button
-								size="icon"
-								variant={input ? "default" : "outline"}
-								onClick={() => (isLoading ? stop() : onSubmit())}
-								disabled={!input && !attachments.length}
-								className="size-8 rounded-full"
-							>
-								{isLoading ? (
-									<Square size={16} className="animate-pulse" />
-								) : input ? (
-									<ArrowUp size={16} />
-								) : (
-									<Square size={16} />
-								)}
-							</Button>
-						</HoverCardTrigger>
-						<HoverCardContent className="w-80">
-							<div className="space-y-2">
-								<h4 className="font-medium">{ACTION_INFO.send.title}</h4>
-								<p className="text-sm">{ACTION_INFO.send.description}</p>
-								<div className="mt-2 space-y-1">
-									<p className="text-xs font-medium">Shortcuts:</p>
-									<ul className="text-xs text-muted-foreground">
-										{ACTION_INFO.send.shortcuts.map((shortcut) => (
-											<li key={shortcut}>• {shortcut}</li>
-										))}
-									</ul>
-									<p className="text-xs text-muted-foreground">
-										Current mode: {isWebSearchMode ? "Web Search" : "Normal"}{attachments.length > 0 ? " with attachments" : ""}
-									</p>
-								</div>
-							</div>
-						</HoverCardContent>
-					</HoverCard>
+					<Button
+						size="icon"
+						variant="outline"
+						onClick={() => fileInputRef.current?.click()}
+						disabled={isLoading}
+						className="size-8 rounded-full"
+					>
+						<Paperclip size={16} />
+					</Button>
+
+					<Button
+						size="icon"
+							variant={input ? "default" : "outline"}
+							onClick={() => (isLoading ? stop() : onSubmit())}
+							disabled={!input && !attachments.length}
+							className="size-8 rounded-full"
+					>
+						{isLoading ? <Square size={16} /> : <ArrowUp size={16} />}
+					</Button>
 				</div>
 			</div>
-		</motion.div>
+		</div>
 	);
 }
