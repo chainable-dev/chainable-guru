@@ -13,6 +13,7 @@ import { useOnClickOutside } from "usehooks-ts";
 
 import {
 	Tooltip,
+	BetterTooltip,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
@@ -140,13 +141,7 @@ const Tool = ({
 					{selectedTool === type ? <ArrowUpIcon /> : icon}
 				</motion.div>
 			</TooltipTrigger>
-			<TooltipContent
-				side="left"
-				sideOffset={16}
-				className="bg-foreground text-background rounded-2xl p-3 px-4"
-			>
-				{description}
-			</TooltipContent>
+			<BetterTooltip content={description} />
 		</Tooltip>
 	);
 };
@@ -247,13 +242,7 @@ const ReadingLevelSelector = ({
 							{currentLevel === 2 ? <SummarizeIcon /> : <ArrowUpIcon />}
 						</motion.div>
 					</TooltipTrigger>
-					<TooltipContent
-						side="left"
-						sideOffset={16}
-						className="bg-foreground text-background text-sm rounded-2xl p-3 px-4"
-					>
-						{LEVELS[currentLevel]}
-					</TooltipContent>
+					<BetterTooltip content={LEVELS[currentLevel]} />
 				</Tooltip>
 			</TooltipProvider>
 		</div>

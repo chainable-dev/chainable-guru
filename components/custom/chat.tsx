@@ -24,7 +24,7 @@ import { MultimodalInput } from "@/components/custom/multimodal-input";
 import { Overview } from "@/components/custom/overview";
 import { PreviewMessage, ThinkingMessage } from "@/components/custom/message";
 import { useScrollToBottom } from "@/components/custom/use-scroll-to-bottom";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { Tooltip, BetterTooltip, TooltipTrigger } from "../ui/tooltip";
 
 import { Database } from "@/lib/supabase/types";
 import { fetcher } from "@/lib/utils";
@@ -262,13 +262,13 @@ export function Chat({ id, initialMessages, selectedModelId }: ChatProps) {
               <KeyboardIcon className="h-4 w-4" />
             </button>
           </TooltipTrigger>
-          <TooltipContent>
+          <BetterTooltip content="⌘ / to focus input\n⌘ K to clear chat\nESC to stop generation">
             <div className="text-sm">
               <p>⌘ / to focus input</p>
               <p>⌘ K to clear chat</p>
               <p>ESC to stop generation</p>
             </div>
-          </TooltipContent>
+          </BetterTooltip>
         </Tooltip>
       </div>
 
