@@ -43,6 +43,9 @@
       ],
       "@/tests/*": [
         "./__tests__/*"
+      ],
+      "@/components/custom/*": [
+        "./components/custom/*"
       ]
     },
     "types": [
