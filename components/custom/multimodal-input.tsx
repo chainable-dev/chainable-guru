@@ -5,13 +5,16 @@ import React, { useRef, useCallback } from "react";
 import { toast } from "sonner";
 import { useLocalStorage } from "usehooks-ts";
 import { useAccount } from 'wagmi';
-import { IoSquare, IoWallet, IoGlobe } from "react-icons/io5";
+import { 
+	IoArrowUpOutline,
+	IoAttachOutline,
+	IoStopOutline,
+	IoGlobeOutline,
+	IoWalletOutline,
+	IoSquareOutline,
+} from "react-icons/io5";
 
 import { useWalletState } from "@/hooks/useWalletState";
-import { 
-	ArrowUpIcon,
-	PaperclipIcon,
-} from "@/components/custom/icons";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import type { MultimodalInputProps } from "@/types/chat";
@@ -273,7 +276,7 @@ export function MultimodalInput({
 							disabled={isLoading || !input.trim()}
 							className="size-8 rounded-full"
 						>
-							<IoGlobe size={16} />
+							<IoGlobeOutline size={16} />
 						</Button>
 					)}
 
@@ -284,7 +287,7 @@ export function MultimodalInput({
 						disabled={isLoading || !isConnected}
 						className="size-8 rounded-full"
 					>
-						<IoWallet size={16} />
+						<IoWalletOutline size={16} />
 					</Button>
 
 					<Button
@@ -294,7 +297,7 @@ export function MultimodalInput({
 						disabled={isLoading}
 						className="size-8 rounded-full"
 					>
-						<PaperclipIcon size={16} />
+						<IoAttachOutline size={16} />
 					</Button>
 
 					<Button
@@ -304,7 +307,7 @@ export function MultimodalInput({
 							disabled={!input && !attachments.length}
 							className="size-8 rounded-full"
 					>
-						{isLoading ? <IoSquare size={16} /> : <ArrowUpIcon size={16} />}
+						{isLoading ? <IoSquareOutline size={16} /> : <IoArrowUpOutline size={16} />}
 					</Button>
 				</div>
 			</div>

@@ -1,9 +1,9 @@
 import type { Attachment as AIAttachment } from 'ai';
 
-export interface Attachment extends Omit<AIAttachment, 'name'> {
-	url?: string;
-	name: string | undefined;
-	contentType?: string;
+export interface Attachment {
+	url: string;
+	name: string;
+	contentType: string;
 	path?: string;
 }
 
