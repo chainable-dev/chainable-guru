@@ -1,40 +1,39 @@
-'use client';
+"use client";
 
-import { useChat } from 'ai/react';
-import type { Message, Attachment } from 'ai';
-import { AnimatePresence } from 'framer-motion';
-import { KeyboardIcon } from 'lucide-react';
-import { useState, useEffect, type ClipboardEvent } from 'react';
-import useSWR, { useSWRConfig } from 'swr';
-import { useWindowSize } from 'usehooks-ts';
-import { Progress } from "@/components/ui/progress"
-import { toast } from "sonner"
+import { useChat } from "ai/react";
+import type { Message, CreateMessage, ChatRequestOptions } from "ai";
+import { AnimatePresence, motion } from "framer-motion";
+import { KeyboardIcon, WalletIcon } from "lucide-react";
+import { useState } from "react";
+import useSWR, { useSWRConfig } from "swr";
+import { useWindowSize } from "usehooks-ts";
+import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
 
-import { Block, UIBlock } from '@/components/custom/block';
-import { BlockStreamHandler } from '@/components/custom/block-stream-handler';
-import { ChatHeader } from '@/components/custom/chat-header';
-import { MultimodalInput } from '@/components/custom/multimodal-input';
-import { Overview } from '@/components/custom/overview';
-import { PreviewMessage, ThinkingMessage } from '@/components/custom/message';
-import { useScrollToBottom } from '@/components/custom/use-scroll-to-bottom';
-import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
+import type { 
+  ChatProps, 
+  FileUploadState, 
+  AppendFunction, 
+  AppendOptions 
+} from "@/types/chat";
+import type { Attachment, AIAttachment } from "@/types/attachments";
+import { Block, UIBlock } from "@/components/custom/block";
+import { BlockStreamHandler } from "@/components/custom/block-stream-handler";
+import { ChatHeader } from "@/components/custom/chat-header";
+import { MultimodalInput } from "@/components/custom/multimodal-input";
+import { Overview } from "@/components/custom/overview";
+import { PreviewMessage, ThinkingMessage } from "@/components/custom/message";
+import { useScrollToBottom } from "@/components/custom/use-scroll-to-bottom";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
-import { Database } from '@/lib/supabase/types';
-import { fetcher } from '@/lib/utils';
+import { Database } from "@/lib/supabase/types";
+import { fetcher } from "@/lib/utils";
+import { useWalletState } from "@/hooks/useWalletState";
+import { containerAnimationVariants } from "@/lib/animation-variants";
 
-type Vote = Database['public']['Tables']['votes']['Row'];
+type Vote = Database["public"]["Tables"]["votes"]["Row"];
 
-interface FileUploadState {
-  progress: number
-  uploading: boolean
-  error: string | null
-}
-
-export function Chat({ id, initialMessages, selectedModelId }: {
-  id: string;
-  initialMessages: Array<Message>;
-  selectedModelId: string;
-}) {
+export function Chat({ id, initialMessages, selectedModelId }: ChatProps) {
   const { mutate } = useSWRConfig();
   const { width: windowWidth = 1920, height: windowHeight = 1080 } = useWindowSize();
 
@@ -44,7 +43,7 @@ export function Chat({ id, initialMessages, selectedModelId }: {
     handleSubmit,
     input,
     setInput,
-    append,
+    append: rawAppend,
     isLoading,
     stop,
     data: streamingData,
@@ -52,15 +51,15 @@ export function Chat({ id, initialMessages, selectedModelId }: {
     body: { id, modelId: selectedModelId },
     initialMessages,
     onFinish: () => {
-      mutate('/api/history');
+      mutate("/api/history");
     },
   });
 
   const [block, setBlock] = useState<UIBlock>({
-    documentId: 'init',
-    content: '',
-    title: '',
-    status: 'idle',
+    documentId: "init",
+    content: "",
+    title: "",
+    status: "idle",
     isVisible: false,
     boundingBox: {
       top: windowHeight / 4,
@@ -70,18 +69,32 @@ export function Chat({ id, initialMessages, selectedModelId }: {
     },
   });
 
-  const { data: votes } = useSWR<Array<Vote>>(
-    `/api/vote?chatId=${id}`,
-    fetcher
-  );
-
+  const { data: votes } = useSWR<Array<Vote>>(`/api/vote?chatId=${id}`, fetcher);
   const [messagesContainerRef, messagesEndRef] = useScrollToBottom<HTMLDivElement>();
-  const [attachments, setAttachments] = useState<Array<Attachment>>([]);
+  const [attachments, setAttachments] = useState<AIAttachment[]>([]);
   const [fileUpload, setFileUpload] = useState<FileUploadState>({
     progress: 0,
     uploading: false,
-    error: null
-  })
+    error: null,
+  });
+
+  const [webSearchEnabled] = useState(true);
+
+  const append = async (
+    message: CreateMessage,
+    options?: ChatRequestOptions
+  ) => {
+    const messageWithId = {
+      id: crypto.randomUUID(),
+      ...message,
+    };
+    
+    const result = await rawAppend(messageWithId, {
+      ...options,
+      experimental_attachments: options?.experimental_attachments as AIAttachment[]
+    });
+    return result || null;
+  };
 
   const handleFileUpload = async (file: File) => {
     if (!file) return;
@@ -101,7 +114,7 @@ export function Chat({ id, initialMessages, selectedModelId }: {
       xhr.upload.addEventListener("progress", (e) => {
         if (e.lengthComputable) {
           const progress = Math.round((e.loaded * 100) / e.total);
-          setFileUpload(prev => ({ ...prev, progress }));
+          setFileUpload((prev) => ({ ...prev, progress }));
         }
       });
 
@@ -110,26 +123,27 @@ export function Chat({ id, initialMessages, selectedModelId }: {
           const response = JSON.parse(xhr.responseText);
           toast.success("File uploaded successfully");
           append({
+            id: crypto.randomUUID(),
             role: "user",
-            content: `[File uploaded: ${file.name}](${response.url})`
+            content: `[File uploaded: ${file.name}](${response.url})`,
           });
           resolve(response);
         } else {
-          setFileUpload(prev => ({ 
-            ...prev, 
-            error: "Upload failed" 
+          setFileUpload((prev) => ({
+            ...prev,
+            error: "Upload failed",
           }));
           toast.error("Failed to upload file");
           reject(new Error("Upload failed"));
         }
-        setFileUpload(prev => ({ ...prev, uploading: false }));
+        setFileUpload((prev) => ({ ...prev, uploading: false }));
       });
 
       xhr.addEventListener("error", () => {
-        setFileUpload(prev => ({ 
-          ...prev, 
+        setFileUpload((prev) => ({
+          ...prev,
           error: "Upload failed",
-          uploading: false 
+          uploading: false,
         }));
         toast.error("Failed to upload file");
         reject(new Error("Upload failed"));
@@ -144,32 +158,42 @@ export function Chat({ id, initialMessages, selectedModelId }: {
     <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader selectedModelId={selectedModelId} />
-        <div
+        <motion.div
           ref={messagesContainerRef}
           className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4"
+          variants={containerAnimationVariants}
+          initial="initial"
+          animate="animate"
         >
-          {messages.length === 0 && <Overview />}
+          <AnimatePresence mode="popLayout">
+            {messages.length === 0 && <Overview />}
 
-          {messages.map((message, index) => (
-            <PreviewMessage
-              key={message.id}
-              chatId={id}
-              message={message}
-              block={block}
-              setBlock={setBlock}
-              isLoading={isLoading && messages.length - 1 === index}
-              vote={votes?.find((vote) => vote.message_id === message.id)}
-            />
-          ))}
+            {messages.map((message, index) => (
+              <PreviewMessage
+                key={message.id}
+                chatId={id}
+                message={message}
+                block={block}
+                setBlock={setBlock}
+                isLoading={isLoading && messages.length - 1 === index}
+                vote={votes?.find((vote) => vote.message_id === message.id)}
+              />
+            ))}
 
-          {isLoading && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
-            <ThinkingMessage />
-          )}
+            {isLoading && messages.length > 0 && messages[messages.length - 1].role === "user" && (
+              <ThinkingMessage />
+            )}
+          </AnimatePresence>
 
-          <div ref={messagesEndRef} className="shrink-0 min-w-[24px] min-h-[24px]" />
-        </div>
+          <motion.div 
+            ref={messagesEndRef} 
+            className="shrink-0 min-w-[24px] min-h-[24px]"
+            layout
+          />
+        </motion.div>
 
-        <form 
+        <motion.form
+          layout
           id="chat-form"
           name="chat-form"
           className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl"
@@ -191,11 +215,12 @@ export function Chat({ id, initialMessages, selectedModelId }: {
             messages={messages}
             setMessages={setMessages}
             append={append}
+            webSearchEnabled={webSearchEnabled}
           />
-        </form>
+        </motion.form>
       </div>
 
-      <AnimatePresence>
+      <AnimatePresence mode="wait">
         {block && block.isVisible && (
           <Block
             chatId={id}
@@ -221,11 +246,12 @@ export function Chat({ id, initialMessages, selectedModelId }: {
       <div className="fixed bottom-4 right-4 opacity-50 hover:opacity-100 transition-opacity">
         <Tooltip>
           <TooltipTrigger asChild>
-            <button 
+            <button
               className="p-2 rounded-full bg-muted"
               type="button"
               aria-label="Keyboard shortcuts"
             >
+              <KeyboardIcon className="h-4 w-4" />
             </button>
           </TooltipTrigger>
           <TooltipContent>

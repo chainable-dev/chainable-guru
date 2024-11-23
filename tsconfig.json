@@ -1,87 +1,64 @@
 {
-  "compilerOptions": {
-    "target": "ESNext",
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "esnext"
-    ],
-    "allowJs": true,
-    "skipLibCheck": true,
-    "strict": true,
-    "noEmit": true,
-    "esModuleInterop": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "plugins": [
-      {
-        "name": "next"
-      }
-    ],
-    "paths": {
-      "@/*": [
-        "./*"
-      ],
-      "@/app/*": [
-        "./app/*"
-      ],  
-      "@/components/*": [
-        "./components/*"
-      ],
-      "@/lib/*": [
-        "./lib/*"
-      ],
-      "@/hooks/*": [
-        "./hooks/*"
-      ],
-      "@/utils/*": [
-        "./utils/*"
-      ],
-      "@/tests/*": [
-        "./__tests__/*"
-      ],
-      "@/components/custom/*": [
-        "./components/custom/*"
-      ],
-      "@/ai/*": [
-        "./ai/*"
-      ],
-      "@/db/*": [
-        "./db/*"
-      ],
-      "@/actions/*": [
-        "./actions/*"
-      ],
-      "@/public/*": [
-        "./public/*"
-      ]
-    },
-    "types": [
-      "node",
-      "@types/react",
-      "@types/react-dom",
-      "@testing-library/jest-dom",
-      "vitest/importMeta",
-      "vitest/globals"
-    ]
-  },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".",
-    "__tests__/**/*",
-    ".next/types/**/*.ts"
-  ],
-  "exclude": [
-    "node_modules",
-    ".next",
-    "coverage",
-    "dist",
-    "__test__",
-    "**/__tests__/**"
-  ]
+	"compilerOptions": {
+		"target": "ESNext",
+		"lib": ["dom", "dom.iterable", "esnext"],
+		"allowJs": true,
+		"skipLibCheck": true,
+		"strict": true,
+		"noEmit": true,
+		"esModuleInterop": true,
+		"module": "esnext",
+		"moduleResolution": "bundler",
+		"resolveJsonModule": true,
+		"isolatedModules": true,
+		"jsx": "preserve",
+		"incremental": true,
+		"plugins": [
+			{
+				"name": "next"
+			}
+		],
+		"paths": {
+			"@/*": ["./*"],
+			"@/app/*": ["./app/*"],
+			"@/components/*": ["./components/*"],
+			"@/lib/*": ["./lib/*"],
+			"@/hooks/*": ["./hooks/*"],
+			"@/utils/*": ["./utils/*"],
+			"@/tests/*": ["./__tests__/*"],
+			"@/components/custom/*": ["./components/custom/*"],
+			"@/ai/*": ["./ai/*"],
+			"@/db/*": ["./db/*"],
+			"@/public/*": ["./public/*"],
+			"@/types/*": ["./types/*"],
+			"@/actions/*": ["./actions/*"]
+		},
+		"types": [
+			"node",
+			"@types/react",
+			"@types/react-dom",
+			"@testing-library/jest-dom",
+			"vitest/importMeta",
+			"vitest/globals"
+		]
+	},
+	"include": [
+		"**/*.ts",
+		"**/*.tsx",
+		".",
+		"__tests__/**/*",
+		".next/types/**/*.ts"
+	],
+	"exclude": [
+		"node_modules",
+		".next",
+		"coverage",
+		"dist",
+		"__test__",
+		"**/__tests__/**",
+		"**/*.test.ts",
+		"**/*.test.tsx",
+		"**/*.spec.ts",
+		"**/*.spec.tsx"
+	]
 }

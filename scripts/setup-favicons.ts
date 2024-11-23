@@ -1,34 +1,36 @@
-import fs from 'fs';
-import path from 'path';
+import { optimizeImages } from "./optimize-images";
+import fs from "fs";
+import path from "path";
 
-const publicDir = path.join(process.cwd(), 'public');
-const sourceDir = path.join(process.cwd(), 'public', 'logos');
-
-// List of favicon files to copy/create
-const faviconFiles = [
-  { source: 'elron2.svg', dest: 'icon.svg' },
-  { source: 'elron2.svg', dest: 'favicon.ico' },
-  { source: 'elron2.svg', dest: 'apple-icon.png' },
-];
+const SOURCE_LOGO = path.join(process.cwd(), "public/logos/elron2.svg");
+const FALLBACK_LOGO = path.join(process.cwd(), "public/logos/default-logo.svg");
 
 async function setupFavicons() {
-  // Ensure public directory exists
-  if (!fs.existsSync(publicDir)) {
-    fs.mkdirSync(publicDir, { recursive: true });
-  }
+	try {
+		// Check if source logo exists, if not use fallback or skip
+		const logoPath = fs.existsSync(SOURCE_LOGO)
+			? SOURCE_LOGO
+			: fs.existsSync(FALLBACK_LOGO)
+				? FALLBACK_LOGO
+				: null;
 
-  // Copy each favicon file
-  for (const file of faviconFiles) {
-    const sourcePath = path.join(sourceDir, file.source);
-    const destPath = path.join(publicDir, file.dest);
+		if (!logoPath) {
+			console.log("⚠️ No logo files found, skipping favicon generation");
+			return;
+		}
 
-    if (fs.existsSync(sourcePath)) {
-      fs.copyFileSync(sourcePath, destPath);
-      console.log(`✓ Created ${file.dest}`);
-    } else {
-      console.error(`✗ Source file not found: ${file.source}`);
-    }
-  }
+		await optimizeImages({
+			skipMissing: true, // Skip if files don't exist
+			silent: true, // Don't show errors for missing files
+		});
+
+		console.log("✓ Favicons setup complete");
+	} catch (error) {
+		console.log(
+			"⚠️ Favicon generation skipped:",
+			error instanceof Error ? error.message : "Unknown error",
+		);
+	}
 }
 
-setupFavicons().catch(console.error); 
+setupFavicons();
