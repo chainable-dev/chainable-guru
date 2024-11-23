@@ -1,26 +1,26 @@
 {
-  "name": "ElronAI",
-  "short_name": "ElronAI",
-  "icons": [
-    {
-      "src": "/logos/elron2-sm.webp",
-      "sizes": "64x64",
-      "type": "image/webp"
-    },
-    {
-      "src": "/logos/elron2-md.webp",
-      "sizes": "128x128",
-      "type": "image/webp"
-    },
-    {
-      "src": "/logos/elron2-lg.webp",
-      "sizes": "256x256",
-      "type": "image/webp"
-    }
-  ],
-  "theme_color": "#000000",
-  "background_color": "#000000",
-  "start_url": "/",
-  "display": "standalone",
-  "orientation": "portrait"
-} 
+	"name": "ElronAI",
+	"short_name": "ElronAI",
+	"icons": [
+		{
+			"src": "/logos/elron2-sm.webp",
+			"sizes": "64x64",
+			"type": "image/webp"
+		},
+		{
+			"src": "/logos/elron2-md.webp",
+			"sizes": "128x128",
+			"type": "image/webp"
+		},
+		{
+			"src": "/logos/elron2-lg.webp",
+			"sizes": "256x256",
+			"type": "image/webp"
+		}
+	],
+	"theme_color": "#000000",
+	"background_color": "#000000",
+	"start_url": "/",
+	"display": "standalone",
+	"orientation": "portrait"
+}

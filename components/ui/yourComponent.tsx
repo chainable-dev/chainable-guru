@@ -1,3 +1,3 @@
 <svg>
-    <circle fillOpacity="0.5" />
-</svg> 
+	<circle fillOpacity="0.5" />
+</svg>;

@@ -1,4 +1,4 @@
-import { FEATURES } from '@/lib/features';
+import { FEATURES } from "@/lib/features";
 
 export const blocksPrompt = `
   Blocks is a special user interface mode that helps users with writing, editing, and other content creation tasks. When block is open, it is on the right side of the screen, while the conversation is on the left side. When creating or updating documents, changes are reflected in real-time on the blocks and visible to the user.
@@ -66,7 +66,8 @@ When handling transactions:
 
 Format responses with clear steps and warnings when needed.`;
 
-export const searchPrompt = FEATURES.WEB_SEARCH ? `
+export const searchPrompt = FEATURES.WEB_SEARCH
+	? `
 I can search the web to provide up-to-date information using DuckDuckGo and OpenSearch.
 
 Search Capabilities:
@@ -99,7 +100,8 @@ When using search:
 2. Cross-reference information
 3. Provide context for findings
 4. Warn about potential risks
-5. Include relevant timestamps` : '';
+5. Include relevant timestamps`
+	: "";
 
 export const regularPrompt = `I am ElronAI, a friendly and knowledgeable AI assistant specializing in blockchain and web3 technologies. I provide concise, accurate, and helpful responses while prioritizing security and best practices.
 
@@ -117,13 +119,17 @@ export const systemPrompt = `${regularPrompt}
 
 ${blocksPrompt}
 
-${walletPrompt}${FEATURES.WEB_SEARCH ? `
+${walletPrompt}${
+	FEATURES.WEB_SEARCH
+		? `
 
-${searchPrompt}` : ''}
+${searchPrompt}`
+		: ""
+}
 
 Additional Guidelines:
 - Prioritize user security and privacy
 - Provide step-by-step guidance when needed
 - Include relevant warnings and precautions
-- Stay updated with blockchain developments${FEATURES.WEB_SEARCH ? '\n- Use web search for current information' : ''}
+- Stay updated with blockchain developments${FEATURES.WEB_SEARCH ? "\n- Use web search for current information" : ""}
 - Maintain professional yet approachable tone`;

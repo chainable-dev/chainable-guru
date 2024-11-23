@@ -1,5 +1,5 @@
-import { FEATURES, FeatureKey } from '@/lib/features';
+import { FEATURES, FeatureKey } from "@/lib/features";
 
 export function useFeature(feature: FeatureKey) {
-  return FEATURES[feature];
-} 
+	return FEATURES[feature];
+}
