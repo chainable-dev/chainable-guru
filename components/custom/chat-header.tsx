@@ -12,6 +12,8 @@ import { BetterTooltip } from '@/components/ui/tooltip';
 
 import { PlusIcon } from './icons';
 import { useSidebar } from '../ui/sidebar';
+import { ThemeToggle } from './theme-toggle';
+import { SettingsDialog } from './settings-dialog';
 
 export function ChatHeader({ selectedModelId }: { selectedModelId: string }) {
   const router = useRouter();
@@ -49,6 +51,8 @@ export function ChatHeader({ selectedModelId }: { selectedModelId: string }) {
             largeScreen: 'full',
           }}
         />
+        <ThemeToggle />
+        <SettingsDialog />
       </div>
     </header>
   );
