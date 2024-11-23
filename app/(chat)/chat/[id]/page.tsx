@@ -1,39 +1,49 @@
-import { Suspense } from 'react'
-import { cn } from "@/lib/utils"
-import { Card } from "@/components/ui/card"
-import { Messages } from "@/components/chat/messages"
-import { ChatInput } from "@/components/chat/chat-input"
+import { cookies } from 'next/headers';
+import { notFound } from 'next/navigation';
 
-export default async function ChatPage({
-  params
-}: {
-  params: { id: string }
-}) {
+import { DEFAULT_MODEL_NAME, models } from '@/ai/models';
+import { Chat as PreviewChat } from '@/components/custom/chat';
+import {
+  getChatById,
+  getMessagesByChatId,
+  getSession,
+} from '@/db/cached-queries';
+import { convertToUIMessages } from '@/lib/utils';
+
+export default async function Page(props: { params: Promise<any> }) {
+  const params = await props.params;
+  const { id } = params;
+  const chat = await getChatById(id);
+
+  if (!chat) {
+    notFound();
+  }
+
+  const user = await getSession();
+
+  if (!user) {
+    return notFound();
+  }
+
+  if (user.id !== chat.user_id) {
+    return notFound();
+  }
+
+  const messagesFromDb = await getMessagesByChatId(id);
+
+  const cookieStore = await cookies();
+  const modelIdFromCookie = cookieStore.get('model-id')?.value;
+  const selectedModelId =
+    models.find((model) => model.id === modelIdFromCookie)?.id ||
+    DEFAULT_MODEL_NAME;
+
+  console.log(convertToUIMessages(messagesFromDb));
+
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col">
-      <div className={cn(
-        "container flex flex-1 flex-col",
-        "px-2 md:px-4"
-      )}>
-        {/* Messages container */}
-        <div className="flex-1 overflow-y-auto py-2 md:py-4">
-          <div className="space-y-4 mx-2 md:mx-4">
-            <Suspense fallback={<Card className="p-4">Loading messages...</Card>}>
-              <Messages chatId={params.id} />
-            </Suspense>
-          </div>
-        </div>
-
-        {/* Input area */}
-        <div className={cn(
-          "border-t bg-background",
-          "py-2 md:py-4",
-          "px-2 md:px-4",
-          "sticky bottom-0"
-        )}>
-          <ChatInput chatId={params.id} />
-        </div>
-      </div>
-    </div>
-  )
+    <PreviewChat
+      id={chat.id}
+      initialMessages={convertToUIMessages(messagesFromDb)}
+      selectedModelId={selectedModelId}
+    />
+  );
 }
