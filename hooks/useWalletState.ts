@@ -1,14 +1,11 @@
-import { useAccount, useChainId, useWalletClient, useConnect, useDisconnect } from 'wagmi';
+import { useAccount, useChainId, useWalletClient } from 'wagmi';
 import { useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
-import { InjectedConnector } from 'wagmi/connectors/injected';
 
 export function useWalletState() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { data: walletClient } = useWalletClient();
-  const { connectAsync: connect, isPending: isConnecting } = useConnect();
-  const { disconnectAsync: disconnect } = useDisconnect();
 
   // Memoize network info
   const networkInfo = useMemo(() => {
@@ -40,12 +37,9 @@ export function useWalletState() {
   return {
     address,
     isConnected,
-    isConnecting,
     chainId,
     walletClient,
     networkInfo,
-    isCorrectNetwork: networkInfo?.isSupported ?? false,
-    connect,
-    disconnect
+    isCorrectNetwork: networkInfo?.isSupported ?? false
   };
 } 
