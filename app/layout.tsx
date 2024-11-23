@@ -7,7 +7,7 @@ import '../styles/dark-mode.css';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://chainable.guru'),
-  title: 'Chainable AI',
+  title: 'Elron',
   description: 'AI-powered Web3 assistant',
   icons: {
     icon: [
