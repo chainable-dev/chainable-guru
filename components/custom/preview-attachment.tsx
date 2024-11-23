@@ -1,37 +1,19 @@
-import { FileIcon } from 'lucide-react';
+import { FileIcon, X } from 'lucide-react';
 import Image from 'next/image';
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
 
-import type { Attachment } from 'ai';
+interface Attachment {
+  url: string;
+  name?: string;
+  contentType?: string;
+}
 
 interface PreviewAttachmentProps {
   attachment: Attachment;
   isUploading?: boolean;
   onRemove?: (url: string) => void;
 }
-
-const PreviewImage = ({ src, alt, className }: { src: string, alt: string, className: string }) => {
-  const isBlob = src.startsWith('blob:');
-  
-  if (isBlob) {
-    return (
-      <img 
-        src={src} 
-        alt={alt} 
-        className={className} 
-      />
-    );
-  }
-
-  return (
-    <Image
-      src={src}
-      alt={alt}
-      className={className}
-      width={200}
-      height={200}
-    />
-  );
-};
 
 export function PreviewAttachment({ 
   attachment, 
@@ -40,55 +22,73 @@ export function PreviewAttachment({
 }: PreviewAttachmentProps) {
   const isImage = attachment.contentType?.startsWith('image/');
   const altText = attachment.name ?? 'File attachment';
+  const [imageError, setImageError] = useState(false);
+  const isBlob = attachment.url.startsWith('blob:');
+
+  const handleImageError = () => {
+    setImageError(true);
+    console.error(`Failed to load image: ${attachment.url}`);
+  };
+
+  const renderImage = () => {
+    if (imageError || isBlob) {
+      return (
+        <img 
+          src={isBlob ? attachment.url : '/placeholder-image.png'}
+          alt={altText}
+          className="h-full w-full object-cover"
+          onError={handleImageError}
+        />
+      );
+    }
+
+    return (
+      <div className="relative h-full w-full">
+        <Image
+          src={attachment.url}
+          alt={altText}
+          className="object-cover"
+          fill
+          sizes="200px"
+          onError={handleImageError}
+          unoptimized={attachment.url.includes('vercel-storage.com')}
+        />
+      </div>
+    );
+  };
 
   return (
     <div className="relative group">
-      <div className="relative size-20 border rounded-lg overflow-hidden bg-muted">
-        {isImage ? (
-          <div className="relative w-full h-full">
-            <PreviewImage
-              src={attachment.url}
-              alt={altText}
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          </div>
+      <div className={cn(
+        "relative h-20 w-20 border rounded-lg overflow-hidden bg-muted",
+        isUploading && "opacity-70"
+      )}>
+        {isImage && !imageError ? (
+          renderImage()
         ) : (
-          <div className="flex items-center justify-center h-full">
-            <FileIcon className="size-8 text-muted-foreground" />
+          <div className="flex h-full items-center justify-center">
+            <FileIcon className="h-8 w-8 text-muted-foreground" />
           </div>
         )}
         
         {isUploading && (
-          <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-            <div className="size-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <div className="absolute inset-0 flex items-center justify-center bg-background/50">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           </div>
         )}
       </div>
 
-      {onRemove && (
+      {onRemove && !isUploading && (
         <button
           onClick={() => onRemove(attachment.url)}
-          className="absolute -top-2 -right-2 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute -right-2 -top-2 rounded-full bg-destructive p-1 text-destructive-foreground opacity-0 transition-opacity group-hover:opacity-100"
           aria-label={`Remove ${altText}`}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="12"
-            height="12"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M18 6 6 18" />
-            <path d="m6 6 12 12" />
-          </svg>
+          <X className="h-3 w-3" />
         </button>
       )}
 
-      <div className="mt-1 text-xs text-muted-foreground truncate text-center">
+      <div className="mt-1 truncate text-center text-xs text-muted-foreground">
         {altText}
       </div>
     </div>
