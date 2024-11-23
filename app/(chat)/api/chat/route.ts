@@ -589,6 +589,19 @@ const tools = {
 	},
 };
 
+interface ChatEvent {
+	messages: Array<{
+		role: string;
+		content: string | {
+			type: string;
+			text?: string;
+			toolCallId?: string;
+			toolName?: string;
+			args?: Record<string, unknown>;
+		}[];
+	}>;
+}
+
 export async function POST(request: Request) {
 	try {
 		const {
@@ -743,32 +756,34 @@ export async function POST(request: Request) {
 							}),
 					},
 				},
-				onFinish: async (event) => {
-				  const { responseMessages } = event;
+				onFinish: async (event: ChatEvent) => {
 					if (user && user.id) {
 						try {
-							const responseMessagesWithoutIncompleteToolCalls =
-								sanitizeResponseMessages(responseMessages as (CoreAssistantMessage | CoreToolMessage)[]);
+							const messages = event.messages || [];
+							const sanitizedMessages = messages.map((message: any) => ({
+								...message,
+								content: typeof message.content === 'string'
+									? message.content
+									: JSON.stringify(message.content)
+							}));
 
 							await saveMessages({
 								chatId: id,
-								messages: responseMessagesWithoutIncompleteToolCalls.map(
-									(message) => {
-										const messageId = generateUUID();
-										if (message.role === "assistant") {
-											streamingData.appendMessageAnnotation({
-												messageIdFromServer: messageId,
-											});
-										}
-										return {
-											id: messageId,
-											chat_id: id,
-											role: message.role as MessageRole,
-											content: formatMessageContent(message),
-											created_at: new Date().toISOString(),
-										};
-									},
-								),
+								messages: sanitizedMessages.map((message) => {
+									const messageId = generateUUID();
+									if (message.role === "assistant") {
+										streamingData.appendMessageAnnotation({
+											messageIdFromServer: messageId,
+										});
+									}
+									return {
+										id: messageId,
+										chat_id: id,
+										role: message.role as MessageRole,
+										content: formatMessageContent(message),
+										created_at: new Date().toISOString(),
+									};
+								}),
 							});
 						} catch (error) {
 							console.error("Failed to save chat:", error);

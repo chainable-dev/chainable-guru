@@ -1,100 +1,131 @@
 "use client";
 
+import { motion } from "framer-motion";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
 
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { signIn } from "@/db/auth";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export default function LoginPage() {
-	const [isLoading, setIsLoading] = useState(false);
-	const [isTransitioning, setIsTransitioning] = useState(false);
 	const router = useRouter();
+	const [isLoading, setIsLoading] = useState(false);
 
-	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-		event.preventDefault();
-		setIsLoading(true);
-
+	async function handleLogin() {
 		try {
-			const formData = new FormData(event.currentTarget);
-			const email = formData.get("email") as string;
-			const password = formData.get("password") as string;
+			setIsLoading(true);
+			const supabase = createClient();
 
-			await signIn(email, password);
-			setIsTransitioning(true);
-			router.push("/");
-			router.refresh();
-		} catch (error: any) {
-			toast.error(error.message);
+			const { error } = await supabase.auth.signInWithOAuth({
+				provider: "google",
+				options: {
+					redirectTo: `${window.location.origin}/auth/callback`,
+					queryParams: {
+						access_type: 'offline',
+						prompt: 'consent',
+					},
+				},
+			});
+
+			if (error) throw error;
+		} catch (error) {
+			console.error("Login error:", error);
+			toast.error("Failed to login");
+		} finally {
 			setIsLoading(false);
 		}
 	}
 
-	if (isTransitioning) {
-		return (
-			<div className="fixed inset-0 flex items-center justify-center bg-background">
-				<div className="space-y-4 text-center">
-					<Loader2 className="h-8 w-8 animate-spin" />
-					<p className="text-sm text-muted-foreground">Redirecting...</p>
-				</div>
-			</div>
-		);
-	}
-
 	return (
-		<div className="flex h-[calc(100vh-theme(spacing.16))] items-center justify-center py-10">
-			<div className="w-full max-w-sm space-y-6">
-				<div className="space-y-2 text-center">
-					<h1 className="text-3xl font-bold">Login</h1>
-					<p className="text-gray-500 dark:text-gray-400">
-						Enter your email below to login to your account
+		<div className="flex min-h-screen flex-col items-center justify-center p-4 bg-gradient-to-br from-background via-muted to-background">
+			<motion.div
+				initial={{ opacity: 0, y: 20 }}
+				animate={{ opacity: 1, y: 0 }}
+				transition={{ duration: 0.5, ease: "easeOut" }}
+				className="w-full max-w-md space-y-8"
+			>
+				{/* Logo and Title */}
+				<div className="text-center space-y-4">
+					<motion.div
+						initial={{ scale: 0.9 }}
+						animate={{ scale: 1 }}
+						transition={{ duration: 0.5, delay: 0.2 }}
+					>
+						<Image
+							src="/logos/elron.ico"
+							alt="Logo"
+							width={80}
+							height={80}
+							className="mx-auto rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300"
+							priority
+						/>
+					</motion.div>
+					<h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+						Welcome to Elron AI
+					</h1>
+					<p className="text-muted-foreground text-lg">
+						Your AI-powered development companion
 					</p>
 				</div>
-				<form className="space-y-4" onSubmit={handleSubmit}>
-					<div className="space-y-2">
-						<Label htmlFor="email">Email</Label>
-						<Input
-							id="email"
-							name="email"
-							placeholder="m@example.com"
-							required
-							type="email"
+
+				{/* Login Card */}
+				<Card className="border-2 shadow-lg hover:shadow-xl transition-shadow duration-300">
+					<CardHeader className="space-y-1 text-center pb-4">
+						<h2 className="text-2xl font-semibold">Sign in</h2>
+						<p className="text-sm text-muted-foreground">
+							Continue with Google to get started
+						</p>
+					</CardHeader>
+					<CardContent className="space-y-4">
+						<Button
+							className="w-full h-12 text-lg relative group transition-all duration-200 hover:shadow-md"
+							onClick={handleLogin}
 							disabled={isLoading}
-						/>
-					</div>
-					<div className="space-y-2">
-						<Label htmlFor="password">Password</Label>
-						<Input
-							id="password"
-							name="password"
-							required
-							type="password"
-							disabled={isLoading}
-						/>
-					</div>
-					<Button className="w-full" disabled={isLoading}>
-						{isLoading ? (
-							<>
-								<Loader2 className="mr-2 h-4 w-4 animate-spin" />
-								Signing in...
-							</>
-						) : (
-							"Sign in"
-						)}
-					</Button>
-				</form>
-				<div className="text-center text-sm">
-					Don&apos;t have an account?{" "}
-					<Link className="underline" href="/register">
-						Register
-					</Link>
-				</div>
-			</div>
+						>
+							<motion.div
+								className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-10 rounded-md"
+								initial={false}
+								animate={{ scale: isLoading ? 1.05 : 1 }}
+								transition={{ duration: 0.2 }}
+							/>
+							<span className="flex items-center justify-center gap-3">
+								<Image
+									src="/logos/google.svg"
+									alt="Google"
+									width={24}
+									height={24}
+									className="size-6"
+								/>
+								{isLoading ? "Connecting..." : "Continue with Google"}
+							</span>
+						</Button>
+					</CardContent>
+				</Card>
+
+				{/* Footer */}
+				<footer className="text-center text-sm text-muted-foreground space-y-2">
+					<p>
+						By signing in, you agree to our{" "}
+						<Link href="/terms" className="text-primary hover:text-primary/80 hover:underline transition-colors duration-200">
+							Terms of Service
+						</Link>{" "}
+						and{" "}
+						<Link href="/privacy" className="text-primary hover:text-primary/80 hover:underline transition-colors duration-200">
+							Privacy Policy
+						</Link>
+					</p>
+					<p>
+						Need help?{" "}
+						<Link href="/support" className="text-primary hover:text-primary/80 hover:underline transition-colors duration-200">
+							Contact Support
+						</Link>
+					</p>
+				</footer>
+			</motion.div>
 		</div>
 	);
 }
