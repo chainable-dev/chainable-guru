@@ -19,7 +19,7 @@ import { useWalletState } from "@/hooks/useWalletState";
 import { createClient } from "@/lib/supabase/client";
 import { sanitizeUIMessages } from "@/lib/utils";
 
-import { ArrowUpIcon, PaperclipIcon, StopIcon } from "./icons";
+import { ArrowUpIcon, PaperclipIcon, StopIcon, GlobeIcon } from "./icons";
 import { PreviewAttachment } from "./preview-attachment";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
@@ -282,7 +282,21 @@ export function MultimodalInput({
 		networkInfo,
 	]);
 
-	const handleSuggestedAction = useCallback(
+	const handleWebSearch = useCallback(async () => {
+		if (!input) return;
+
+		try {
+			const response = await fetch(`/api/search?query=${encodeURIComponent(input)}`);
+			if (!response.ok) throw new Error("Search failed");
+
+			const data = await response.json();
+			// Handle search results (e.g., display them in the chat)
+			console.log("Search results:", data);
+		} catch (error) {
+			console.error("Error performing web search:", error);
+			toast.error("Failed to perform web search");
+		}
+	}, [input]);
 		(action: string) => {
 			const isWalletAction =
 				action.toLowerCase().includes("wallet") ||
@@ -610,6 +624,16 @@ export function MultimodalInput({
 				/>
 
 				<div className="absolute bottom-2 right-2 flex items-center gap-2">
+					<Button
+						size="icon"
+						variant="outline"
+						onClick={handleWebSearch}
+						disabled={isLoading}
+						className="size-8 rounded-full"
+					>
+						<GlobeIcon className="size-4" />
+					</Button>
+
 					<Button
 						size="icon"
 						variant="outline"
