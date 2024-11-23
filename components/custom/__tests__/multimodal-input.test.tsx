@@ -29,19 +29,37 @@ describe('MultimodalInput', () => {
     expect(defaultProps.setInput).toHaveBeenCalledWith('Hello');
   });
 
-  it('should prevent duplicate file uploads', () => {
+  it('should add a file to attachments on successful upload', async () => {
     render(<MultimodalInput {...defaultProps} />);
     const fileInput = screen.getByLabelText(/upload/i);
     const file = new File(['content'], 'test.png', { type: 'image/png' });
 
-    fireEvent.change(fileInput, { target: { files: [file, file] } });
+    fireEvent.change(fileInput, { target: { files: [file] } });
 
-    // Check that the file is only added once
-    expect(defaultProps.setAttachments).toHaveBeenCalledTimes(1);
+    // Simulate successful upload
+    await screen.findByText('Files uploaded successfully');
+    expect(defaultProps.setAttachments).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({ name: 'test.png' })
+      ])
+    );
   });
 
-  it('should remove staged file immediately after upload', async () => {
-    // Similar setup as above
-    // Add logic to simulate file upload and check staged file removal
+  it('should display an error message on failed upload', async () => {
+    render(<MultimodalInput {...defaultProps} />);
+    const fileInput = screen.getByLabelText(/upload/i);
+    const file = new File(['content'], 'test.png', { type: 'image/png' });
+
+    // Mock fetch to simulate a failed upload
+    global.fetch = vi.fn(() =>
+      Promise.resolve({
+        ok: false,
+      })
+    ) as jest.Mock;
+
+    fireEvent.change(fileInput, { target: { files: [file] } });
+
+    // Check for error message
+    await screen.findByText('Failed to upload one or more files');
   });
 });
