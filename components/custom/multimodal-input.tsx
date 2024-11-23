@@ -9,7 +9,7 @@ import {
 	ArrowUp,
 	Paperclip,
 	Square,
-	Wallet,
+	WalletIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { messageAnimationVariants } from "@/lib/animation-variants";
