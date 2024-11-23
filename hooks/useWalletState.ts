@@ -1,11 +1,12 @@
 import { useAccount, useChainId, useWalletClient } from 'wagmi';
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
 export function useWalletState() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { data: walletClient } = useWalletClient();
+  const [isInitialized, setIsInitialized] = useState(false);
 
   // Memoize network info
   const networkInfo = useMemo(() => {
@@ -19,8 +20,15 @@ export function useWalletState() {
     };
   }, [chainId]);
 
+  // Initialize wallet state after hydration
+  useEffect(() => {
+    setIsInitialized(true);
+  }, []);
+
   // Watch for wallet state changes
   useEffect(() => {
+    if (!isInitialized) return;
+
     if (isConnected && address) {
       if (networkInfo?.isSupported) {
         console.log('Wallet connected:', {
@@ -32,7 +40,7 @@ export function useWalletState() {
         toast.error('Please switch to Base Mainnet or Base Sepolia');
       }
     }
-  }, [isConnected, address, chainId, networkInfo]);
+  }, [isInitialized, isConnected, address, chainId, networkInfo]);
 
   return {
     address,
@@ -40,6 +48,7 @@ export function useWalletState() {
     chainId,
     walletClient,
     networkInfo,
-    isCorrectNetwork: networkInfo?.isSupported ?? false
+    isCorrectNetwork: networkInfo?.isSupported ?? false,
+    isInitialized
   };
 } 
