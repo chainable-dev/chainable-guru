@@ -19,7 +19,8 @@ import { useWalletState } from "@/hooks/useWalletState";
 import { createClient } from "@/lib/supabase/client";
 import { sanitizeUIMessages } from "@/lib/utils";
 
-import { ArrowUpIcon, PaperclipIcon, StopIcon, GlobeIcon } from "./icons";
+import { ArrowUpIcon, PaperclipIcon, StopIcon } from "./icons";
+import GlobeIcon from "./icons/GlobeIcon";
 import { PreviewAttachment } from "./preview-attachment";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
