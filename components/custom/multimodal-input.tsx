@@ -8,7 +8,11 @@ import { useLocalStorage } from "usehooks-ts";
 
 import { useWalletState } from "@/hooks/useWalletState";
 import { createClient } from "@/lib/supabase/client";
-import { ArrowUpIcon, PaperclipIcon, StopIcon } from "@/components/custom/icons";
+import {
+	ArrowUpIcon,
+	PaperclipIcon,
+	StopIcon,
+} from "@/components/custom/icons";
 import GlobeIcon from "@/components/custom/icons/GlobeIcon";
 import { PreviewAttachment } from "./preview-attachment";
 import { Button } from "../ui/button";
@@ -55,7 +59,10 @@ interface MultimodalInputProps {
 	attachments: Attachment[];
 	setAttachments: React.Dispatch<React.SetStateAction<Attachment[]>>;
 	messages: Message[];
-	append: (message: Message, options?: ChatRequestOptions) => Promise<string | null>;
+	append: (
+		message: Message,
+		options?: ChatRequestOptions,
+	) => Promise<string | null>;
 	chatId: string;
 	className?: string;
 }
@@ -79,28 +86,33 @@ export function MultimodalInput({
 	const { isConnected, isCorrectNetwork } = useWalletState();
 
 	// File handling logic
-	const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
-		const files = Array.from(event.target.files || []);
-		// ... rest of file handling logic
-	}, [chatId, setAttachments]);
+	const handleFileChange = useCallback(
+		async (event: React.ChangeEvent<HTMLInputElement>) => {
+			const files = Array.from(event.target.files || []);
+			// ... rest of file handling logic
+		},
+		[chatId, setAttachments],
+	);
 
 	// Add back web search handler
 	const handleWebSearch = useCallback(async () => {
 		if (!input) return;
 
 		try {
-			const response = await fetch(`/app/api/search?query=${encodeURIComponent(input)}`);
+			const response = await fetch(
+				`/app/api/search?query=${encodeURIComponent(input)}`,
+			);
 			if (!response.ok) throw new Error("Search failed");
 
 			const data = await response.json();
-			
+
 			// Append search results to chat
 			await append({
 				id: crypto.randomUUID(),
 				role: "user",
 				content: `Web search results for: ${input}\n\n${JSON.stringify(data, null, 2)}`,
 			});
-			
+
 			setInput("");
 		} catch (error) {
 			console.error("Error performing web search:", error);
@@ -111,10 +123,10 @@ export function MultimodalInput({
 	// Update message submission logic to include id
 	const handleSubmit = useCallback(async () => {
 		if (!input && attachments.length === 0) return;
-		
+
 		const isWalletQuery = input.toLowerCase().includes("wallet");
 		const isWebSearch = input.toLowerCase().includes("search");
-		
+
 		if (isWalletQuery && (!isConnected || !isCorrectNetwork)) {
 			toast.error("Please connect your wallet and ensure correct network");
 			return;
@@ -126,19 +138,29 @@ export function MultimodalInput({
 				return;
 			}
 
-			await append({
-				id: crypto.randomUUID(),
-				role: "user",
-				content: input,
-			}, { experimental_attachments: attachments });
-			
+			await append(
+				{
+					id: crypto.randomUUID(),
+					role: "user",
+					content: input,
+				},
+				{ experimental_attachments: attachments },
+			);
+
 			setInput("");
 			setAttachments([]);
 			setLocalInput("");
 		} catch (error) {
 			toast.error("Failed to send message");
 		}
-	}, [input, attachments, append, isConnected, isCorrectNetwork, handleWebSearch]);
+	}, [
+		input,
+		attachments,
+		append,
+		isConnected,
+		isCorrectNetwork,
+		handleWebSearch,
+	]);
 
 	return (
 		<div className="relative w-full flex flex-col gap-4">
@@ -154,7 +176,9 @@ export function MultimodalInput({
 						>
 							<span className="flex flex-col">
 								<span className="font-medium">{action.title}</span>
-								<span className="text-xs text-muted-foreground">{action.label}</span>
+								<span className="text-xs text-muted-foreground">
+									{action.label}
+								</span>
 							</span>
 						</Button>
 					))}
@@ -175,7 +199,10 @@ export function MultimodalInput({
 					value={input}
 					onChange={(e) => setInput(e.target.value)}
 					placeholder="Send a message..."
-					className={cx("min-h-[24px] max-h-[75vh] pr-24 resize-none rounded-xl", className)}
+					className={cx(
+						"min-h-[24px] max-h-[75vh] pr-24 resize-none rounded-xl",
+						className,
+					)}
 					onKeyDown={(e) => {
 						if (e.key === "Enter" && !e.shiftKey) {
 							e.preventDefault();
@@ -209,7 +236,7 @@ export function MultimodalInput({
 					<Button
 						size="icon"
 						variant={input ? "default" : "outline"}
-						onClick={() => isLoading ? stop() : handleSubmit()}
+						onClick={() => (isLoading ? stop() : handleSubmit())}
 						disabled={!input && !attachments.length}
 						className="size-8 rounded-full"
 					>

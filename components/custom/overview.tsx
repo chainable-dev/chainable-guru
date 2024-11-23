@@ -44,14 +44,20 @@ export const Overview = () => {
 						<h2 className="text-2xl font-bold">Elron</h2>
 						<p className="text-sm text-muted-foreground">
 							Powered by{" "}
-							<Link href={LINKS.chainable} target="_blank" className="hover:underline">
+							<Link
+								href={LINKS.chainable}
+								target="_blank"
+								className="hover:underline"
+							>
 								chainable.co
 							</Link>
 						</p>
 					</div>
 				</div>
 
-				<p className="text-sm italic text-muted-foreground">&ldquo;{quote}&rdquo;</p>
+				<p className="text-sm italic text-muted-foreground">
+					&ldquo;{quote}&rdquo;
+				</p>
 
 				<div className="space-y-4 text-sm">
 					<p>
@@ -64,17 +70,29 @@ export const Overview = () => {
 					</p>
 					<p>
 						Powered by{" "}
-						<Link href={LINKS.base} target="_blank" className="underline underline-offset-4">
+						<Link
+							href={LINKS.base}
+							target="_blank"
+							className="underline underline-offset-4"
+						>
 							Base
 						</Link>{" "}
 						and secured with{" "}
-						<Link href={LINKS.supabase} target="_blank" className="underline underline-offset-4">
+						<Link
+							href={LINKS.supabase}
+							target="_blank"
+							className="underline underline-offset-4"
+						>
 							Supabase
 						</Link>
 					</p>
 				</div>
 
-				<Link href={LINKS.chainable} target="_blank" className="w-[120px] h-[30px] relative">
+				<Link
+					href={LINKS.chainable}
+					target="_blank"
+					className="w-[120px] h-[30px] relative"
+				>
 					<Image
 						src="/logos/favicon-dark.ico"
 						alt="Chainable Logo"

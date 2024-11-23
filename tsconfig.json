@@ -29,8 +29,9 @@
 			"@/components/custom/*": ["./components/custom/*"],
 			"@/ai/*": ["./ai/*"],
 			"@/db/*": ["./db/*"],
-			"@/actions/*": ["./actions/*"],
-			"@/public/*": ["./public/*"]
+			"@/public/*": ["./public/*"],
+			"@/types/*": ["./types/*"],
+			"@/actions/*": ["./app/actions/*"]
 		},
 		"types": [
 			"node",

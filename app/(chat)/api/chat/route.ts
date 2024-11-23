@@ -582,8 +582,7 @@ const tools = {
 					type: "tool-result",
 					result: {
 						error: "Search failed",
-						details:
-							error instanceof Error ? error.message : "Unknown error",
+						details: error instanceof Error ? error.message : "Unknown error",
 					},
 				};
 			}
