@@ -89,7 +89,7 @@ export function MultimodalInput({
 		if (!input) return;
 
 		try {
-			const response = await fetch(`/api/search?query=${encodeURIComponent(input)}`);
+			const response = await fetch(`/app/api/search?query=${encodeURIComponent(input)}`);
 			if (!response.ok) throw new Error("Search failed");
 
 			const data = await response.json();
