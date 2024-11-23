@@ -77,6 +77,8 @@ export function Chat({ id, initialMessages, selectedModelId }: ChatProps) {
     error: null,
   });
 
+  const [webSearchEnabled] = useState(true);
+
   const append = async (
     message: CreateMessage,
     options?: ChatRequestOptions
@@ -202,6 +204,7 @@ export function Chat({ id, initialMessages, selectedModelId }: ChatProps) {
             messages={messages}
             setMessages={setMessages}
             append={append}
+            webSearchEnabled={webSearchEnabled}
           />
         </form>
       </div>
