@@ -8,6 +8,9 @@ import {
 	useMotionValue,
 	useTransform,
 } from "framer-motion";
+import React, { useState } from "react";
+import { useAgentState } from "../../hooks/useAgentState";
+import AgentModal from "./agentModal";
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { useOnClickOutside } from "usehooks-ts";
 
@@ -315,7 +318,21 @@ export const Tools = ({
 	);
 };
 
-export const Toolbar = ({
+const Toolbar: React.FC = () => {
+  const [isModalOpen, setModalOpen] = useState(false);
+  const agentState = useAgentState("ws://localhost:8080");
+
+  return (
+    <div>
+      <button onClick={() => setModalOpen(true)}>Show Agent Modal</button>
+      <AgentModal
+        isOpen={isModalOpen}
+        onClose={() => setModalOpen(false)}
+        agentState={agentState}
+      />
+    </div>
+  );
+};
 	isToolbarVisible,
 	setIsToolbarVisible,
 	append,
