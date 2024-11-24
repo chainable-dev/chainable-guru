@@ -76,4 +76,7 @@ This project uses AI models and may generate content. Please note:
 
 ## 📦 Installation
 
-</file>
+1. Clone the repository:
+
+```bash
+git clone https://github.com/you
