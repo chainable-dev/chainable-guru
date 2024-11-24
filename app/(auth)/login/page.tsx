@@ -9,7 +9,7 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signIn } from "@/db/auth";
+import { signIn, signInWithGoogle } from "@/db/auth";
 
 export default function LoginPage() {
 	const [isLoading, setIsLoading] = useState(false);
@@ -29,6 +29,17 @@ export default function LoginPage() {
 			setIsTransitioning(true);
 			router.push("/");
 			router.refresh();
+		} catch (error: any) {
+			toast.error(error.message);
+			setIsLoading(false);
+		}
+	}
+
+	async function handleGoogleSignIn() {
+		setIsLoading(true);
+		try {
+			await signInWithGoogle();
+			setIsTransitioning(true);
 		} catch (error: any) {
 			toast.error(error.message);
 			setIsLoading(false);
