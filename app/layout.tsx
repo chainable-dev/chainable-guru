@@ -17,13 +17,23 @@ export const metadata: Metadata = {
 	description: "Secure blockchain integration with AI",
 	icons: {
 		icon: [
-			{ url: "/icons/chainable.svg", type: "image/svg+xml", sizes: "any" },
-			{ url: "/icons/chainable-32.png", sizes: "32x32", type: "image/png" },
-			{ url: "/icons/chainable-16.png", sizes: "16x16", type: "image/png" },
+			{ rel: "icon", url: "/favicon.ico" },
+			{ rel: "icon", url: "/icons/icon.svg", type: "image/svg+xml" },
+			{ rel: "icon", url: "/icons/icon-16x16.png", sizes: "16x16", type: "image/png" },
+			{ rel: "icon", url: "/icons/icon-32x32.png", sizes: "32x32", type: "image/png" },
 		],
-		apple: [{ url: "/icons/chainable-180.png", sizes: "180x180" }],
-		shortcut: "/icons/favicon.ico",
+		apple: [
+			{ url: "/icons/apple-touch-icon.png", sizes: "180x180" },
+		],
+		other: [
+			{
+				rel: "mask-icon",
+				url: "/icons/icon.svg",
+				color: "#000000",
+			},
+		],
 	},
+	manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
@@ -39,7 +49,11 @@ export default function RootLayout({
 }) {
 	return (
 		<html lang="en" suppressHydrationWarning>
-			<head />
+			<head>
+				<link rel="manifest" href="/manifest.json" />
+				<link rel="icon" href="/icons/favicon.ico" />
+				<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+			</head>
 			<body className={cn(
 				"min-h-screen bg-background font-sans antialiased",
 				inter.className

@@ -1,22 +1,29 @@
 import { createRouteHandler } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
+import { APP_ROUTES, ERROR_MESSAGES } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-	const requestUrl = new URL(request.url);
-	const code = requestUrl.searchParams.get("code");
-	const error = requestUrl.searchParams.get("error");
-	const error_description = requestUrl.searchParams.get("error_description");
-
-	console.log("[Auth Callback] Received request:", {
-		url: request.url,
-		code: code ? "Present" : "Missing",
-		error,
-		error_description,
-	});
-
 	try {
+		const requestUrl = new URL(request.url);
+		const code = requestUrl.searchParams.get("code");
+		const error = requestUrl.searchParams.get("error");
+		const error_description = requestUrl.searchParams.get("error_description");
+
+		if (error) {
+			console.error("[Auth Callback] OAuth error:", {
+				error,
+				description: error_description,
+			});
+			return NextResponse.redirect(
+				new URL(
+					`${APP_ROUTES.AUTH.LOGIN}?error=${encodeURIComponent(error_description || error)}`,
+					requestUrl.origin
+				)
+			);
+		}
+
 		const supabase = await createRouteHandler();
 
 		if (code) {
@@ -64,17 +71,23 @@ export async function GET(request: Request) {
 				provider: user.app_metadata?.provider
 			});
 
-			return NextResponse.redirect(new URL("/", requestUrl.origin));
+			return NextResponse.redirect(new URL(APP_ROUTES.APP.HOME, requestUrl.origin));
 		}
 
 		return NextResponse.redirect(
-			new URL("/login?error=No code provided", requestUrl.origin)
+			new URL(
+				`${APP_ROUTES.AUTH.LOGIN}?error=${encodeURIComponent(ERROR_MESSAGES.AUTH.UNAUTHORIZED)}`,
+				requestUrl.origin
+			)
 		);
 
 	} catch (error) {
 		console.error("[Auth Callback] Error:", error);
 		return NextResponse.redirect(
-			new URL("/login?error=Authentication failed", requestUrl.origin)
+			new URL(
+				`${APP_ROUTES.AUTH.LOGIN}?error=${encodeURIComponent(ERROR_MESSAGES.AUTH.UNAUTHORIZED)}`,
+				requestUrl.origin
+			)
 		);
 	}
 }
