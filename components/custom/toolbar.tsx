@@ -434,29 +434,31 @@ const ToolbarComponent = ({
 					}}
 					ref={toolbarRef}
 				>
-					<TooltipProvider>
-						{isLoading ? (
-							<motion.div
-								key="stop-icon"
-								initial={{ scale: 1 }}
-								animate={{ scale: 1.4 }}
-								exit={{ scale: 1 }}
-								className="p-3"
-								onClick={() => {
-									stop();
-									setMessages((messages) => sanitizeUIMessages(messages));
-								}}
-							>
-								<StopIcon />
-							</motion.div>
-						) : selectedTool === "adjust-reading-level" ? (
+					{isLoading ? (
+						<motion.div
+							key="stop-icon"
+							initial={{ scale: 1 }}
+							animate={{ scale: 1.4 }}
+							exit={{ scale: 1 }}
+							className="p-3"
+							onClick={() => {
+								stop();
+								setMessages((messages) => sanitizeUIMessages(messages));
+							}}
+						>
+							<StopIcon />
+						</motion.div>
+					) : selectedTool === "adjust-reading-level" ? (
+						<TooltipProvider>
 							<ReadingLevelSelector
 								key="reading-level-selector"
 								append={append}
 								setSelectedTool={setSelectedTool}
 								isAnimating={isAnimating}
 							/>
-						) : (
+						</TooltipProvider>
+					) : (
+						<TooltipProvider>
 							<Tools
 								key="tools"
 								append={append}
@@ -466,8 +468,8 @@ const ToolbarComponent = ({
 								setIsToolbarVisible={setIsToolbarVisible}
 								setSelectedTool={setSelectedTool}
 							/>
-						)}
-					</TooltipProvider>
+						</TooltipProvider>
+					)}
 				</motion.div>
 			</TooltipProvider>
 		</div>
