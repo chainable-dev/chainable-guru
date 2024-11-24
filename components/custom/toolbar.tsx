@@ -449,26 +449,22 @@ const ToolbarComponent = ({
 							<StopIcon />
 						</motion.div>
 					) : selectedTool === "adjust-reading-level" ? (
-						<TooltipProvider>
-							<ReadingLevelSelector
-								key="reading-level-selector"
-								append={append}
-								setSelectedTool={setSelectedTool}
-								isAnimating={isAnimating}
-							/>
-						</TooltipProvider>
+						<ReadingLevelSelector
+							key="reading-level-selector"
+							append={append}
+							setSelectedTool={setSelectedTool}
+							isAnimating={isAnimating}
+						/>
 					) : (
-						<TooltipProvider>
-							<Tools
-								key="tools"
-								append={append}
-								isAnimating={isAnimating}
-								isToolbarVisible={isToolbarVisible}
-								selectedTool={selectedTool}
-								setIsToolbarVisible={setIsToolbarVisible}
-								setSelectedTool={setSelectedTool}
-							/>
-						</TooltipProvider>
+						<Tools
+							key="tools"
+							append={append}
+							isAnimating={isAnimating}
+							isToolbarVisible={isToolbarVisible}
+							selectedTool={selectedTool}
+							setIsToolbarVisible={setIsToolbarVisible}
+							setSelectedTool={setSelectedTool}
+						/>
 					)}
 				</motion.div>
 			</TooltipProvider>
