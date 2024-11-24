@@ -1,5 +1,5 @@
 import React from 'react';
-import { cn } from 'classnames'; // Assuming cn is a utility function for classnames
+import classNames from 'classnames';
 
 const SidebarMenu = React.forwardRef<
   HTMLUListElement,
@@ -8,7 +8,7 @@ const SidebarMenu = React.forwardRef<
   <ul
     ref={ref}
     data-sidebar="menu"
-    className={cn('flex flex-col gap-2 p-2', className)}
+    className={classNames('flex flex-col gap-2 p-2', className)}
     {...props}
   />
 ));
