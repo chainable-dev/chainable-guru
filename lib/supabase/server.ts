@@ -14,7 +14,7 @@ function cookiesToObject(cookies: RequestCookie[]) {
 
 // For use in Server Components
 export async function createServerClient() {
-	const cookieStore = cookies();
+	const cookieStore = await cookies();
 	const allCookies = await cookieStore.getAll();
 	
 	const supabase = createServerComponentClient<Database>({
@@ -39,7 +39,7 @@ export async function createRouteHandler() {
 	const cookieStore = await cookies();
 	
 	return createRouteHandlerClient<Database>({
-		cookies: () => Promise.resolve(cookieStore)
+		cookies: () => Promise.resolve(cookiesToObject(cookieStore.getAll()))
 	});
 }
 
@@ -48,7 +48,7 @@ export async function createActionClient() {
 	const cookieStore = await cookies();
 	
 	return createServerActionClient<Database>({
-		cookies: () => Promise.resolve(cookieStore)
+		cookies: () => Promise.resolve(cookiesToObject(cookieStore.getAll()))
 	});
 }
 
