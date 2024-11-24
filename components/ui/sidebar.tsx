@@ -8,7 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import SidebarMenu from "@/components/SidebarMenu";
 
 import { useIsMobile } from "@/hooks/use-mobile";
-import { cn } from "@/lib/utils";
+import classNames from "classnames";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -156,7 +156,7 @@ const SidebarProvider = React.forwardRef<
 								...style,
 							} as React.CSSProperties
 						}
-						className={cn(
+						className={classNames(
 							"group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar",
 							className,
 						)}
