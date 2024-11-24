@@ -72,6 +72,9 @@ const nextConfig = {
 		unoptimized: process.env.NODE_ENV === "production",
 	},
 	// Other config
+	experimental: {
+		appDir: true,
+	},
 	typescript: {
 		ignoreBuildErrors: true,
 	},
