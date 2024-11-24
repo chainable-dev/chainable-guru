@@ -15,9 +15,10 @@ import { BlockStreamHandler } from "@/components/custom/block-stream-handler";
 import { ChatHeader } from "@/components/custom/chat-header";
 import { MultimodalInput } from "@/components/custom/multimodal-input";
 import { Overview } from "@/components/custom/overview";
-import { PreviewMessage, ThinkingMessage } from "@/components/custom/message";
+import { PreviewMessage } from "@/components/custom/message";
 import { useScrollToBottom } from "@/components/custom/use-scroll-to-bottom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { ThinkingMessage } from "./thinking-message";
 
 import { Database } from "@/lib/supabase/types";
 import { fetcher } from "@/lib/utils";
@@ -156,6 +157,12 @@ export function Chat({
 				>
 					{messages.length === 0 && <Overview />}
 
+					{isLoading &&
+						messages.length > 0 &&
+						messages[messages.length - 1].role === "user" && (
+							<ThinkingMessage />
+						)}
+
 					{messages.map((message, index) => (
 						<PreviewMessage
 							key={message.id}
@@ -167,12 +174,6 @@ export function Chat({
 							vote={votes?.find((vote) => vote.message_id === message.id)}
 						/>
 					))}
-
-					{isLoading &&
-						messages.length > 0 &&
-						messages[messages.length - 1].role === "user" && (
-							<ThinkingMessage />
-						)}
 
 					<div
 						ref={messagesEndRef}

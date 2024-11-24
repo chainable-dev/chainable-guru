@@ -11,6 +11,7 @@ import React, {
 	Dispatch,
 	SetStateAction,
 	ChangeEvent,
+	FormEvent,
 } from "react";
 import { toast } from "sonner";
 import { useLocalStorage, useWindowSize } from "usehooks-ts";
@@ -23,7 +24,6 @@ import { ArrowUpIcon, PaperclipIcon, StopIcon } from "./icons";
 import { PreviewAttachment } from "./preview-attachment";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
-import { ChatSkeleton } from "./chat-skeleton";
 
 import type { Attachment as SupabaseAttachment } from "@/types/supabase";
 import type {
@@ -566,6 +566,7 @@ export function MultimodalInput({
 					{attachments.map((attachment) => (
 						<div key={attachment.url} className="relative group">
 							<PreviewAttachment
+								//@ts-ignore
 								attachment={attachment}
 								onRemove={() =>
 									setAttachments((current) =>
@@ -617,7 +618,7 @@ export function MultimodalInput({
 						disabled={isLoading}
 						className="size-8 rounded-full"
 					>
-						<PaperclipIcon className="size-4" />
+						<PaperclipIcon  />
 					</Button>
 
 					<Button
@@ -631,9 +632,9 @@ export function MultimodalInput({
 						className="size-8 rounded-full"
 					>
 						{isLoading ? (
-							<StopIcon className="size-4" />
+							<StopIcon  />
 						) : (
-							<ArrowUpIcon className="size-4" />
+							<ArrowUpIcon  />
 						)}
 					</Button>
 				</div>

@@ -36,6 +36,7 @@ import { kv } from "@vercel/kv";
 import { useAccount, useBalance, useChainId } from "wagmi";
 
 import { generateTitleFromUserMessage } from "../../actions";
+import { CryptoPrice, CryptoPriceResponse } from '@/types/crypto';
 
 export const maxDuration = 60;
 
@@ -72,7 +73,8 @@ type AllowedTools =
 	| "getWeather"
 	| "getWalletBalance"
 	| "checkWalletState"
-	| "webSearch";
+	| "webSearch"
+	| "getCryptoPrice";
 
 const blocksTools: AllowedTools[] = [
 	"createDocument",
@@ -88,6 +90,7 @@ const allTools: AllowedTools[] = [
 	"getWalletBalance" as AllowedTools,
 	"checkWalletState" as AllowedTools,
 	...(FEATURES.WEB_SEARCH ? ["webSearch" as AllowedTools] : []),
+	"getCryptoPrice" as AllowedTools,
 ];
 
 async function getUser() {
@@ -593,6 +596,37 @@ const tools = {
 				},
 			}
 		: {}),
+	getCryptoPrice: {
+		description: 'Get current Bitcoin price and market data',
+		parameters: z.object({
+			symbol: z.string().default('bitcoin')
+		}),
+		execute: async ({ symbol }: { symbol: string }): Promise<CryptoPrice> => {
+			try {
+				const response = await fetch(
+					`https://api.coingecko.com/api/v3/simple/price?ids=${symbol}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true&include_last_updated_at=true`
+				);
+				
+				if (!response.ok) {
+					throw new Error('Failed to fetch crypto data');
+				}
+
+				const data = await response.json();
+				return {
+  				symbol,
+					price: data[symbol].usd,
+					timestamp: new Date().toISOString(),
+					change_24h: data[symbol].usd_24h_change,
+					market_cap: data[symbol].usd_market_cap,
+					volume_24h: data[symbol].usd_24h_vol,
+					last_updated: new Date(data[symbol].last_updated_at * 1000).toISOString(),
+				};
+			} catch (error) {
+				console.error('Error fetching crypto price:', error);
+				throw error;
+			}
+		}
+	},
 };
 
 export async function POST(request: Request) {
@@ -721,34 +755,8 @@ export async function POST(request: Request) {
 				system: systemPrompt,
 				messages: messagesWithContext,
 				maxSteps: 5,
-				experimental_activeTools: allTools,
-				tools: {
-					...tools,
-					createDocument: {
-						...tools.createDocument,
-						execute: (params) =>
-							tools.createDocument.execute({
-								...params,
-								modelId: model.apiIdentifier,
-							}),
-					},
-					updateDocument: {
-						...tools.updateDocument,
-						execute: (params) =>
-							tools.updateDocument.execute({
-								...params,
-								modelId: model.apiIdentifier,
-							}),
-					},
-					requestSuggestions: {
-						...tools.requestSuggestions,
-						execute: (params) =>
-							tools.requestSuggestions.execute({
-								...params,
-								modelId: model.apiIdentifier,
-							}),
-					},
-				},
+				experimental_activeTools: ['getWeather', 'getCryptoPrice'],
+				tools,
 				onFinish: async ({ responseMessages }) => {
 					if (user && user.id) {
 						try {
