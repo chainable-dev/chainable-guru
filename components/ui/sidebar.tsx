@@ -4,6 +4,7 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { VariantProps, cva } from "class-variance-authority";
 import { PanelLeft } from "lucide-react";
+import { TooltipProvider } from "@/components/ui/tooltip"; // Add this import
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,8 @@ import {
 	TooltipContent,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+
+// ... rest of the code
 
 const SIDEBAR_COOKIE_NAME = "sidebar:state";
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
@@ -501,18 +504,6 @@ const SidebarGroupContent = React.forwardRef<
 ));
 SidebarGroupContent.displayName = "SidebarGroupContent";
 
-const SidebarMenu = React.forwardRef<
-	HTMLUListElement,
-	React.ComponentProps<"ul">
->(({ className, ...props }, ref) => (
-	<ul
-		ref={ref}
-		data-sidebar="menu"
-		className={cn("flex w-full min-w-0 flex-col gap-1", className)}
-		{...props}
-	/>
-));
-SidebarMenu.displayName = "SidebarMenu";
 
 const SidebarMenuItem = React.forwardRef<
 	HTMLLIElement,
