@@ -1,29 +1,35 @@
-import { Metadata } from "next";
+import { Metadata, Viewport } from "next";
+import { Inter } from "next/font/google";
 
-import { RootProvider } from "@/components/providers/root-provider";
+import { cn } from "@/lib/utils";
+import { ThemeProvider } from "@/components/providers/theme-provider";
+import { Toaster } from "@/components/ui/toaster";
 
-import "./globals.css";
-import "../styles/dark-mode.css";
+import "@/styles/globals.css";
+
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-	metadataBase: new URL("https://chainable.guru"),
-	title: "Elron - AI web3 chatbot",
-	description:
-		"Elron is an AI chatbot that integrates with blockchain technologies.",
+	title: {
+		default: "Chainable",
+		template: "%s | Chainable",
+	},
+	description: "Secure blockchain integration with AI",
 	icons: {
 		icon: [
-			{ url: "/favicon.ico", sizes: "any" },
-			{ url: "/icon.svg", type: "image/svg+xml", sizes: "any" },
+			{ url: "/icons/chainable.svg", type: "image/svg+xml", sizes: "any" },
+			{ url: "/icons/chainable-32.png", sizes: "32x32", type: "image/png" },
+			{ url: "/icons/chainable-16.png", sizes: "16x16", type: "image/png" },
 		],
-		apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
-		shortcut: "/favicon.ico",
+		apple: [{ url: "/icons/chainable-180.png", sizes: "180x180" }],
+		shortcut: "/icons/favicon.ico",
 	},
-	viewport: {
-		width: "device-width",
-		initialScale: 1,
-		maximumScale: 1,
-		userScalable: false,
-	},
+};
+
+export const viewport: Viewport = {
+	width: "device-width",
+	initialScale: 1,
+	maximumScale: 1,
 };
 
 export default function RootLayout({
@@ -32,25 +38,21 @@ export default function RootLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<html lang="en" suppressHydrationWarning className="dark">
-			<head>
-				<script
-					dangerouslySetInnerHTML={{
-						__html: `
-              try {
-                if (!localStorage.theme) localStorage.theme = 'dark';
-                document.documentElement.classList.add('dark');
-              } catch (_) {}
-            `,
-					}}
-				/>
-				<link rel="icon" href="/favicon.ico" sizes="any" />
-				<link rel="icon" href="/icon.svg" type="image/svg+xml" />
-				<link rel="apple-touch-icon" href="/apple-icon.png" />
-				<link rel="shortcut icon" href="/favicon.ico" />
-			</head>
-			<body className="antialiased bg-background text-foreground dark:bg-gray-900">
-				<RootProvider>{children}</RootProvider>
+		<html lang="en" suppressHydrationWarning>
+			<head />
+			<body className={cn(
+				"min-h-screen bg-background font-sans antialiased",
+				inter.className
+			)}>
+				<ThemeProvider
+					attribute="class"
+					defaultTheme="system"
+					enableSystem
+					disableTransitionOnChange
+				>
+					{children}
+					<Toaster />
+				</ThemeProvider>
 			</body>
 		</html>
 	);

@@ -1,19 +1,14 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import { ThemeProvider } from "next-themes";
+import { ClientProviders } from "./client-providers";
+import { Toaster } from "@/components/ui/toaster";
 
-import { ThemeProvider } from "@/components/custom/theme-provider";
-import { Toaster } from "@/components/ui/toast";
+interface RootProviderProps {
+	children: React.ReactNode;
+}
 
-const ClientProviders = dynamic(
-	() =>
-		import("@/components/providers/client-providers").then(
-			(mod) => mod.ClientProviders,
-		),
-	{ ssr: false },
-);
-
-export function RootProvider({ children }: { children: React.ReactNode }) {
+export function RootProvider({ children }: RootProviderProps) {
 	return (
 		<ThemeProvider
 			attribute="class"

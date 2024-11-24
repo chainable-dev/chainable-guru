@@ -20,15 +20,10 @@ export default function AuthLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<html lang="en" suppressHydrationWarning>
-			<head>
-				<link rel="icon" href="/icons/chainable.svg" type="image/svg+xml" />
-				<link rel="alternate icon" href="/icons/favicon.ico" />
-				<link rel="apple-touch-icon" href="/icons/chainable-180.png" />
-			</head>
-			<body className="antialiased" suppressHydrationWarning>
+		<div className="min-h-screen bg-background antialiased">
+			<main className="flex min-h-screen flex-col">
 				{children}
-			</body>
-		</html>
+			</main>
+		</div>
 	);
 }
