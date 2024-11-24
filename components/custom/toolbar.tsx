@@ -318,7 +318,6 @@ export const Tools = ({
 	);
 };
 
-export default Toolbar;
 
 const ToolbarComponent = ({
 	isToolbarVisible,
