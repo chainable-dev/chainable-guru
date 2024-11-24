@@ -1,6 +1,6 @@
 {
 	"compilerOptions": {
-		"target": "ESNext",
+		"target": "es5",
 		"lib": ["dom", "dom.iterable", "esnext"],
 		"allowJs": true,
 		"skipLibCheck": true,
@@ -31,7 +31,12 @@
 			"@/db/*": ["./db/*"],
 			"@/public/*": ["./public/*"],
 			"@/types/*": ["./types/*"],
-			"@/actions/*": ["./actions/*"]
+			"@/actions/*": ["./actions/*"],
+			"@/reducers/*": ["./reducers/*"],
+			"@/sagas/*": ["./sagas/*"],
+			"@/styles/*": ["./styles/*"],
+			//add library paths
+
 		},
 		"types": [
 			"node",
@@ -43,22 +48,13 @@
 		]
 	},
 	"include": [
+		"next-env.d.ts",
 		"**/*.ts",
 		"**/*.tsx",
-		".",
-		"__tests__/**/*",
 		".next/types/**/*.ts"
 	],
+	//add all test folders and files
 	"exclude": [
-		"node_modules",
-		".next",
-		"coverage",
-		"dist",
-		"__test__",
-		"**/__tests__/**",
-		"**/*.test.ts",
-		"**/*.test.tsx",
-		"**/*.spec.ts",
-		"**/*.spec.tsx"
+		"node_modules",".next","out","public","__tests__","__mocks__"
 	]
 }
