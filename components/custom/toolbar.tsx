@@ -8,10 +8,10 @@ import {
 	useMotionValue,
 	useTransform,
 } from "framer-motion";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useAgentState } from "../../hooks/useAgentState";
 import AgentModal from "./agentModal";
-import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
+import { Dispatch, SetStateAction } from "react";
 import { useOnClickOutside } from "usehooks-ts";
 
 import {
