@@ -15,7 +15,7 @@ function cookiesToObject(cookies: RequestCookie[]) {
 // For use in Server Components
 export async function createServerClient() {
 	const cookieStore = await cookies();
-	const allCookies = await cookieStore.getAll();
+	const allCookies = cookieStore.getAll();
 	
 	const supabase = createServerComponentClient<Database>({
 		cookies: () => Promise.resolve(cookiesToObject(allCookies))
