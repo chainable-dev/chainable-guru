@@ -35,9 +35,7 @@
 			"@/actions/*": ["./actions/*"],
 			"@/reducers/*": ["./reducers/*"],
 			"@/sagas/*": ["./sagas/*"],
-			"@/styles/*": ["./styles/*"],
-			//add library paths
-
+			"@/styles/*": ["./styles/*"]
 		},
 		"types": [
 			"node",
