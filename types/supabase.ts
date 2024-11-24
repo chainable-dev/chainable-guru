@@ -1,16 +1,89 @@
-export interface Document {
-	id: string;
-	chat_id: string;
-	title: string;
-	content: string;
-	status: "processing" | "ready" | "error";
-	created_at: string;
-	updated_at?: string;
-}
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
 
-export interface Attachment {
-	url: string;
-	name: string;
-	contentType: string;
-	path?: string;
+export interface Database {
+  public: {
+    Tables: {
+      profiles: {
+        Row: {
+          id: string
+          email: string | null
+          updated_at: string
+          created_at?: string
+        }
+        Insert: {
+          id: string
+          email?: string | null
+          updated_at: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string | null
+          updated_at?: string
+          created_at?: string
+        }
+      }
+      chats: {
+        Row: {
+          id: string
+          user_id: string
+          title: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id: string
+          user_id: string
+          title?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      messages: {
+        Row: {
+          id: string
+          chat_id: string
+          role: 'user' | 'assistant'
+          content: string
+          created_at: string
+        }
+        Insert: {
+          id: string
+          chat_id: string
+          role: 'user' | 'assistant'
+          content: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          chat_id?: string
+          role?: 'user' | 'assistant'
+          content?: string
+          created_at?: string
+        }
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+  }
 }

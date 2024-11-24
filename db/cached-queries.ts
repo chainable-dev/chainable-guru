@@ -3,7 +3,7 @@ import "server-only";
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
 
-import { createClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/supabase/server";
 import {
 	getChatByIdQuery,
 	getUserQuery,
@@ -18,25 +18,18 @@ import {
 	getChatWithMessagesQuery,
 } from "@/db/queries";
 
-const getSupabase = cache(() => createClient());
+const getSupabase = cache(async () => {
+	const { supabase, session } = await createServerClient();
+	return { supabase, session };
+});
 
 export const getSession = async () => {
-	const supabase = await getSupabase();
-
-	return unstable_cache(
-		async () => {
-			return getSessionQuery(supabase);
-		},
-		["session"],
-		{
-			tags: [`session`],
-			revalidate: 10, // Cache for 10 seconds
-		},
-	)();
+	const { session } = await getSupabase();
+	return session;
 };
 
 export const getUserById = async (id: string) => {
-	const supabase = await getSupabase();
+	const { supabase } = await getSupabase();
 
 	return unstable_cache(
 		async () => {
@@ -52,7 +45,7 @@ export const getUserById = async (id: string) => {
 };
 
 export const getUser = async (email: string) => {
-	const supabase = await getSupabase();
+	const { supabase } = await getSupabase();
 
 	return unstable_cache(
 		async () => {
@@ -67,7 +60,7 @@ export const getUser = async (email: string) => {
 };
 
 export const getChatById = async (chatId: string) => {
-	const supabase = await getSupabase();
+	const { supabase } = await getSupabase();
 
 	return unstable_cache(
 		async () => {
@@ -82,7 +75,7 @@ export const getChatById = async (chatId: string) => {
 };
 
 export const getChatsByUserId = async (userId: string) => {
-	const supabase = await getSupabase();
+	const { supabase } = await getSupabase();
 
 	return unstable_cache(
 		async () => {
@@ -97,7 +90,7 @@ export const getChatsByUserId = async (userId: string) => {
 };
 
 export const getMessagesByChatId = async (chatId: string) => {
-	const supabase = await getSupabase();
+	const { supabase } = await getSupabase();
 
 	return unstable_cache(
 		async () => {
@@ -112,7 +105,7 @@ export const getMessagesByChatId = async (chatId: string) => {
 };
 
 export const getVotesByChatId = async (chatId: string) => {
-	const supabase = await getSupabase();
+	const { supabase } = await getSupabase();
 
 	return unstable_cache(
 		async () => {
@@ -127,7 +120,7 @@ export const getVotesByChatId = async (chatId: string) => {
 };
 
 export const getDocumentById = async (documentId: string) => {
-	const supabase = await getSupabase();
+	const { supabase } = await getSupabase();
 
 	return unstable_cache(
 		async () => {
@@ -142,7 +135,7 @@ export const getDocumentById = async (documentId: string) => {
 };
 
 export const getDocumentsById = async (documentId: string) => {
-	const supabase = await getSupabase();
+	const { supabase } = await getSupabase();
 
 	return unstable_cache(
 		async () => {
@@ -157,7 +150,7 @@ export const getDocumentsById = async (documentId: string) => {
 };
 
 export const getSuggestionsByDocumentId = async (documentId: string) => {
-	const supabase = await getSupabase();
+	const { supabase } = await getSupabase();
 
 	return unstable_cache(
 		async () => {
@@ -174,7 +167,7 @@ export const getSuggestionsByDocumentId = async (documentId: string) => {
 };
 
 export const getChatWithMessages = async (chatId: string) => {
-	const supabase = await getSupabase();
+	const { supabase } = await getSupabase();
 
 	return unstable_cache(
 		async () => {
