@@ -14,11 +14,11 @@ function cookiesToObject(cookies: RequestCookie[]) {
 
 // For use in Server Components
 export async function createServerClient() {
-	const cookieStore = await cookies();
-	const allCookies = cookieStore.getAll();
+	const cookieStore = cookies();
+	const allCookies = await cookieStore.getAll();
 	
 	const supabase = createServerComponentClient<Database>({
-		cookies: () => Promise.resolve(cookieStore)
+		cookies: () => Promise.resolve(cookiesToObject(allCookies))
 	});
 
 	try {
