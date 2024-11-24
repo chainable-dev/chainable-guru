@@ -35,7 +35,7 @@ interface BetterTooltipProps {
   side?: "top" | "right" | "bottom" | "left";
 }
 
-const BetterTooltip = React.forwardRef<
+const BetterTooltipComponent = React.forwardRef<
   React.ElementRef<typeof TooltipContent>,
   BetterTooltipProps
 >(({ content, children, align = "center", side = "top", ...props }, ref) => (
@@ -43,12 +43,12 @@ const BetterTooltip = React.forwardRef<
     {content}
   </TooltipContent>
 ))
-BetterTooltip.displayName = "BetterTooltip"
+BetterTooltipComponent.displayName = "BetterTooltipComponent"
 
 export { 
   Tooltip, 
   TooltipTrigger, 
   TooltipContent, 
   TooltipProvider,
-  BetterTooltip 
+  BetterTooltipComponent 
 }
