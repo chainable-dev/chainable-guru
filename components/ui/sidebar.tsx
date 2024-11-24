@@ -570,39 +570,39 @@ const SidebarMenuButton = React.forwardRef<
 		const Comp = asChild ? Slot : "button";
 		const { isMobile, state } = useSidebar();
 
-		const button = (
-			<Comp
-				ref={ref}
-				data-sidebar="menu-button"
-				data-size={size}
-				data-active={isActive}
-				className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-				{...props}
-			/>
-		);
+        const button = (
+            <Comp
+                ref={ref}
+                data-sidebar="menu-button"
+                data-size={size}
+                data-active={isActive}
+                className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+                {...props}
+            />
+        );
 
-		if (!tooltip) {
-			return button;
-		}
+        if (!tooltip) {
+            return button;
+        }
 
-		if (typeof tooltip === "string") {
-			tooltip = {
-				children: tooltip,
-			};
-		}
+        if (typeof tooltip === "string") {
+            tooltip = {
+                children: tooltip,
+            };
+        }
 
-		return (
-			<Tooltip>
-				<TooltipTrigger asChild>{button}</TooltipTrigger>
-				<TooltipContent
-					side="right"
-					align="center"
-					hidden={state !== "collapsed" || isMobile}
-					{...tooltip}
-				/>
-			</Tooltip>
-		);
-	},
+        return (
+            <Tooltip>
+                <TooltipTrigger asChild>{button}</TooltipTrigger>
+                <TooltipContent
+                    side="right"
+                    align="center"
+                    hidden={state !== "collapsed" || isMobile}
+                    {...tooltip}
+                />
+            </Tooltip>
+        );
+    },
 );
 SidebarMenuButton.displayName = "SidebarMenuButton";
 
