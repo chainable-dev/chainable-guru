@@ -1,14 +1,14 @@
 import { getSession } from "@/db/cached-queries";
 import { voteMessage } from "@/db/mutations";
 import { createClient } from "@/lib/supabase/server";
+import { SupabaseClient } from "@supabase/supabase-js";
+
 export async function POST(request: Request) {
 	try {
 		const { chatId, messageId, type } = await request.json();
 
-		const supabase = await createClient();
-		const {
-			data: { user },
-		} = await supabase.auth.getUser();
+		const { supabase } = await createClient();
+		const { data: { user } } = await supabase.auth.getUser();
 
 		if (!user) {
 			return new Response("Unauthorized", { status: 401 });
@@ -32,7 +32,7 @@ export async function GET(request: Request) {
 	}
 
 	try {
-		const supabase = await createClient();
+		const { supabase } = await createClient();
 		const { data: votes } = await supabase
 			.from("votes")
 			.select()
@@ -58,9 +58,9 @@ export async function PATCH(request: Request) {
 			return new Response("messageId and type are required", { status: 400 });
 		}
 
-		const user = await getSession();
+		const session = await getSession();
 
-		if (!user || !user.email) {
+		if (!session?.user?.email) {
 			return new Response("Unauthorized", { status: 401 });
 		}
 
