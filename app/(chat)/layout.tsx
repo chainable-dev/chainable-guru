@@ -1,8 +1,13 @@
 import { cookies } from "next/headers";
+import { User } from "@supabase/supabase-js";
 
 import { AppSidebar } from "@/components/custom/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { getSession } from "@/db/cached-queries";
+import { createServerClient } from "@/lib/supabase/server";
+
+interface AppSidebarProps {
+	user: User | null;
+}
 
 export default async function Layout({
 	children,
@@ -12,7 +17,7 @@ export default async function Layout({
 	const cookieStore = await cookies();
 	const isCollapsed = cookieStore.get("sidebar:state")?.value !== "true";
 
-	const user = await getSession();
+	const { user } = await createServerClient();
 
 	return (
 		<SidebarProvider defaultOpen={!isCollapsed}>

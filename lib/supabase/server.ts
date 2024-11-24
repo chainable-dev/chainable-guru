@@ -4,45 +4,24 @@ import { Database } from "@/types/supabase";
 
 // For use in Server Components
 export async function createServerClient() {
-	const cookieStore = await cookies();
+	const cookieStore = cookies();
 	const supabase = createServerComponentClient<Database>({
 		cookies: () => cookieStore,
 	});
 
 	try {
-		// Get session and user data
 		const [
-			{ data: { session }, error: sessionError },
-			{ data: { user }, error: userError }
+			{ data: { session } },
+			{ data: { user } }
 		] = await Promise.all([
 			supabase.auth.getSession(),
 			supabase.auth.getUser()
 		]);
 
-		if (sessionError) {
-			console.error("Error getting session:", sessionError);
-			throw sessionError;
-		}
-
-		if (userError) {
-			console.error("Error getting user:", userError);
-			throw userError;
-		}
-
-		return { 
-			supabase, 
-			session,
-			user,
-			isAuthenticated: !!session && !!user 
-		};
+		return { supabase, session, user };
 	} catch (error) {
 		console.error("Error in createServerClient:", error);
-		return { 
-			supabase, 
-			session: null,
-			user: null,
-			isAuthenticated: false 
-		};
+		return { supabase, session: null, user: null };
 	}
 }
 
@@ -50,7 +29,7 @@ export async function createServerClient() {
 export async function createRouteHandler() {
 	const cookieStore = await cookies();
 	return createRouteHandlerClient<Database>({
-		cookies: () => cookieStore,
+			cookies: () => cookieStore,
 	});
 }
 
