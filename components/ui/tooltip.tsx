@@ -39,9 +39,14 @@ const BetterTooltip = React.forwardRef<
   React.ElementRef<typeof TooltipContent>,
   BetterTooltipProps
 >(({ content, children, align = "center", side = "top", ...props }, ref) => (
-  <TooltipContent ref={ref} align={align} side={side} {...props}>
-    {content}
-  </TooltipContent>
+  <Tooltip>
+    <TooltipTrigger asChild>
+      {children}
+    </TooltipTrigger>
+    <TooltipContent ref={ref} align={align} side={side} {...props}>
+      {content}
+    </TooltipContent>
+  </Tooltip>
 ))
 BetterTooltip.displayName = "BetterTooltip"
 
