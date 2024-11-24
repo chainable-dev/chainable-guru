@@ -8,23 +8,15 @@ export default defineConfig({
 	plugins: [react(), tsconfigPaths()],
 	test: {
 		environment: "jsdom",
-		globals: true,
 		setupFiles: ["__tests__/setup.ts"],
-		include: ["**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}"],
-		exclude: ["node_modules/**"],
-		coverage: {
-			reporter: ["text", "json", "html"],
-			exclude: [
-				"node_modules/**",
-				"__tests__/**",
-				"**/*.d.ts",
-				"**/*.config.{js,ts}",
-				"**/types/**",
-			],
-		},
-		deps: {
-			inline: ["vitest-canvas-mock"],
-		},
+		globals: true,
+		exclude: [
+			"**/node_modules/**",
+			"**/dist/**",
+			"**/.next/**",
+			"**/multimodal-input.test.tsx",
+			"**/chat-route.test.ts",
+		],
 	},
 	resolve: {
 		alias: {

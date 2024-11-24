@@ -9,33 +9,23 @@ export async function createServerClient() {
 		cookies: () => cookieStore,
 	});
 
-	try {
-		const [
-			{ data: { session } },
-			{ data: { user } }
-		] = await Promise.all([
-			supabase.auth.getSession(),
-			supabase.auth.getUser()
-		]);
+	const { data: { session } } = await supabase.auth.getSession();
+	const { data: { user } } = await supabase.auth.getUser();
 
-		return { supabase, session, user };
-	} catch (error) {
-		console.error("Error in createServerClient:", error);
-		return { supabase, session: null, user: null };
-	}
+	return { supabase, session, user };
 }
 
 // For use in Route Handlers
-export async function createRouteHandler() {
-	const cookieStore = await cookies();
+export function createRouteHandler() {
+	const cookieStore = cookies();
 	return createRouteHandlerClient<Database>({
-			cookies: () => cookieStore,
+		cookies: () => cookieStore,
 	});
 }
 
 // For use in Server Actions
-export async function createActionClient() {
-	const cookieStore = await cookies();
+export function createActionClient() {
+	const cookieStore = cookies();
 	return createServerActionClient<Database>({
 		cookies: () => cookieStore,
 	});

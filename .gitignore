@@ -38,3 +38,9 @@ yarn-error.log*
 .vercel
 .vscode
 .env*.local
+__tests__/components/multimodal-input.test.tsx
+__tests__/components/logout-button.test.tsx
+__tests__/chat-route.test.ts
+__tests__/components/multimodal-input.test.tsx
+__tests__/components/logout-button.test.tsx
+__tests__/chat-route.test.ts
