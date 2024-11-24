@@ -35,3 +35,40 @@ export function wait(ms: number): Promise<void> {
 export function truncate(str: string, length: number): string {
 	return str.length > length ? `${str.substring(0, length)}...` : str;
 }
+
+// Function to fetch data
+export const fetcher = async (url: string) => {
+	const res = await fetch(url);
+	if (!res.ok) throw new Error('Failed to fetch data');
+	return res.json();
+};
+
+// Function to get message ID from annotations
+export function getMessageIdFromAnnotations(annotations: any[]): string | null {
+	return annotations?.find(a => a.type === 'message_id')?.value || null;
+}
+
+// Function to sanitize UI messages
+export function sanitizeUIMessages(messages: any[]) {
+	return messages.map(msg => ({
+		id: msg.id,
+		content: msg.content,
+		role: msg.role,
+		createdAt: msg.created_at
+	}));
+}
+
+// Function to get document timestamp by index
+export function getDocumentTimestampByIndex(documents: any[], index: number): string {
+	return documents[index]?.created_at || '';
+}
+
+// Function to convert messages to UI format
+export function convertToUIMessages(messages: any[]) {
+	return messages.map(msg => ({
+		id: msg.id,
+		content: msg.content,
+		role: msg.role,
+		createdAt: msg.created_at
+	}));
+}

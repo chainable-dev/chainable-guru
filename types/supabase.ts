@@ -13,18 +13,27 @@ export interface Database {
         Row: {
           id: string
           email: string | null
+          full_name: string | null
+          avatar_url: string | null
+          provider: string | null
           updated_at: string
           created_at?: string
         }
         Insert: {
           id: string
           email?: string | null
+          full_name?: string | null
+          avatar_url?: string | null
+          provider?: string | null
           updated_at: string
           created_at?: string
         }
         Update: {
           id?: string
           email?: string | null
+          full_name?: string | null
+          avatar_url?: string | null
+          provider?: string | null
           updated_at?: string
           created_at?: string
         }

@@ -17,90 +17,64 @@ export async function GET(request: Request) {
 	});
 
 	try {
-		if (error) {
-			console.error("[Auth Callback] OAuth error:", {
-				error,
-				description: error_description,
-			});
-			return NextResponse.redirect(
-				new URL(`/login?error=${encodeURIComponent(error_description || error)}`, requestUrl.origin)
-			);
-		}
-
-		if (!code) {
-			console.warn("[Auth Callback] No code present in request");
-			return NextResponse.redirect(
-				new URL("/login?error=No authorization code provided", requestUrl.origin)
-			);
-		}
-
-		// Initialize Supabase client with proper cookie handling
-		console.log("[Auth Callback] Initializing Supabase client");
 		const supabase = await createRouteHandler();
 
-		try {
-			// Exchange the code for a session
-			console.log("[Auth Callback] Exchanging code for session");
-			const { data: { session }, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
+		if (code) {
+			const { data: { session }, error: sessionError } = 
+				await supabase.auth.exchangeCodeForSession(code);
 
 			if (sessionError) {
-				console.error("[Auth Callback] Session exchange error:", sessionError);
+				console.error("[Auth Callback] Session error:", sessionError);
 				throw sessionError;
 			}
 
-			if (!session?.user?.id) {
-				console.error("[Auth Callback] No user ID in session");
-				throw new Error("No user found in session");
+			if (!session?.user) {
+				throw new Error("No user in session");
 			}
 
-			// Log successful authentication
-			console.log("[Auth Callback] Authentication successful", {
-				userId: session.user.id,
-				email: session.user.email,
+			// Get user metadata from Google
+			const { data: { user }, error: userError } = await supabase.auth.getUser();
+			
+			if (userError) {
+				console.error("[Auth Callback] User error:", userError);
+				throw userError;
+			}
+
+			// Create or update profile with Google info
+			const { error: profileError } = await supabase
+				.from('profiles')
+				.upsert({
+					id: user.id,
+					email: user.email,
+					full_name: user.user_metadata?.full_name,
+					avatar_url: user.user_metadata?.avatar_url,
+					provider: user.app_metadata?.provider,
+					updated_at: new Date().toISOString(),
+				}, {
+					onConflict: 'id'
+				});
+
+			if (profileError) {
+				console.error("[Auth Callback] Profile error:", profileError);
+			}
+
+			console.log("[Auth Callback] Profile updated:", {
+				id: user.id,
+				email: user.email,
+				provider: user.app_metadata?.provider
 			});
 
-			// Create or update user profile
-			const { error: upsertError } = await supabase
-				.from("profiles")
-				.upsert(
-					{
-						id: session.user.id,
-						email: session.user.email,
-						updated_at: new Date().toISOString(),
-					},
-					{
-						onConflict: "id",
-						ignoreDuplicates: false,
-					}
-				);
-
-			if (upsertError) {
-				console.error("[Auth Callback] Profile upsert error:", upsertError);
-			}
-
-			// Create response with redirect
-			const response = NextResponse.redirect(new URL("/", requestUrl.origin));
-
-			// Log redirect
-			console.log("[Auth Callback] Redirecting to home page");
-			return response;
-
-		} catch (error) {
-			console.error("[Auth Callback] Auth flow error:", error);
-			return NextResponse.redirect(
-				new URL("/login?error=Authentication failed", requestUrl.origin)
-			);
+			return NextResponse.redirect(new URL("/", requestUrl.origin));
 		}
 
-	} catch (error) {
-		console.error("[Auth Callback] Unexpected error:", error);
-		
-		const errorMessage = error instanceof Error 
-			? error.message 
-			: "Authentication failed";
-
 		return NextResponse.redirect(
-			new URL(`/login?error=${encodeURIComponent(errorMessage)}`, requestUrl.origin)
+			new URL("/login?error=No code provided", requestUrl.origin)
+		);
+
+	} catch (error) {
+		console.error("[Auth Callback] Error:", error);
+		return NextResponse.redirect(
+			new URL("/login?error=Authentication failed", requestUrl.origin)
 		);
 	}
 }
