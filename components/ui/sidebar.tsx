@@ -6,6 +6,7 @@ import { VariantProps, cva } from "class-variance-authority";
 import { PanelLeft } from "lucide-react";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import SidebarMenu from "@/components/SidebarMenu";
+import { cn } from "@/lib/utils";
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import classNames from "classnames";
