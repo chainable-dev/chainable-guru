@@ -1,131 +1,87 @@
 "use client";
 
-import { motion } from "framer-motion";
-import Image from "next/image";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { toast } from "sonner";
-
-import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { toast } from 'sonner'
 
 export default function LoginPage() {
-	const router = useRouter();
-	const [isLoading, setIsLoading] = useState(false);
+	const [email, setEmail] = useState('')
+	const [password, setPassword] = useState('')
+	const [loading, setLoading] = useState(false)
+	const router = useRouter()
+	const supabase = createClient()
 
-	async function handleLogin() {
+	const handleLogin = async (e: React.FormEvent) => {
+		e.preventDefault()
+		setLoading(true)
+
 		try {
-			setIsLoading(true);
-			const supabase = createClient();
+			const { data, error } = await supabase.auth.signInWithPassword({
+				email,
+				password,
+			})
 
-			const { error } = await supabase.auth.signInWithOAuth({
-				provider: "google",
-				options: {
-					redirectTo: `${window.location.origin}/auth/callback`,
-					queryParams: {
-						access_type: 'offline',
-						prompt: 'consent',
-					},
-				},
-			});
+			if (error) {
+				throw error
+			}
 
-			if (error) throw error;
+			if (data?.user) {
+				toast.success('Logged in successfully')
+				router.push('/')
+				router.refresh()
+			}
 		} catch (error) {
-			console.error("Login error:", error);
-			toast.error("Failed to login");
+			toast.error('Login failed. Please check your credentials.')
+			console.error('Login error:', error)
 		} finally {
-			setIsLoading(false);
+			setLoading(false)
 		}
 	}
 
 	return (
-		<div className="flex min-h-screen flex-col items-center justify-center p-4 bg-gradient-to-br from-background via-muted to-background">
-			<motion.div
-				initial={{ opacity: 0, y: 20 }}
-				animate={{ opacity: 1, y: 0 }}
-				transition={{ duration: 0.5, ease: "easeOut" }}
-				className="w-full max-w-md space-y-8"
-			>
-				{/* Logo and Title */}
-				<div className="text-center space-y-4">
-					<motion.div
-						initial={{ scale: 0.9 }}
-						animate={{ scale: 1 }}
-						transition={{ duration: 0.5, delay: 0.2 }}
-					>
-						<Image
-							src="/logos/elron.ico"
-							alt="Logo"
-							width={80}
-							height={80}
-							className="mx-auto rounded-2xl shadow-lg hover:shadow-xl transition-shadow duration-300"
-							priority
-						/>
-					</motion.div>
-					<h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
-						Welcome to Elron AI
-					</h1>
-					<p className="text-muted-foreground text-lg">
-						Your AI-powered development companion
+		<div className="flex min-h-screen flex-col items-center justify-center py-2">
+			<div className="w-full max-w-md space-y-8 rounded-lg border p-8 shadow-lg">
+				<div className="space-y-2 text-center">
+					<h1 className="text-3xl font-bold">Login</h1>
+					<p className="text-gray-500 dark:text-gray-400">
+						Enter your credentials to access your account
 					</p>
 				</div>
-
-				{/* Login Card */}
-				<Card className="border-2 shadow-lg hover:shadow-xl transition-shadow duration-300">
-					<CardHeader className="space-y-1 text-center pb-4">
-						<h2 className="text-2xl font-semibold">Sign in</h2>
-						<p className="text-sm text-muted-foreground">
-							Continue with Google to get started
-						</p>
-					</CardHeader>
-					<CardContent className="space-y-4">
-						<Button
-							className="w-full h-12 text-lg relative group transition-all duration-200 hover:shadow-md"
-							onClick={handleLogin}
-							disabled={isLoading}
-						>
-							<motion.div
-								className="absolute inset-0 bg-primary opacity-0 group-hover:opacity-10 rounded-md"
-								initial={false}
-								animate={{ scale: isLoading ? 1.05 : 1 }}
-								transition={{ duration: 0.2 }}
-							/>
-							<span className="flex items-center justify-center gap-3">
-								<Image
-									src="/logos/google.svg"
-									alt="Google"
-									width={24}
-									height={24}
-									className="size-6"
-								/>
-								{isLoading ? "Connecting..." : "Continue with Google"}
-							</span>
-						</Button>
-					</CardContent>
-				</Card>
-
-				{/* Footer */}
-				<footer className="text-center text-sm text-muted-foreground space-y-2">
-					<p>
-						By signing in, you agree to our{" "}
-						<Link href="/terms" className="text-primary hover:text-primary/80 hover:underline transition-colors duration-200">
-							Terms of Service
-						</Link>{" "}
-						and{" "}
-						<Link href="/privacy" className="text-primary hover:text-primary/80 hover:underline transition-colors duration-200">
-							Privacy Policy
-						</Link>
-					</p>
-					<p>
-						Need help?{" "}
-						<Link href="/support" className="text-primary hover:text-primary/80 hover:underline transition-colors duration-200">
-							Contact Support
-						</Link>
-					</p>
-				</footer>
-			</motion.div>
+				<form onSubmit={handleLogin} className="space-y-4">
+					<div className="space-y-2">
+						<Label htmlFor="email">Email</Label>
+						<Input
+							id="email"
+							type="email"
+							placeholder="you@example.com"
+							value={email}
+							onChange={(e) => setEmail(e.target.value)}
+							required
+						/>
+					</div>
+					<div className="space-y-2">
+						<Label htmlFor="password">Password</Label>
+						<Input
+							id="password"
+							type="password"
+							value={password}
+							onChange={(e) => setPassword(e.target.value)}
+							required
+						/>
+					</div>
+					<Button
+						className="w-full"
+						type="submit"
+						disabled={loading}
+					>
+						{loading ? 'Logging in...' : 'Login'}
+					</Button>
+				</form>
+			</div>
 		</div>
-	);
+	)
 }
