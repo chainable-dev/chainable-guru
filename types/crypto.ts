@@ -1,3 +1,8 @@
+export interface PriceDataPoint {
+  timestamp: string;
+  price: number;
+}
+
 export interface CryptoPrice {
   symbol: string;
   price: number;
@@ -6,6 +11,7 @@ export interface CryptoPrice {
   market_cap?: number;
   volume_24h?: number;
   last_updated?: string;
+  historical_data?: PriceDataPoint[];
 }
 
 export interface CryptoPriceResponse {
