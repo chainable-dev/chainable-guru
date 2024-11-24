@@ -15,24 +15,31 @@ export async function GET(request: Request) {
 			throw new Error("No code provided");
 		}
 
+		// Exchange the code for a session
+		const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+		
+		if (exchangeError) {
+			throw exchangeError;
+		}
+
 		const { data: { user }, error: authError } = await supabase.auth.getUser();
 		
 		if (authError || !user) {
 			throw authError || new Error("No user found");
 		}
 
-		// Update profile
+		// Update profile with correct schema fields
 		const { error: profileError } = await supabase
 			.from("profiles")
 			.upsert({
-				id: user.id,
+				id: user.id, // Using id as per schema
 				email: user.email,
 				full_name: user.user_metadata?.full_name || null,
 				avatar_url: user.user_metadata?.avatar_url || null,
 				provider: user.app_metadata?.provider || null,
-				updated_at: new Date().toISOString(),
+				updated_at: new Date().toISOString()
 			})
-			.single();
+			.eq('id', user.id);
 
 		if (profileError) {
 			console.error("[Auth Callback] Profile error:", profileError);
