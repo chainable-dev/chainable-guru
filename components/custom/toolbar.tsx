@@ -318,7 +318,7 @@ export const Tools = ({
 	);
 };
 
-const Toolbar: React.FC = () => {
+export default Toolbar;
   const [isModalOpen, setModalOpen] = useState(false);
   const agentState = useAgentState("ws://localhost:8080");
 
