@@ -1,11 +1,13 @@
 import { getSession } from "@/db/cached-queries";
+
 import { voteMessage } from "@/db/mutations";
-import { createClient } from "@/lib/supabase/server";
+import { createServerClient } from "@/lib/supabase/server";
+
 export async function POST(request: Request) {
 	try {
 		const { chatId, messageId, type } = await request.json();
 
-		const supabase = await createClient();
+		const supabase = await createServerClient();
 		const {
 			data: { user },
 		} = await supabase.auth.getUser();
@@ -32,7 +34,7 @@ export async function GET(request: Request) {
 	}
 
 	try {
-		const supabase = await createClient();
+		const supabase =await createServerClient();
 		const { data: votes } = await supabase
 			.from("votes")
 			.select()

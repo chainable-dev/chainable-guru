@@ -25,16 +25,6 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-	SidebarGroup,
-	SidebarGroupContent,
-	SidebarMenu,
-	SidebarMenuAction,
-	SidebarMenuButton,
-	SidebarMenuItem,
-	useSidebar,
-} from "@/components/ui/sidebar";
-import { getChatsByUserIdQuery } from "@/db/queries";
 import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/lib/supabase/types";
 
@@ -121,7 +111,7 @@ const ChatItem = ({
 
 export function SidebarHistory({ user }: { user: User | undefined }) {
 	const { setOpenMobile } = useSidebar();
-	const { id } = useParams();
+	const { id } = useParams() as { id: string };
 	const pathname = usePathname();
 	const {
 		data: history,

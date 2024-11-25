@@ -1,25 +1,26 @@
-import { ComponentProps } from "react";
+'use client'
 
-import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
-import { BetterTooltip } from "@/components/ui/tooltip";
+import { Button } from '@/components/ui/button'
+import { BetterTooltip } from '@/components/ui/tooltip'
+import { Menu } from 'lucide-react'
+import { useSidebar } from '@/hooks/use-sidebar'
 
-import { SidebarLeftIcon } from "./icons";
-import { Button } from "../ui/button";
-
-export function SidebarToggle({
-	className,
-}: ComponentProps<typeof SidebarTrigger>) {
-	const { toggleSidebar } = useSidebar();
+export function SidebarToggle() {
+	const { toggle } = useSidebar()
 
 	return (
-		<BetterTooltip content="Toggle Sidebar" align="start">
+		<BetterTooltip
+			content="Toggle sidebar"
+			side="right"
+		>
 			<Button
-				onClick={toggleSidebar}
-				variant="outline"
-				className="md:px-2 md:h-fit"
+				variant="ghost"
+				size="icon"
+				onClick={toggle}
+				className="md:hidden"
 			>
-				<SidebarLeftIcon size={16} />
+				<Menu className="h-4 w-4" />
 			</Button>
 		</BetterTooltip>
-	);
+	)
 }

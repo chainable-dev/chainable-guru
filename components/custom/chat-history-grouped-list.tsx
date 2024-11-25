@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { memo } from "react";
 import { toast } from "sonner";
-
+type Chat = Database["public"]["Tables"]["chats"]["Row"];
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -20,9 +20,9 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Chat } from "@/lib/supabase/types";
 
 import { MoreHorizontalIcon, TrashIcon } from "./icons";
+import {Database} from "@/lib/supabase/types";
 
 type GroupedChats = {
 	today: Chat[];
@@ -43,11 +43,11 @@ const GroupHeader = memo(function GroupHeader({ title }: { title: string }) {
 
 // Memoized chat item
 const ChatItem = memo(function ChatItem({
-	chat,
-	isActive,
-	onDelete,
-	setOpenMobile,
-}: {
+											chat,
+											isActive,
+											onDelete,
+											setOpenMobile,
+										}: {
 	chat: Chat;
 	isActive: boolean;
 	onDelete: (chatId: string) => void;
@@ -119,10 +119,10 @@ function groupChatsByDate(chats: Chat[]): GroupedChats {
 }
 
 export function GroupedChatList({
-	chats,
-	currentChatId,
-	setOpenMobile,
-}: {
+									chats,
+									currentChatId,
+									setOpenMobile,
+								}: {
 	chats: Chat[];
 	currentChatId: string;
 	setOpenMobile: (open: boolean) => void;

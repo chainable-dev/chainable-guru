@@ -1,20 +1,41 @@
-import { NextRequest } from "next/server";
+import { authMiddleware } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
 
-import { updateSession } from "@/lib/supabase/middleware";
+export default authMiddleware({
+  publicRoutes: ["/", "/login", "/register", "/api/webhook"],
+  async afterAuth(auth, req) {
+    const res = NextResponse.next();
+    
+    try {
+      // Create Supabase client
+      const supabase = createMiddlewareClient({ req, res });
 
-export async function middleware(request: NextRequest) {
-	return await updateSession(request);
-}
+      if (auth.userId) {
+        // Get session from Clerk
+        const session = await auth.session;
+        if (session) {
+          // Set Supabase session using session ID
+          await supabase.auth.setSession({
+            access_token: session.id,
+            refresh_token: ""
+          });
+        }
+      }
 
+      return res;
+    } catch (error) {
+      console.error("Middleware error:", error);
+      return res;
+    }
+  }
+});
+
+// Ensure matcher includes all paths that need auth
 export const config = {
-	matcher: [
-		/*
-		 * Match all request paths except for the ones starting with:
-		 * - _next/static (static files)
-		 * - _next/image (image optimization files)
-		 * - favicon.ico (favicon file)
-		 * Feel free to modify this pattern to include more paths.
-		 */
-		"/((?!_next/static|_next/image|favicon.ico).*)",
-	],
+  matcher: [
+    "/((?!.+\\.[\\w]+$|_next).*)", // Match all paths except static files
+    "/",                           // Include root path
+    "/(api|trpc)/(.*)",           // Include API routes
+  ]
 };

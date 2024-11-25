@@ -8,25 +8,33 @@ import {
 	useMotionValue,
 	useTransform,
 } from "framer-motion";
-import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { useAgentState } from "../../hooks/useAgentState";
+import AgentModal from "./agentModal";
+import { Dispatch, SetStateAction } from "react";
 import { useOnClickOutside } from "usehooks-ts";
 
 import {
 	Tooltip,
-	TooltipContent,
+	BetterTooltip,
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { sanitizeUIMessages } from "@/lib/utils";
 
-import {
-	ArrowUpIcon,
-	MessageIcon,
-	PenIcon,
-	StopIcon,
-	SummarizeIcon,
-} from "./icons";
-import { Button } from "../ui/button";
+import { 
+	IoArrowUpOutline,
+	IoStopOutline,
+	IoPencilOutline,
+	IoChatboxOutline,
+	IoTextOutline,
+} from "react-icons/io5";
+
+const ArrowUpIcon = () => <IoArrowUpOutline className="size-4" />;
+const StopIcon = () => <IoStopOutline className="size-4" />;
+const PenIcon = () => <IoPencilOutline className="size-4" />;
+const MessageIcon = () => <IoChatboxOutline className="size-4" />;
+const SummarizeIcon = () => <IoTextOutline className="size-4" />;
 
 type ToolProps = {
 	type: "final-polish" | "request-suggestions" | "adjust-reading-level";
@@ -104,7 +112,7 @@ const Tool = ({
 			<TooltipTrigger asChild>
 				<motion.div
 					className={cx("p-3 rounded-full", {
-						"bg-primary !text-primary-foreground": selectedTool === type,
+						"bg-primary text-primary-foreground": selectedTool === type,
 					})}
 					onHoverStart={() => {
 						setIsHovered(true);
@@ -129,17 +137,14 @@ const Tool = ({
 					onClick={() => {
 						handleSelect();
 					}}
+					role="button"
+					tabIndex={0}
+					aria-label={description}
 				>
 					{selectedTool === type ? <ArrowUpIcon /> : icon}
 				</motion.div>
 			</TooltipTrigger>
-			<TooltipContent
-				side="left"
-				sideOffset={16}
-				className="bg-foreground text-background rounded-2xl p-3 px-4"
-			>
-				{description}
-			</TooltipContent>
+			<BetterTooltip content={description} />
 		</Tooltip>
 	);
 };
@@ -240,13 +245,7 @@ const ReadingLevelSelector = ({
 							{currentLevel === 2 ? <SummarizeIcon /> : <ArrowUpIcon />}
 						</motion.div>
 					</TooltipTrigger>
-					<TooltipContent
-						side="left"
-						sideOffset={16}
-						className="bg-foreground text-background text-sm rounded-2xl p-3 px-4"
-					>
-						{LEVELS[currentLevel]}
-					</TooltipContent>
+					<BetterTooltip content={LEVELS[currentLevel]} />
 				</Tooltip>
 			</TooltipProvider>
 		</div>
@@ -319,7 +318,8 @@ export const Tools = ({
 	);
 };
 
-export const Toolbar = ({
+
+const ToolbarComponent = ({
 	isToolbarVisible,
 	setIsToolbarVisible,
 	append,
@@ -339,6 +339,9 @@ export const Toolbar = ({
 }) => {
 	const toolbarRef = useRef<HTMLDivElement>(null);
 	const timeoutRef = useRef<NodeJS.Timeout>();
+
+	const [isModalOpen, setModalOpen] = useState(false);
+	const agentState = useAgentState("ws://localhost:8080");
 
 	const [selectedTool, setSelectedTool] = useState<string | null>(null);
 	const [isAnimating, setIsAnimating] = useState(false);
@@ -380,83 +383,93 @@ export const Toolbar = ({
 	}, [isLoading, setIsToolbarVisible]);
 
 	return (
-		<TooltipProvider delayDuration={0}>
-			<motion.div
-				className="cursor-pointer absolute right-6 bottom-6 p-1.5 border rounded-full shadow-lg bg-background flex flex-col justify-end"
-				initial={{ opacity: 0, y: -20, scale: 1 }}
-				animate={
-					isToolbarVisible
-						? selectedTool === "adjust-reading-level"
-							? {
-									opacity: 1,
-									y: 0,
-									height: 6 * 43,
-									transition: { delay: 0 },
-									scale: 0.95,
-								}
-							: {
-									opacity: 1,
-									y: 0,
-									height: 3 * 45,
-									transition: { delay: 0 },
-									scale: 1,
-								}
-						: { opacity: 1, y: 0, height: 54, transition: { delay: 0 } }
-				}
-				exit={{ opacity: 0, y: -20, transition: { duration: 0.1 } }}
-				transition={{ type: "spring", stiffness: 300, damping: 25 }}
-				onHoverStart={() => {
-					if (isLoading) return;
+		<div>
+			<button onClick={() => setModalOpen(true)}>Show Agent Modal</button>
+			<AgentModal
+				isOpen={isModalOpen}
+				onClose={() => setModalOpen(false)}
+				agentState={agentState}
+			/>
+			<TooltipProvider delayDuration={0}>
+				<motion.div
+					className="cursor-pointer absolute right-6 bottom-6 p-1.5 border rounded-full shadow-lg bg-background flex flex-col justify-end"
+					initial={{ opacity: 0, y: -20, scale: 1 }}
+					animate={
+						isToolbarVisible
+							? selectedTool === "adjust-reading-level"
+								? {
+										opacity: 1,
+										y: 0,
+										height: 6 * 43,
+										transition: { delay: 0 },
+										scale: 0.95,
+									}
+								: {
+										opacity: 1,
+										y: 0,
+										height: 3 * 45,
+										transition: { delay: 0 },
+										scale: 1,
+									}
+							: { opacity: 1, y: 0, height: 54, transition: { delay: 0 } }
+					}
+					exit={{ opacity: 0, y: -20, transition: { duration: 0.1 } }}
+					transition={{ type: "spring", stiffness: 300, damping: 25 }}
+					onHoverStart={() => {
+						if (isLoading) return;
 
-					cancelCloseTimer();
-					setIsToolbarVisible(true);
-				}}
-				onHoverEnd={() => {
-					if (isLoading) return;
+						cancelCloseTimer();
+						setIsToolbarVisible(true);
+					}}
+					onHoverEnd={() => {
+						if (isLoading) return;
 
-					startCloseTimer();
-				}}
-				onAnimationStart={() => {
-					setIsAnimating(true);
-				}}
-				onAnimationComplete={() => {
-					setIsAnimating(false);
-				}}
-				ref={toolbarRef}
-			>
-				{isLoading ? (
-					<motion.div
-						key="stop-icon"
-						initial={{ scale: 1 }}
-						animate={{ scale: 1.4 }}
-						exit={{ scale: 1 }}
-						className="p-3"
-						onClick={() => {
-							stop();
-							setMessages((messages) => sanitizeUIMessages(messages));
-						}}
-					>
-						<StopIcon />
-					</motion.div>
-				) : selectedTool === "adjust-reading-level" ? (
-					<ReadingLevelSelector
-						key="reading-level-selector"
-						append={append}
-						setSelectedTool={setSelectedTool}
-						isAnimating={isAnimating}
-					/>
-				) : (
-					<Tools
-						key="tools"
-						append={append}
-						isAnimating={isAnimating}
-						isToolbarVisible={isToolbarVisible}
-						selectedTool={selectedTool}
-						setIsToolbarVisible={setIsToolbarVisible}
-						setSelectedTool={setSelectedTool}
-					/>
-				)}
-			</motion.div>
-		</TooltipProvider>
+						startCloseTimer();
+					}}
+					onAnimationStart={() => {
+						setIsAnimating(true);
+					}}
+					onAnimationComplete={() => {
+						setIsAnimating(false);
+					}}
+					ref={toolbarRef}
+				>
+					{isLoading ? (
+						<motion.div
+							key="stop-icon"
+							initial={{ scale: 1 }}
+							animate={{ scale: 1.4 }}
+							exit={{ scale: 1 }}
+							className="p-3"
+							onClick={() => {
+								stop();
+								setMessages((messages) => sanitizeUIMessages(messages));
+							}}
+						>
+							<StopIcon />
+						</motion.div>
+					) : selectedTool === "adjust-reading-level" ? (
+						<ReadingLevelSelector
+							key="reading-level-selector"
+							append={append}
+							setSelectedTool={setSelectedTool}
+							isAnimating={isAnimating}
+						/>
+					) : (
+						<Tools
+							key="tools"
+							append={append}
+							isAnimating={isAnimating}
+							isToolbarVisible={isToolbarVisible}
+							selectedTool={selectedTool}
+							setIsToolbarVisible={setIsToolbarVisible}
+							setSelectedTool={setSelectedTool}
+						/>
+					)}
+				</motion.div>
+			</TooltipProvider>
+		</div>
 	);
 };
+
+export default ToolbarComponent;
