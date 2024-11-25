@@ -8,7 +8,8 @@ import {
 	getMessagesByChatId,
 	getSession,
 } from "@/db/cached-queries";
-import { convertToUIMessages } from "@/lib/utils";
+import { convertToUIMessages } from "@/utils/convert-to-ui-messages";
+import { Message, Role } from "@/types/message";
 
 export default async function Page(props: { params: Promise<any> }) {
 	const params = await props.params;
@@ -30,6 +31,13 @@ export default async function Page(props: { params: Promise<any> }) {
 	}
 
 	const messagesFromDb = await getMessagesByChatId(id);
+	
+	// Convert database messages to the correct type
+	const typedMessages: Message[] = messagesFromDb.map(msg => ({
+		...msg,
+		role: msg.role as Role,
+		content: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+	}));
 
 	const cookieStore = await cookies();
 	const modelIdFromCookie = cookieStore.get("model-id")?.value;
@@ -37,12 +45,12 @@ export default async function Page(props: { params: Promise<any> }) {
 		models.find((model) => model.id === modelIdFromCookie)?.id ||
 		DEFAULT_MODEL_NAME;
 
-	console.log(convertToUIMessages(messagesFromDb));
+	const uiMessages = convertToUIMessages(typedMessages);
 
 	return (
 		<PreviewChat
 			id={chat.id}
-			initialMessages={convertToUIMessages(messagesFromDb)}
+			initialMessages={uiMessages}
 			selectedModelId={selectedModelId}
 		/>
 	);

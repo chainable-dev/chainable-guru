@@ -22,6 +22,8 @@ import { ThinkingMessage } from "./thinking-message";
 
 import { Database } from "@/lib/supabase/types";
 import { fetcher } from "@/lib/utils";
+import { UIMessage, Role } from "@/types/message";
+import { Message as AIMessage } from "ai";
 
 type Vote = Database["public"]["Tables"]["votes"]["Row"];
 
@@ -31,15 +33,23 @@ interface FileUploadState {
 	error: string | null;
 }
 
+interface ChatProps {
+	id: string;
+	initialMessages: UIMessage[];
+	selectedModelId: string;
+}
+
+const convertUIMessageToAIMessage = (msg: UIMessage): AIMessage => ({
+	id: msg.id,
+	role: msg.role as AIMessage["role"],
+	content: msg.content || "",
+});
+
 export function Chat({
 	id,
 	initialMessages,
 	selectedModelId,
-}: {
-	id: string;
-	initialMessages: Array<Message>;
-	selectedModelId: string;
-}) {
+}: ChatProps) {
 	const { mutate } = useSWRConfig();
 	const { width: windowWidth = 1920, height: windowHeight = 1080 } =
 		useWindowSize();
@@ -56,7 +66,7 @@ export function Chat({
 		data: streamingData,
 	} = useChat({
 		body: { id, modelId: selectedModelId },
-		initialMessages,
+		initialMessages: initialMessages.map(convertUIMessageToAIMessage),
 		onFinish: () => {
 			mutate("/api/history");
 		},

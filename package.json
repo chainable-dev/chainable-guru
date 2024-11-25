@@ -55,6 +55,7 @@
 		"nanoid": "^5.0.8",
 		"next": "15.0.4-canary.15",
 		"next-themes": "^0.3.0",
+		"openai": "^4.73.0",
 		"orderedmap": "^2.1.1",
 		"prosemirror-example-setup": "^1.2.3",
 		"prosemirror-inputrules": "^1.4.0",

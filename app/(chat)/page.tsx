@@ -1,25 +1,20 @@
-import { cookies } from "next/headers";
+import { Chat } from "@/components/custom/chat"
+import { createSystemMessage } from "@/utils/convert-to-ui-messages"
 
-import { DEFAULT_MODEL_NAME, models } from "@/ai/models";
-import { Chat } from "@/components/custom/chat";
-import { generateUUID } from "@/lib/utils";
-
-export default async function Page() {
-	const id = generateUUID();
-
-	const cookieStore = await cookies();
-	const modelIdFromCookie = cookieStore.get("model-id")?.value;
-
-	const selectedModelId =
-		models.find((model) => model.id === modelIdFromCookie)?.id ||
-		DEFAULT_MODEL_NAME;
-
+export default function Page() {
+	const initialMessages = [
+		createSystemMessage(
+			"You are a helpful AI assistant focused on blockchain technology and Web3."
+		)
+	]
+	
 	return (
-		<Chat
-			key={id}
-			id={id}
-			initialMessages={[]}
-			selectedModelId={selectedModelId}
-		/>
+		<div className="flex-1">
+			<Chat 
+				id={crypto.randomUUID()}
+				initialMessages={initialMessages}
+				selectedModelId="gpt-3.5-turbo"
+			/>
+		</div>
 	);
 }
