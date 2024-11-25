@@ -40,15 +40,14 @@
 			"@testing-library/jest-dom",
 			"vitest/importMeta",
 			"vitest/globals"
-		],
-		"baseUrl": "."
+		]
 	},
 	"include": [
 		"**/*.ts",
 		"**/*.tsx",
-		".next/types/**/*.ts",
-		"__tests__/**/*.ts",
-		"__tests__/**/*.tsx"
+		".",
+		"__tests__/**/*",
+		".next/types/**/*.ts"
 	],
 	"exclude": [
 		"node_modules",

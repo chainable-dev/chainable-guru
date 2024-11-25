@@ -2,14 +2,13 @@
 
 import { useChat } from "ai/react";
 import type { Message, Attachment } from "ai";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { KeyboardIcon } from "lucide-react";
 import { useState, useEffect, type ClipboardEvent } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import { useWindowSize } from "usehooks-ts";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { cx } from "class-variance-authority";
 
 import { Block, UIBlock } from "@/components/custom/block";
 import { BlockStreamHandler } from "@/components/custom/block-stream-handler";
@@ -20,18 +19,9 @@ import { PreviewMessage } from "@/components/custom/message";
 import { useScrollToBottom } from "@/components/custom/use-scroll-to-bottom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import { ThinkingMessage } from "./thinking-message";
-import { MessageSkeleton } from "./message-skeleton";
-import { ChatSkeleton } from "./chat-skeleton";
 
 import { Database } from "@/lib/supabase/types";
 import { fetcher } from "@/lib/utils";
-import { IntermediateMessageHandler } from "@/components/custom/intermediate-message-handler";
-import { ThoughtProcess, TaskSequence } from "@/types/intermediate-message";
-import { generateUUID } from "@/lib/utils";
-import type { UIMessage } from "@/types/message";
-import { Message as AIMessage } from "ai/react";
-import { optimizeMessages, TOKEN_LIMITS } from '@/lib/token-utils';
-import { Button } from "@/components/ui/button";
 
 type Vote = Database["public"]["Tables"]["votes"]["Row"];
 
@@ -41,24 +31,15 @@ interface FileUploadState {
 	error: string | null;
 }
 
-interface ChatProps {
-	id: string;
-	initialMessages: UIMessage[];
-	selectedModelId: string;
-}
-
-const convertToAIMessage = (message: UIMessage): AIMessage => ({
-	id: message.id,
-	role: message.role,
-	content: message.content,
-	createdAt: new Date(message.createdAt),
-});
-
 export function Chat({
 	id,
 	initialMessages,
 	selectedModelId,
-}: ChatProps) {
+}: {
+	id: string;
+	initialMessages: Array<Message>;
+	selectedModelId: string;
+}) {
 	const { mutate } = useSWRConfig();
 	const { width: windowWidth = 1920, height: windowHeight = 1080 } =
 		useWindowSize();
@@ -74,18 +55,11 @@ export function Chat({
 		stop,
 		data: streamingData,
 	} = useChat({
-		body: { 
-			id, 
-			modelId: selectedModelId,
-			messages: initialMessages.map(msg => ({
-				...convertToAIMessage(msg),
-				content: msg.content
-			}))
-		},
-		initialMessages: initialMessages.map(convertToAIMessage),
+		body: { id, modelId: selectedModelId },
+		initialMessages,
 		onFinish: () => {
 			mutate("/api/history");
-		}
+		},
 	});
 
 	const [block, setBlock] = useState<UIBlock>({
@@ -115,14 +89,6 @@ export function Chat({
 		uploading: false,
 		error: null,
 	});
-
-	const [showOverview, setShowOverview] = useState(true);
-
-	useEffect(() => {
-		if (messages.length > 0) {
-			setShowOverview(false);
-		}
-	}, [messages]);
 
 	const handleFileUpload = async (file: File) => {
 		if (!file) return;
@@ -181,145 +147,64 @@ export function Chat({
 		});
 	};
 
-	const handleThoughtComplete = (thought: ThoughtProcess) => {
-		append({
-			id: generateUUID(),
-			role: "assistant",
-			content: `${thought.content}`,
-			createdAt: new Date(),
-		});
-	};
-
-	const handleTaskComplete = (sequence: TaskSequence) => {
-		append({
-			id: generateUUID(),
-			role: "assistant", 
-			content: sequence.tasks.map((task) => task.description).join('\n'),
-			createdAt: new Date(),
-		});
-	};
-
-	const handleMessageSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-		e.preventDefault();
-		
-		const currentMessages = messages.map(msg => ({
-			role: msg.role,
-			content: msg.content
-		}));
-		
-		const maxTokens = TOKEN_LIMITS[selectedModelId as keyof typeof TOKEN_LIMITS] || TOKEN_LIMITS.DEFAULT_MAX_TOKENS;
-		const optimizedMessages = optimizeMessages(currentMessages, selectedModelId, maxTokens);
-		
-		handleSubmit(e, {
-			options: {
-				body: {
-					messages: optimizedMessages
-				}
-			}
-		});
-	};
-
-	const handleSuggestedAction = (action: string) => {
-		switch (action) {
-			case "Upload or paste your code for review":
-				document.getElementById('file-upload')?.click();
-				break;
-			case "Analyze smart contract security":
-				setInput("Please analyze this smart contract for security vulnerabilities:\n```solidity\n\n```");
-				break;
-			case "Get help with development":
-				setInput("I need help with ");
-				break;
-			case "Common development tasks":
-				setInput("Help me with ");
-				break;
-			default:
-				setInput(action);
-		}
-	};
-
 	return (
-		<div className="flex flex-col h-dvh bg-background">
-			<ChatHeader selectedModelId={selectedModelId} />
-			
-			<div className="flex-1 w-full max-w-4xl mx-auto px-4 overflow-hidden">
+		<>
+			<div className="flex flex-col min-w-0 h-dvh bg-background">
+				<ChatHeader selectedModelId={selectedModelId} />
 				<div
 					ref={messagesContainerRef}
-					className="flex flex-col-reverse h-full overflow-y-auto py-4 space-y-reverse space-y-6 scrollbar-thin scrollbar-thumb-muted-foreground/10 scrollbar-track-transparent"
+					className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4"
 				>
-					<div ref={messagesEndRef} className="flex-1" />
+					{messages.length === 0 && <Overview />}
 
-					{isLoading && (
-						<motion.div
-							initial={{ opacity: 0, y: 10 }}
-							animate={{ opacity: 1, y: 0 }}
-							className="flex bg-muted/30 border-y border-border/40 py-6"
-						>
-							<div className="max-w-2xl mx-auto w-full">
-								{messages.length > 0 && messages[messages.length - 1].role === "user" ? (
-									<ThinkingMessage />
-								) : (
-									<MessageSkeleton />
-								)}
-							</div>
-						</motion.div>
-					)}
+					{isLoading &&
+						messages.length > 0 &&
+						messages[messages.length - 1].role === "user" && (
+							<ThinkingMessage />
+						)}
 
 					{messages.map((message, index) => (
-						<motion.div
+						<PreviewMessage
 							key={message.id}
-							initial={{ opacity: 0, y: 10 }}
-							animate={{ opacity: 1, y: 0 }}
-							className={cx(
-								"flex py-6",
-								message.role === 'assistant' && "bg-muted/30 border-y border-border/40"
-							)}
-						>
-							<div className="max-w-2xl mx-auto w-full">
-								<PreviewMessage
-									chatId={id}
-									message={message}
-									block={block}
-									setBlock={setBlock}
-									isLoading={isLoading && messages.length - 1 === index}
-									vote={votes?.find((vote) => vote.message_id === message.id)}
-								/>
-							</div>
-						</motion.div>
+							chatId={id}
+							message={message}
+							block={block}
+							setBlock={setBlock}
+							isLoading={isLoading && messages.length - 1 === index}
+							vote={votes?.find((vote) => vote.message_id === message.id)}
+						/>
 					))}
 
-					{showOverview && (
-						<div className="max-w-2xl mx-auto">
-							<Overview onActionClick={handleSuggestedAction} />
-						</div>
-					)}
+					<div
+						ref={messagesEndRef}
+						className="shrink-0 min-w-[24px] min-h-[24px]"
+					/>
 				</div>
-			</div>
 
-			<div className="border-t border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-				<div className="max-w-2xl mx-auto px-4 py-4">
-					<form
-						id="chat-form"
-						name="chat-form"
-						className="flex gap-2"
-						onSubmit={handleMessageSubmit}
-						aria-label="Chat input form"
-					>
-						<MultimodalInput
-							chatId={id}
-							input={input}
-							setInput={setInput}
-							attachments={attachments}
-							setAttachments={setAttachments}
-							messages={messages}
-							setMessages={setMessages}
-							append={append}
-							isLoading={isLoading}
-							stop={stop}
-							handleSubmit={handleSubmit}
-						/>
-					</form>
-				</div>
+				<form
+					id="chat-form"
+					name="chat-form"
+					className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl"
+					onSubmit={(e) => {
+						e.preventDefault();
+						handleSubmit(e);
+					}}
+					aria-label="Chat input form"
+				>
+					<MultimodalInput
+						chatId={id}
+						input={input}
+						setInput={setInput}
+						handleSubmit={handleSubmit}
+						isLoading={isLoading}
+						stop={stop}
+						attachments={attachments}
+						setAttachments={setAttachments}
+						messages={messages}
+						setMessages={setMessages}
+						append={append}
+					/>
+				</form>
 			</div>
 
 			<AnimatePresence>
@@ -345,8 +230,27 @@ export function Chat({
 
 			<BlockStreamHandler streamingData={streamingData} setBlock={setBlock} />
 
+			<div className="fixed bottom-4 right-4 opacity-50 hover:opacity-100 transition-opacity">
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<button
+							className="p-2 rounded-full bg-muted"
+							type="button"
+							aria-label="Keyboard shortcuts"
+						></button>
+					</TooltipTrigger>
+					<TooltipContent>
+						<div className="text-sm">
+							<p>⌘ / to focus input</p>
+							<p>⌘ K to clear chat</p>
+							<p>ESC to stop generation</p>
+						</div>
+					</TooltipContent>
+				</Tooltip>
+			</div>
+
 			{fileUpload.uploading && (
-				<div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md mx-auto p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 rounded-lg shadow-lg border border-border/40">
+				<div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md mx-auto p-4 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg">
 					<Progress value={fileUpload.progress} className="w-full" />
 					<p className="text-sm text-muted-foreground mt-2 text-center">
 						Uploading... {fileUpload.progress}%
@@ -364,12 +268,6 @@ export function Chat({
 				id="file-upload"
 				accept="image/*,.pdf,.doc,.docx,.txt"
 			/>
-
-			<IntermediateMessageHandler
-				streamingData={streamingData}
-				onThoughtComplete={handleThoughtComplete}
-				onTaskComplete={handleTaskComplete}
-			/>
-		</div>
+		</>
 	);
 }

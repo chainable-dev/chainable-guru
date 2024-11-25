@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { DEFAULT_MODEL_NAME, models } from "@/ai/models";
-import { Chat } from "@/components/custom/chat";
+import { Chat as PreviewChat } from "@/components/custom/chat";
 import {
 	getChatById,
 	getMessagesByChatId,
@@ -11,7 +11,8 @@ import {
 import { convertToUIMessages } from "@/utils/convert-to-ui-messages";
 import { DatabaseMessage } from "@/types/message";
 
-export default async function Page({ params }: { params: { id: string } }) {
+export default async function Page(props: { params: Promise<any> }) {
+	const params = await props.params;
 	const { id } = params;
 	const chat = await getChatById(id);
 
@@ -40,7 +41,7 @@ export default async function Page({ params }: { params: { id: string } }) {
 	const uiMessages = convertToUIMessages(messagesFromDb);
 
 	return (
-		<Chat
+		<PreviewChat
 			id={chat.id}
 			initialMessages={uiMessages}
 			selectedModelId={selectedModelId}
