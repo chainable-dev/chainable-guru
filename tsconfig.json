@@ -32,6 +32,7 @@
 			"@/actions/*": ["./actions/*"],
 			"@/public/*": ["./public/*"],
 			"@/types/*": ["./types/*"]
+			
 		},
 		"types": [
 			"node",
