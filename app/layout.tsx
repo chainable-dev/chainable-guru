@@ -2,7 +2,7 @@ import { Metadata } from "next";
 
 import { RootProvider } from "@/components/providers/root-provider";
 
-import "./globals.css";
+import "@/styles/globals.css";
 import "../styles/dark-mode.css";
 
 export const metadata: Metadata = {

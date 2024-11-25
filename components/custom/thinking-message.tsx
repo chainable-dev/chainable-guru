@@ -1,17 +1,18 @@
-import { Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 export function ThinkingMessage() {
   return (
-    <div className={cn(
-      "group relative flex items-start md:gap-6 gap-4 px-4 mt-4"
-    )}>
-      <div className="flex-1 max-w-3xl space-y-4 overflow-hidden">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          <p className="text-sm">AI is thinking...</p>
-        </div>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="flex items-center gap-2 px-4"
+    >
+      <div className="flex space-x-1.5">
+        <div className="w-2 h-2 rounded-full bg-muted-foreground/30 animate-bounce [animation-delay:-0.3s]" />
+        <div className="w-2 h-2 rounded-full bg-muted-foreground/30 animate-bounce [animation-delay:-0.15s]" />
+        <div className="w-2 h-2 rounded-full bg-muted-foreground/30 animate-bounce" />
       </div>
-    </div>
+      <span className="text-sm text-muted-foreground">Thinking...</span>
+    </motion.div>
   );
 } 
