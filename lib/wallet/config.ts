@@ -1,28 +1,27 @@
 import "@rainbow-me/rainbowkit/styles.css";
-import { getDefaultWallets } from "@rainbow-me/rainbowkit";
+import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { http } from "viem";
 import { base, baseSepolia } from "viem/chains";
-import { createConfig, type Config } from "wagmi";
+import { createConfig } from "wagmi";
 
 if (!process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID) {
 	throw new Error("Missing NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID");
 }
 
+export const chains = [base, baseSepolia] as const;
 const projectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID;
-const supportedChains = [base, baseSepolia] as const;
 
-const { connectors } = getDefaultWallets({
-	appName: "AI Chat",
+export const config = getDefaultConfig({
+	appName: "Base App",
 	projectId,
-});
-
-export const config = createConfig({
-	chains: supportedChains,
+	chains,
 	transports: {
 		[base.id]: http(),
 		[baseSepolia.id]: http(),
 	},
-	connectors,
 });
 
-export type WagmiConfig = typeof config;
+
+
+
+

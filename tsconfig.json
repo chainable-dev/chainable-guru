@@ -31,7 +31,8 @@
 			"@/db/*": ["./db/*"],
 			"@/public/*": ["./public/*"],
 			"@/types/*": ["./types/*"],
-			"@/actions/*": ["./actions/*"]
+			"@/actions/*": ["./actions/*"],
+			"@/lib/supabase/*": ["./lib/supabase/*"]
 		},
 		"types": [
 			"node",

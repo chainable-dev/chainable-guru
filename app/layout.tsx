@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 
-import { RootProvider } from "@/components/providers/root-provider";
+import { Providers } from "./providers";
 
 import "./globals.css";
 import "../styles/dark-mode.css";
@@ -50,7 +50,7 @@ export default function RootLayout({
 				<link rel="shortcut icon" href="/favicon.ico" />
 			</head>
 			<body className="antialiased bg-background text-foreground dark:bg-gray-900">
-				<RootProvider>{children}</RootProvider>
+				<Providers>{children}</Providers>
 			</body>
 		</html>
 	);

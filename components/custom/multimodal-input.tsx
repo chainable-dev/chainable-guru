@@ -18,6 +18,7 @@ import { useWalletState } from "@/hooks/useWalletState";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import type { MultimodalInputProps } from "@/types/chat";
+import { useDatabase } from '@/hooks/useDatabase';
 
 const SUGGESTED_ACTIONS = [
 	{
@@ -62,6 +63,7 @@ export function MultimodalInput({
 	const [localInput, setLocalInput] = useLocalStorage("chat-input", "");
 	const { isConnected, isCorrectNetwork } = useWalletState();
 	const { address } = useAccount();
+	const { getAuthenticatedClient } = useDatabase();
 
 	// Web search handler with better formatting
 	const handleWebSearch = useCallback(async () => {

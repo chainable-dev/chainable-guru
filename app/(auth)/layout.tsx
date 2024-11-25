@@ -1,3 +1,8 @@
+"use client";
+
+import { ClerkProvider } from "@clerk/nextjs";
+import { dark } from "@clerk/themes";
+import { useTheme } from "next-themes";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -19,16 +24,27 @@ export default function AuthLayout({
 }: {
 	children: React.ReactNode;
 }) {
+	const { theme } = useTheme();
+
 	return (
-		<html lang="en" suppressHydrationWarning>
-			<head>
-				<link rel="icon" href="/icons/chainable.svg" type="image/svg+xml" />
-				<link rel="alternate icon" href="/icons/favicon.ico" />
-				<link rel="apple-touch-icon" href="/icons/chainable-180.png" />
-			</head>
-			<body className="antialiased" suppressHydrationWarning>
+		<ClerkProvider
+			appearance={{
+				baseTheme: theme === "dark" ? dark : undefined,
+				elements: {
+					card: "bg-background",
+					headerTitle: "text-foreground",
+					headerSubtitle: "text-muted-foreground",
+					socialButtonsBlockButton: "text-foreground",
+					formButtonPrimary: "bg-primary text-primary-foreground hover:bg-primary/90",
+					footerAction: "text-muted-foreground",
+					formFieldLabel: "text-foreground",
+					formFieldInput: "bg-background text-foreground",
+				},
+			}}
+		>
+			<div className="flex min-h-screen items-center justify-center">
 				{children}
-			</body>
-		</html>
+			</div>
+		</ClerkProvider>
 	);
 }

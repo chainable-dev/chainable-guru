@@ -16,6 +16,7 @@
 	"dependencies": {
 		"@ai-sdk/openai": "^0.0.60",
 		"@ai-sdk/ui-utils": "^1.0.2",
+		"@clerk/nextjs": "5.0.0-beta.35",
 		"@coinbase/coinbase-sdk": "^0.10.0",
 		"@radix-ui/react-alert-dialog": "^1.1.2",
 		"@radix-ui/react-avatar": "^1.1.1",
@@ -32,6 +33,7 @@
 		"@radix-ui/react-tooltip": "^1.1.4",
 		"@radix-ui/react-visually-hidden": "^1.1.0",
 		"@rainbow-me/rainbowkit": "^2.2.0",
+		"@supabase/auth-helpers-nextjs": "^0.10.0",
 		"@supabase/ssr": "^0.5.2",
 		"@supabase/supabase-js": "^2.46.1",
 		"@tanstack/react-query": "^5.61.0",
@@ -72,6 +74,7 @@
 		"react-markdown": "^9.0.1",
 		"remark-gfm": "^4.0.0",
 		"rimraf": "^6.0.1",
+		"server": "link:@clerk/nextjs/dist/server",
 		"server-only": "^0.0.1",
 		"sonner": "^1.7.0",
 		"swr": "^2.2.5",

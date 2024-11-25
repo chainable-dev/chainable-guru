@@ -262,7 +262,7 @@ export function Chat({ id, initialMessages, selectedModelId }: ChatProps) {
               <KeyboardIcon className="h-4 w-4" />
             </button>
           </TooltipTrigger>
-          <BetterTooltip content="⌘ / to focus input\n⌘ K to clear chat\nESC to stop generation">
+          <BetterTooltip trigger={<div />} content="⌘ / to focus input\n⌘ K to clear chat\nESC to stop generation">
             <div className="text-sm">
               <p>⌘ / to focus input</p>
               <p>⌘ K to clear chat</p>

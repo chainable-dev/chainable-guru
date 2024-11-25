@@ -1,23 +1,44 @@
-import { cookies } from "next/headers";
+import { currentUser } from "@clerk/nextjs/server";
+import { createServerComponentClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { Sidebar } from "@/components/ui/sidebar";
 
-import { AppSidebar } from "@/components/custom/app-sidebar";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { getSession } from "@/db/cached-queries";
-
-export default async function Layout({
+export default async function ChatLayout({
 	children,
 }: {
 	children: React.ReactNode;
 }) {
-	const cookieStore = await cookies();
-	const isCollapsed = cookieStore.get("sidebar:state")?.value !== "true";
+	// Get Clerk user
+	const user = await currentUser();
+	if (!user) {
+		redirect('/login');
+	}
 
-	const user = await getSession();
+	// Get Supabase client with proper cookie handling
+	const cookieStore = cookies();
+	const supabase = createServerComponentClient({ cookies: () => cookieStore });
 
-	return (
-		<SidebarProvider defaultOpen={!isCollapsed}>
-			<AppSidebar user={user} />
-			<SidebarInset>{children}</SidebarInset>
-		</SidebarProvider>
-	);
+	try {
+		const { data: settings } = await supabase
+			.from('user_settings')
+			.select('*')
+			.single();
+
+		return (
+			<div className="relative flex h-[calc(100vh-theme(spacing.16))] overflow-hidden">
+				<Sidebar defaultCollapsed={settings?.sidebar_collapsed ?? false} />
+				<main className="flex-1 overflow-auto">
+					{children}
+				</main>
+			</div>
+		);
+	} catch (error) {
+		console.error('Layout error:', error);
+		return (
+			<main className="flex-1 overflow-auto">
+				{children}
+			</main>
+		);
+	}
 }
