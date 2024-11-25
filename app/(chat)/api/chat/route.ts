@@ -34,6 +34,8 @@ import { getServerWalletState } from "@/hooks/useServerWalletState";
 import { kv } from "@vercel/kv";
 
 import { useAccount, useBalance, useChainId } from "wagmi";
+import { auth } from "@clerk/nextjs";
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 
 import { generateTitleFromUserMessage } from "../../actions";
 export const maxDuration = 60;
@@ -90,17 +92,19 @@ const allTools: AllowedTools[] = [
 ];
 
 async function getUser() {
+	const { userId } = auth();
+	if (!userId) {
+		throw new Error("Unauthorized");
+	}
+
 	const supabase = await createClient();
-	const {
-		data: { user },
-		error,
-	} = await supabase.auth.getUser();
+	const { data: user, error } = await supabase.auth.getUser();
 
 	if (error || !user) {
 		throw new Error("Unauthorized");
 	}
 
-	return user;
+	return { clerkId: userId, ...user };
 }
 
 // Add helper function to format message content for database storage

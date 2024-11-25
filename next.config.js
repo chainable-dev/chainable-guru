@@ -1,20 +1,37 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-	experimental: {
-		// Remove serverActions as it's now enabled by default
+	async headers() {
+		return [
+			{
+				source: '/:path*',
+				headers: [
+					{
+						key: 'Cross-Origin-Opener-Policy',
+						value: 'same-origin-allow-popups'
+					},
+					{
+						key: 'Cross-Origin-Embedder-Policy',
+						value: 'credentialless'
+					},
+					{
+						key: 'Cross-Origin-Resource-Policy',
+						value: 'cross-origin'
+					}
+				],
+			},
+		]
 	},
 	images: {
 		remotePatterns: [
 			{
 				protocol: 'https',
-				hostname: 'avatars.githubusercontent.com',
-			},
-			{
-				protocol: 'https',
-				hostname: 'avatar.vercel.sh',
+				hostname: '**',
 			},
 		],
 	},
+	experimental: {
+		optimizePackageImports: ['@rainbow-me/rainbowkit'],
+	}
 }
 
 module.exports = nextConfig

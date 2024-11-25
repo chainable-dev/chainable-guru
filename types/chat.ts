@@ -39,4 +39,15 @@ export interface AppendOptions extends ChatRequestOptions {
 export type AppendFunction = (
   message: CreateMessage,
   options?: AppendOptions
-) => Promise<string | null | undefined>; 
+) => Promise<string | null | undefined>;
+
+//find the chat type and return the chat type
+export function findChatType(chat: Chat): ChatType {
+  if (chat.type === "group") {
+    return "group";
+  } else if (chat.type === "direct") {
+    return "direct";
+  } else {
+    return "unknown";
+  }
+}

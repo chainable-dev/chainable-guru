@@ -1,6 +1,6 @@
 import { Metadata } from "next";
-
-import { Providers } from "./providers";
+import { ClerkProvider } from "@clerk/nextjs";
+import { ClientProviders } from '@/components/providers/client-providers'
 
 import "./globals.css";
 import "../styles/dark-mode.css";
@@ -32,25 +32,13 @@ export default function RootLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<html lang="en" suppressHydrationWarning className="dark">
-			<head>
-				<script
-					dangerouslySetInnerHTML={{
-						__html: `
-              try {
-                if (!localStorage.theme) localStorage.theme = 'dark';
-                document.documentElement.classList.add('dark');
-              } catch (_) {}
-            `,
-					}}
-				/>
-				<link rel="icon" href="/favicon.ico" sizes="any" />
-				<link rel="icon" href="/icon.svg" type="image/svg+xml" />
-				<link rel="apple-touch-icon" href="/apple-icon.png" />
-				<link rel="shortcut icon" href="/favicon.ico" />
-			</head>
-			<body className="antialiased bg-background text-foreground dark:bg-gray-900">
-				<Providers>{children}</Providers>
+		<html lang="en" suppressHydrationWarning>
+			<body>
+				<ClerkProvider>
+					<ClientProviders>
+						{children}
+					</ClientProviders>
+				</ClerkProvider>
 			</body>
 		</html>
 	);

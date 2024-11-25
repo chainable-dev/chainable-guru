@@ -1,8 +1,6 @@
-import "@rainbow-me/rainbowkit/styles.css";
 import { getDefaultConfig } from "@rainbow-me/rainbowkit";
 import { http } from "viem";
 import { base, baseSepolia } from "viem/chains";
-import { createConfig } from "wagmi";
 
 if (!process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID) {
 	throw new Error("Missing NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID");
@@ -11,8 +9,9 @@ if (!process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID) {
 export const chains = [base, baseSepolia] as const;
 const projectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID;
 
-export const config = getDefaultConfig({
-	appName: "Base App",
+// Create wagmi config using RainbowKit's getDefaultConfig
+export const wagmiConfig = getDefaultConfig({
+	appName: "Chainable AI",
 	projectId,
 	chains,
 	transports: {
@@ -20,8 +19,3 @@ export const config = getDefaultConfig({
 		[baseSepolia.id]: http(),
 	},
 });
-
-
-
-
-

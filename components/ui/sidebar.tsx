@@ -1,42 +1,70 @@
 "use client";
 
-import * as React from "react";
+import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
+import { useAuth } from '@clerk/nextjs'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { toast } from 'sonner'
+import { type Database } from '@/lib/supabase/types'
 
-interface SidebarContextType {
-	collapsed: boolean;
-	setCollapsed: (collapsed: boolean) => void;
+interface Chat {
+	id: string
+	title: string
+	created_at: string
 }
 
-const SidebarContext = React.createContext<SidebarContextType | undefined>(undefined);
+export function Sidebar({ defaultCollapsed = false }) {
+	const [chats, setChats] = useState<Chat[]>([])
+	const pathname = usePathname()
+	const { userId } = useAuth()
+	const supabase = createClientComponentClient<Database>()
 
-export function SidebarProvider({ children }: { children: React.ReactNode }) {
-	const [collapsed, setCollapsed] = React.useState(false);
+	useEffect(() => {
+		if (!userId) return
+
+		const fetchChats = async () => {
+			try {
+				const { data, error } = await supabase
+					.from('chats')
+					.select('*')
+					.eq('user_id', userId)
+					.order('created_at', { ascending: false })
+
+				if (error) throw error
+
+				setChats(data || [])
+			} catch (error) {
+				console.error('Error fetching chats:', error)
+				toast.error('Failed to load chat history')
+			}
+		}
+
+		fetchChats()
+
+		// Subscribe to changes
+		const channel = supabase
+			.channel('chats')
+			.on('postgres_changes', 
+				{ 
+					event: '*', 
+					schema: 'public', 
+					table: 'chats',
+					filter: `user_id=eq.${userId}`
+				}, 
+				(payload) => {
+					fetchChats()
+				}
+			)
+			.subscribe()
+
+		return () => {
+			supabase.removeChannel(channel)
+		}
+	}, [userId, supabase])
 
 	return (
-		<SidebarContext.Provider value={{ collapsed, setCollapsed }}>
-			{children}
-		</SidebarContext.Provider>
-	);
-}
-
-export function useSidebar() {
-	const context = React.useContext(SidebarContext);
-	if (!context) {
-		throw new Error("useSidebar must be used within a SidebarProvider.");
-	}
-	return context;
-}
-
-export function Sidebar({ defaultCollapsed = false }: { defaultCollapsed?: boolean }) {
-	const { collapsed, setCollapsed } = useSidebar();
-
-	React.useEffect(() => {
-		setCollapsed(defaultCollapsed);
-	}, [defaultCollapsed, setCollapsed]);
-
-	return (
-		<div className={`${collapsed ? 'w-0' : 'w-80'} transition-all duration-300`}>
+		<div className="w-64 h-full bg-background border-r">
 			{/* Sidebar content */}
 		</div>
-	);
+	)
 }

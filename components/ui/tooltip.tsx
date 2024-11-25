@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils"
 const TooltipProvider = TooltipPrimitive.Provider
 const TooltipRoot = TooltipPrimitive.Root
 const TooltipTrigger = TooltipPrimitive.Trigger
-
 const TooltipContent = React.forwardRef<
   React.ElementRef<typeof TooltipPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
@@ -22,39 +21,39 @@ const TooltipContent = React.forwardRef<
     {...props}
   />
 ))
-TooltipContent.displayName = "TooltipContent"
+TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
-const BetterTooltip = React.forwardRef<
-  React.ElementRef<typeof TooltipPrimitive.Content>,
-  React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content> & {
-    trigger: React.ReactNode;
-    content?: React.ReactNode;
-  }
->(({ trigger, content, children, ...props }, ref) => (
-  <TooltipProvider>
-    <TooltipRoot>
-      <TooltipTrigger asChild>{trigger}</TooltipTrigger>
-      <TooltipContent ref={ref} {...props}>
-        {content || children}
-      </TooltipContent>
-    </TooltipRoot>
-  </TooltipProvider>
-))
-BetterTooltip.displayName = "BetterTooltip"
-
-// Type exports
-type TooltipProps = React.ComponentPropsWithoutRef<typeof TooltipRoot>
-type TooltipTriggerProps = React.ComponentPropsWithoutRef<typeof TooltipTrigger>
-type TooltipContentProps = React.ComponentPropsWithoutRef<typeof TooltipContent>
-
-export {
-  TooltipProvider,
-  TooltipRoot as Tooltip,
-  TooltipTrigger,
-  TooltipContent,
-  BetterTooltip,
-  // Type exports
-  type TooltipProps,
-  type TooltipTriggerProps,
-  type TooltipContentProps,
+export interface BetterTooltipProps {
+  content: React.ReactNode
+  children: React.ReactNode
+  delayDuration?: number
+  side?: "top" | "right" | "bottom" | "left"
+  align?: "start" | "center" | "end"
+  className?: string
+  contentClassName?: string
 }
+
+export function BetterTooltip({
+  content,
+  children,
+  delayDuration = 200,
+  side = "top",
+  align = "center",
+  className,
+  contentClassName,
+}: BetterTooltipProps) {
+  return (
+    <TooltipProvider>
+      <TooltipRoot delayDuration={delayDuration}>
+        <TooltipTrigger asChild className={className}>
+          {children}
+        </TooltipTrigger>
+        <TooltipContent side={side} align={align} className={contentClassName}>
+          {content}
+        </TooltipContent>
+      </TooltipRoot>
+    </TooltipProvider>
+  )
+}
+
+export { TooltipProvider, TooltipRoot, TooltipTrigger, TooltipContent }

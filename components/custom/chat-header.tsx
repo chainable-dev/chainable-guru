@@ -1,55 +1,52 @@
 "use client";
 
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useWindowSize } from "usehooks-ts";
+import { useRouter } from 'next/navigation'
+import { useWindowSize } from '@/hooks/use-window-size'
+import { useSidebar } from '@/hooks/use-sidebar'
+import { SidebarToggle } from './sidebar-toggle'
+import { BetterTooltip } from '@/components/ui/tooltip'
+import { Button } from '@/components/ui/button'
+import { Bot, Info } from 'lucide-react'
 
-import { ModelSelector } from "@/components/custom/model-selector";
-import { SidebarToggle } from "@/components/custom/sidebar-toggle";
-import { Button } from "@/components/ui/button";
-import { BetterTooltip } from "@/components/ui/tooltip";
+interface ChatHeaderProps {
+	selectedModelId: string
+}
 
-import { PlusIcon } from "./icons";
-import { useSidebar } from "../ui/sidebar";
-
-export function ChatHeader({ selectedModelId }: { selectedModelId: string }) {
-	const router = useRouter();
-	const { open } = useSidebar();
-	const { width: windowWidth } = useWindowSize();
+export function ChatHeader({ selectedModelId }: ChatHeaderProps) {
+	const router = useRouter()
+	const { isOpen } = useSidebar()
+	const { width: windowWidth } = useWindowSize()
 
 	return (
-		<header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2">
-			<SidebarToggle />
-			{(!open || windowWidth < 768) && (
-				<BetterTooltip content="New Chat">
-					<Button
-						variant="outline"
-						className="order-2 md:order-1 md:px-2 px-2 md:h-fit ml-auto md:ml-0"
-						onClick={() => {
-							router.push("/");
-							router.refresh();
-						}}
+		<div className="sticky top-0 z-10 flex items-center justify-between bg-background px-4 py-2 border-b">
+			<div className="flex items-center gap-2">
+				<SidebarToggle />
+				{(!isOpen || windowWidth < 768) && (
+					<BetterTooltip
+						content="AI Chat"
+						side="right"
 					>
-						<PlusIcon />
-						<span className="md:sr-only">New Chat</span>
+						<Button 
+							variant="ghost" 
+							size="icon"
+							onClick={() => router.push('/')}
+						>
+							<Bot className="h-5 w-5" />
+						</Button>
+					</BetterTooltip>
+				)}
+			</div>
+
+			<div className="flex items-center gap-2">
+				<BetterTooltip
+					content={`Using ${selectedModelId} model`}
+					side="left"
+				>
+					<Button variant="ghost" size="icon">
+						<Info className="h-4 w-4" />
 					</Button>
 				</BetterTooltip>
-			)}
-			<ModelSelector
-				selectedModelId={selectedModelId}
-				className="order-1 md:order-2"
-			/>
-			<div className="flex gap-2 order-4 md:ml-auto items-center">
-				<ConnectButton
-					chainStatus="full"
-					showBalance={false}
-					accountStatus={{
-						smallScreen: "avatar",
-						largeScreen: "full",
-					}}
-				/>
 			</div>
-		</header>
-	);
+		</div>
+	)
 }
