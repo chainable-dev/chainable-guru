@@ -1,5 +1,13 @@
-import type { Message, CreateMessage, ChatRequestOptions } from 'ai';
+import type { Message as AIMessage } from 'ai';
 import type { Attachment, AIAttachment } from './attachments';
+
+export interface Message extends AIMessage {
+  id: string;
+  createdAt?: Date;
+  attachments?: any[];
+  isIntermediate?: boolean;
+  status?: 'thinking' | 'processing' | 'complete' | 'error';
+}
 
 export interface ChatProps {
   id: string;
@@ -27,9 +35,9 @@ export interface MultimodalInputProps {
 }
 
 export interface FileUploadState {
-  progress: number;
-  uploading: boolean;
-  error: string | null;
+  progress?: number;
+  uploading?: boolean;
+  error?: Error | null;
 }
 
 export interface AppendOptions extends ChatRequestOptions {
