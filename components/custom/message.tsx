@@ -1,203 +1,92 @@
 "use client";
 
-import { Message } from "ai";
-import cx from "classnames";
-import { motion } from "framer-motion";
-import { FileIcon } from "lucide-react";
-import Image from "next/image";
-import { Dispatch, SetStateAction } from "react";
+import { cn } from "@/lib/utils";
+import { Logger } from "@/lib/utils/logger";
+import { ThumbsDown, ThumbsUp } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import type { MessageProps, VoteType } from "@/types/message";
 
-import { Vote } from "@/lib/supabase/types";
-
-import { UIBlock } from "./block";
-import { DocumentToolCall, DocumentToolResult } from "./document";
-import { SparklesIcon } from "./icons";
-import { Markdown } from "./markdown";
-import { MessageActions } from "./message-actions";
-import { PreviewAttachment } from "./preview-attachment";
-import { Weather } from "./weather";
-
-export const PreviewMessage = ({
-	chatId,
-	message,
-	block,
-	setBlock,
-	vote,
+export function Message({ 
+	message, 
+	chatId, 
 	isLoading,
-}: {
-	chatId: string;
-	message: Message;
-	block: UIBlock;
-	setBlock: Dispatch<SetStateAction<UIBlock>>;
-	vote: Vote | undefined;
-	isLoading: boolean;
-}) => {
-	const renderContent = () => {
+	vote 
+}: MessageProps) {
+	const [isVoting, setIsVoting] = useState(false);
+	const isUser = message.role === "user";
+
+	const handleVote = async (type: VoteType) => {
+		if (!chatId || isVoting) return;
+
 		try {
-			const content = JSON.parse(message.content);
-			return (
-				<div className="space-y-2">
-					{content.text && (
-						<p className="whitespace-pre-wrap">{content.text}</p>
-					)}
-					{content.attachments && content.attachments.length > 0 && (
-						<div className="flex flex-wrap gap-2 mt-2">
-							{content.attachments.map((att: any, index: number) => (
-								<div key={index}>
-									{att.type.startsWith("image/") ? (
-										<Image
-											src={att.url}
-											alt={att.name}
-											width={200}
-											height={200}
-											className="rounded-lg object-cover"
-										/>
-									) : (
-										<div className="flex items-center gap-2 p-2 border rounded-lg">
-											<FileIcon className="size-4" />
-											<span className="text-sm">{att.name}</span>
-										</div>
-									)}
-								</div>
-							))}
-						</div>
-					)}
-				</div>
-			);
-		} catch {
-			return <p className="whitespace-pre-wrap">{message.content}</p>;
+			setIsVoting(true);
+			Logger.debug('Submitting vote', 'Message', { messageId: message.id, type });
+
+			const response = await fetch("/api/vote", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({
+					messageId: message.id,
+					chatId,
+					type
+				}),
+			});
+
+			if (!response.ok) throw new Error('Failed to submit vote');
+			
+			toast.success("Vote submitted successfully");
+		} catch (error) {
+			Logger.error('Vote submission failed', 'Message', error);
+			toast.error("Failed to submit vote");
+		} finally {
+			setIsVoting(false);
 		}
 	};
 
 	return (
-		<motion.div
-			className="w-full mx-auto max-w-3xl px-4 group/message"
-			initial={{ y: 5, opacity: 0 }}
-			animate={{ y: 0, opacity: 1 }}
-			data-role={message.role}
+		<div
+			className={cn(
+				"flex w-full items-start gap-4 p-4",
+				isUser ? "justify-end" : "justify-start",
+				isLoading && "opacity-50"
+			)}
 		>
 			<div
-				className={cx(
-					"group-data-[role=user]/message:bg-primary group-data-[role=user]/message:text-primary-foreground flex gap-4 group-data-[role=user]/message:px-3 w-full group-data-[role=user]/message:w-fit group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl group-data-[role=user]/message:py-2 rounded-xl",
+				className={cn(
+					"flex flex-col rounded-lg px-4 py-2 max-w-[80%]",
+					isUser ? "bg-primary text-primary-foreground" : "bg-muted"
 				)}
 			>
-				{message.role === "assistant" && (
-					<div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border">
-						<SparklesIcon size={14} />
+				<p className="text-sm whitespace-pre-wrap break-words">
+					{message.content}
+				</p>
+				
+				{!isUser && chatId && (
+					<div className="flex items-center gap-2 mt-2 text-muted-foreground">
+						<button
+							onClick={() => handleVote("up")}
+							disabled={isVoting}
+							className={cn(
+								"p-1 rounded hover:bg-accent",
+								vote?.type === "up" && "text-green-500"
+							)}
+						>
+							<ThumbsUp className="w-4 h-4" />
+						</button>
+						<button
+							onClick={() => handleVote("down")}
+							disabled={isVoting}
+							className={cn(
+								"p-1 rounded hover:bg-accent",
+								vote?.type === "down" && "text-red-500"
+							)}
+						>
+							<ThumbsDown className="w-4 h-4" />
+						</button>
 					</div>
 				)}
-
-				<div className="flex flex-col gap-2 w-full">
-					<div className="prose dark:prose-invert max-w-none">
-						{renderContent()}
-					</div>
-
-					{message.toolInvocations && message.toolInvocations.length > 0 && (
-						<div className="flex flex-col gap-4">
-							{message.toolInvocations.map((toolInvocation) => {
-								const { toolName, toolCallId, state, args } = toolInvocation;
-
-								if (state === "result") {
-									const { result } = toolInvocation;
-
-									return (
-										<div key={toolCallId}>
-											{toolName === "getWeather" ? (
-												<Weather weatherAtLocation={result} />
-											) : toolName === "createDocument" ? (
-												<DocumentToolResult
-													type="create"
-													result={result}
-													block={block}
-													setBlock={setBlock}
-												/>
-											) : toolName === "updateDocument" ? (
-												<DocumentToolResult
-													type="update"
-													result={result}
-													block={block}
-													setBlock={setBlock}
-												/>
-											) : toolName === "requestSuggestions" ? (
-												<DocumentToolResult
-													type="request-suggestions"
-													result={result}
-													block={block}
-													setBlock={setBlock}
-												/>
-											) : (
-												<pre>{JSON.stringify(result, null, 2)}</pre>
-											)}
-										</div>
-									);
-								} else {
-									return (
-										<div
-											key={toolCallId}
-											className={cx({
-												skeleton: ["getWeather"].includes(toolName),
-											})}
-										>
-											{toolName === "getWeather" ? (
-												<Weather />
-											) : toolName === "createDocument" ? (
-												<DocumentToolCall type="create" args={args} />
-											) : toolName === "updateDocument" ? (
-												<DocumentToolCall type="update" args={args} />
-											) : toolName === "requestSuggestions" ? (
-												<DocumentToolCall
-													type="request-suggestions"
-													args={args}
-												/>
-											) : null}
-										</div>
-									);
-								}
-							})}
-						</div>
-					)}
-
-					<MessageActions
-						key={`action-${message.id}`}
-						chatId={chatId}
-						message={message}
-						vote={vote}
-						isLoading={isLoading}
-					/>
-				</div>
 			</div>
-		</motion.div>
+		</div>
 	);
-};
-
-export const ThinkingMessage = () => {
-	const role = "assistant";
-
-	return (
-		<motion.div
-			className="w-full mx-auto max-w-3xl px-4 group/message"
-			initial={{ y: 5, opacity: 0 }}
-			animate={{ y: 0, opacity: 1, transition: { delay: 1 } }}
-			data-role={role}
-		>
-			<div
-				className={cx(
-					"flex gap-4 group-data-[role=user]/message:px-3 w-full group-data-[role=user]/message:w-fit group-data-[role=user]/message:ml-auto group-data-[role=user]/message:max-w-2xl group-data-[role=user]/message:py-2 rounded-xl",
-					{
-						"group-data-[role=user]/message:bg-muted": true,
-					},
-				)}
-			>
-				<div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border">
-					<SparklesIcon size={14} />
-				</div>
-
-				<div className="flex flex-col gap-2 w-full">
-					<div className="flex flex-col gap-4 text-muted-foreground">
-						Thinking...
-					</div>
-				</div>
-			</div>
-		</motion.div>
-	);
-};
+}
