@@ -2,13 +2,10 @@
 
 import * as React from "react"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
-
 import { cn } from "@/lib/utils"
 
 const TooltipProvider = TooltipPrimitive.Provider
-
 const Tooltip = TooltipPrimitive.Root
-
 const TooltipTrigger = TooltipPrimitive.Trigger
 
 const TooltipContent = React.forwardRef<
@@ -27,23 +24,25 @@ const TooltipContent = React.forwardRef<
 ))
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
-// Add BetterTooltip component
 interface BetterTooltipProps {
   content: React.ReactNode;
-  children?: React.ReactNode;
+  children: React.ReactNode;
   align?: "start" | "center" | "end";
   side?: "top" | "right" | "bottom" | "left";
 }
 
-const BetterTooltip = React.forwardRef<
-  React.ElementRef<typeof TooltipContent>,
-  BetterTooltipProps
->(({ content, children, align = "center", side = "top", ...props }, ref) => (
-  <TooltipContent ref={ref} align={align} side={side} {...props}>
-    {content}
-  </TooltipContent>
-))
-BetterTooltip.displayName = "BetterTooltip"
+function BetterTooltip({ content, children, align = "center", side = "top" }: BetterTooltipProps) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {children}
+      </TooltipTrigger>
+      <TooltipContent align={align} side={side}>
+        {content}
+      </TooltipContent>
+    </Tooltip>
+  )
+}
 
 export { 
   Tooltip, 
