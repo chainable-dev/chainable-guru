@@ -1,4 +1,4 @@
-import { Metadata } from "next";
+import { Metadata, Viewport } from 'next'
 
 import { RootProvider } from "@/components/providers/root-provider";
 
@@ -6,25 +6,16 @@ import "./globals.css";
 import "../styles/dark-mode.css";
 
 export const metadata: Metadata = {
-	metadataBase: new URL("https://chainable.guru"),
-	title: "Elron - AI web3 chatbot",
-	description:
-		"Elron is an AI chatbot that integrates with blockchain technologies.",
-	icons: {
-		icon: [
-			{ url: "/favicon.ico", sizes: "any" },
-			{ url: "/icon.svg", type: "image/svg+xml", sizes: "any" },
-		],
-		apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
-		shortcut: "/favicon.ico",
-	},
-	viewport: {
-		width: "device-width",
-		initialScale: 1,
-		maximumScale: 1,
-		userScalable: false,
-	},
-};
+	title: 'AI Chat Bot',
+	description: 'An AI chat bot built with Next.js and Vercel AI SDK',
+}
+
+export const viewport: Viewport = {
+	width: 'device-width',
+	initialScale: 1,
+	maximumScale: 1,
+	userScalable: false,
+}
 
 export default function RootLayout({
 	children,
