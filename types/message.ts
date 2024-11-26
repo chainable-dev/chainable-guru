@@ -47,20 +47,22 @@ export interface AssistantMessage extends BaseMessage {
 export interface FunctionMessage extends BaseMessage {
   role: 'function';
   name: string;
-  function_call?: {
-    name: string;
-    arguments: string;
-  };
 }
 
 export type Message = SystemMessage | UserMessage | AssistantMessage | FunctionMessage;
 
-export interface UIMessage extends Message {
+export interface UIMessage {
+  id: string;
+  role: MessageRole;
+  content: string;
+  chat_id: string;
+  created_at: string;
+  updated_at: string;
   isLoading?: boolean;
   error?: boolean;
 }
 
-export interface ChatMessage extends Message {
+export interface ChatMessage extends BaseMessage {
   vote?: Vote;
 }
 

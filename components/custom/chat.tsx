@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "ai/react";
-import type { ChatMessage } from "@/types/message";
+import type { Message as AIMessage } from "ai";
 import { AnimatePresence } from "framer-motion";
 import { useState, useEffect, useRef } from "react";
 import useSWR, { useSWRConfig } from "swr";
@@ -20,8 +20,7 @@ import { ThinkingMessage } from "./thinking-message";
 import { Database } from "@/lib/supabase/types";
 import { fetcher } from "@/lib/utils";
 import { Logger } from "@/lib/utils/logger";
-
-type Vote = Database["public"]["Tables"]["votes"]["Row"];
+import type { ChatMessage, Vote, MessageRole } from "@/types/message";
 
 interface FileUploadState {
 	progress: number;
@@ -35,7 +34,7 @@ export function Chat({
 	selectedModelId,
 }: {
 	id: string;
-	initialMessages: Array<ChatMessage>;
+	initialMessages: Array<AIMessage>;
 	selectedModelId: string;
 }) {
 	const { mutate } = useSWRConfig();
@@ -50,7 +49,7 @@ export function Chat({
 		setInput,
 		append,
 		isLoading,
-		 stop,
+		stop,
 		data: streamingData,
 	} = useChat({
 		body: { id, modelId: selectedModelId },
@@ -82,6 +81,24 @@ export function Chat({
 		error: null,
 	});
 
+	// Convert AI messages to ChatMessages
+	const chatMessages: ChatMessage[] = messages.map(msg => {
+		// Filter out unsupported roles
+		const role = (['system', 'user', 'assistant', 'function'] as const).includes(msg.role as any) 
+			? (msg.role as MessageRole) 
+			: 'assistant';
+
+		return {
+			id: msg.id,
+			role,
+			content: msg.content,
+			chat_id: id,
+			created_at: new Date().toISOString(),
+			updated_at: new Date().toISOString(),
+			vote: votes?.find(v => v.message_id === msg.id)
+		};
+	});
+
 	// Auto-scroll effect
 	useEffect(() => {
 		if (!chatContainerRef.current) return;
@@ -102,24 +119,21 @@ export function Chat({
 		<div className="flex flex-col h-dvh bg-background">
 			<ChatHeader selectedModelId={selectedModelId} />
 			
-			{/* Main chat container with flex-col-reverse */}
 			<div className="flex-1 flex flex-col">
-				{/* Messages container */}
 				<div 
 					ref={chatContainerRef}
 					className="flex-1 overflow-y-auto flex flex-col-reverse"
 				>
-					{/* Messages wrapper */}
 					<div className="flex flex-col-reverse gap-6 min-h-full justify-end p-4">
 						{messages.length === 0 && <Overview />}
 
-						{messages.map((message, index) => (
+						{chatMessages.map((message, index) => (
 							<Message
 								key={message.id}
 								chatId={id}
 								message={message}
 								isLoading={isLoading && index === messages.length - 1}
-								vote={votes?.find((vote) => vote.message_id === message.id)}
+								vote={message.vote}
 							/>
 						)).reverse()}
 
@@ -130,7 +144,6 @@ export function Chat({
 					</div>
 				</div>
 
-				{/* Input form fixed at bottom */}
 				<div className="border-t bg-background/80 backdrop-blur-sm">
 					<form
 						onSubmit={(e) => {
@@ -172,7 +185,11 @@ export function Chat({
 						setBlock={setBlock}
 						messages={messages}
 						setMessages={setMessages}
-						votes={votes}
+						votes={votes?.map(vote => ({
+							chat_id: vote.chat_id,
+							message_id: vote.message_id,
+							is_upvoted: vote.type === 'up'
+						}))}
 					/>
 				)}
 			</AnimatePresence>

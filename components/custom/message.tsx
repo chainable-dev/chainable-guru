@@ -5,7 +5,7 @@ import { Logger } from "@/lib/utils/logger";
 import { ThumbsDown, ThumbsUp } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import type { MessageProps, VoteType } from "@/types/message";
+import type { MessageProps, VoteType, ChatMessage } from "@/types/message";
 
 export function Message({ 
 	message, 
