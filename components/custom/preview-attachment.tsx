@@ -1,16 +1,15 @@
 import { X } from "lucide-react";
 import { formatFileName } from "@/lib/utils/format-filename";
 import { Button } from "../ui/button";
-
-interface Attachment {
-	url: string;
-	name: string;
-	contentType: string;
-	path?: string;
-}
+import type { Attachment } from "@/types/attachments";
 
 interface PreviewAttachmentProps {
-	attachment: Attachment;
+	attachment: {
+		url: string;
+		name: string;
+		contentType: string;
+		path?: string;
+	};
 	isUploading?: boolean;
 	onRemove?: () => void;
 }

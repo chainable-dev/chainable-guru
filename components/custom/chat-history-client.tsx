@@ -16,7 +16,7 @@ export function ChatHistoryClient({
 	initialChats: Chat[];
 	userId: string;
 }) {
-	const { id } = useParams();
+	const { id } = useParams() as { id: string };
 	const { setOpenMobile } = useSidebar();
 
 	// Use SWR with initial data from server

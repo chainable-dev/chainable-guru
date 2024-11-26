@@ -121,7 +121,7 @@ const ChatItem = ({
 
 export function SidebarHistory({ user }: { user: User | undefined }) {
 	const { setOpenMobile } = useSidebar();
-	const { id } = useParams();
+	const { id } = useParams() as { id: string };
 	const pathname = usePathname();
 	const {
 		data: history,

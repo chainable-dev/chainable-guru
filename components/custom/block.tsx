@@ -32,9 +32,11 @@ import { Toolbar } from "./toolbar";
 import { useScrollToBottom } from "./use-scroll-to-bottom";
 import { VersionFooter } from "./version-footer";
 import { Button } from "../ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import { Tooltip, BetterTooltip, TooltipTrigger } from "../ui/tooltip";
 
 import type { Document, Suggestion, Vote } from "@/lib/supabase/types";
+import type { MultimodalInputProps } from "@/types/chat";
+import type { AIAttachment } from "@/types/attachments";
 
 export interface UIBlock {
 	title: string;
@@ -123,6 +125,14 @@ const useDocumentContent = (
 	}, [documents, index]);
 };
 
+interface BlockProps extends Omit<MultimodalInputProps, 'attachments' | 'setAttachments'> {
+	block: UIBlock;
+	setBlock: React.Dispatch<React.SetStateAction<UIBlock>>;
+	votes?: Array<Vote>;
+	attachments: AIAttachment[];
+	setAttachments: React.Dispatch<React.SetStateAction<AIAttachment[]>>;
+}
+
 export function Block({
 	chatId,
 	input,
@@ -138,30 +148,7 @@ export function Block({
 	messages,
 	setMessages,
 	votes,
-}: {
-	chatId: string;
-	input: string;
-	setInput: (input: string) => void;
-	isLoading: boolean;
-	stop: () => void;
-	attachments: Array<Attachment>;
-	setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
-	block: UIBlock;
-	setBlock: Dispatch<SetStateAction<UIBlock>>;
-	messages: Array<Message>;
-	setMessages: Dispatch<SetStateAction<Array<Message>>>;
-	votes: Array<Vote> | undefined;
-	append: (
-		message: Message | CreateMessage,
-		chatRequestOptions?: ChatRequestOptions,
-	) => Promise<string | null | undefined>;
-	handleSubmit: (
-		event?: {
-			preventDefault?: () => void;
-		},
-		chatRequestOptions?: ChatRequestOptions,
-	) => void;
-}) {
+}: BlockProps) {
 	const [messagesContainerRef, messagesEndRef] =
 		useScrollToBottom<HTMLDivElement>();
 
@@ -455,7 +442,7 @@ export function Block({
 							ref={messagesContainerRef}
 							className="flex flex-col gap-4 h-full items-center overflow-y-scroll px-4 pt-20"
 						>
-							{messages.map((message, index) => (
+							{messages.map((message: Message, index: number) => (
 								<PreviewMessage
 									chatId={chatId}
 									key={message.id}
@@ -615,7 +602,7 @@ export function Block({
 									<CopyIcon size={18} />
 								</Button>
 							</TooltipTrigger>
-							<TooltipContent>Copy to clipboard</TooltipContent>
+							<BetterTooltip content="Copy to clipboard" />
 						</Tooltip>
 						<Tooltip>
 							<TooltipTrigger asChild>
@@ -644,14 +631,7 @@ export function Block({
 									<UndoIcon size={18} />
 								</Button>
 							</TooltipTrigger>
-							<TooltipContent className="flex flex-col space-y-1">
-								<span className="text-[10px] text-muted-foreground">
-									{documents?.length
-										? `${currentVersionIndex} / ${documents.length}`
-										: ""}
-								</span>{" "}
-								<p>View Previous version</p>
-							</TooltipContent>
+							<BetterTooltip content={`View Previous version\n${documents?.length ? `${currentVersionIndex} / ${documents.length}` : ""}`} />
 						</Tooltip>
 						<Tooltip>
 							<TooltipTrigger asChild>
@@ -666,7 +646,7 @@ export function Block({
 									<RedoIcon size={18} />
 								</Button>
 							</TooltipTrigger>
-							<TooltipContent>View Next version</TooltipContent>
+							<BetterTooltip content="View Next version" />
 						</Tooltip>
 						<Tooltip>
 							<TooltipTrigger asChild>
@@ -702,12 +682,7 @@ export function Block({
 									/>
 								</Button>
 							</TooltipTrigger>
-							<TooltipContent className="flex flex-col space-y-1">
-								<span className="text-[10px] text-muted-foreground">
-									{mode === "diff" ? "diff mode" : "edit mode"}
-								</span>{" "}
-								<p>Toggle mode to {mode === "diff" ? "edit" : "diff"}</p>
-							</TooltipContent>
+							<BetterTooltip content={`Toggle mode to ${mode === "diff" ? "edit" : "diff"}\n${mode === "diff" ? "diff mode" : "edit mode"}`} />
 						</Tooltip>
 					</div>
 				</div>
