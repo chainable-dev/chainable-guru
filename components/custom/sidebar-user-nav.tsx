@@ -3,14 +3,12 @@
 import { User } from "@supabase/supabase-js";
 import { ChevronUp } from "lucide-react";
 import Image from "next/image";
-import { useTheme } from "next-themes";
 
 import { LogoutButton } from "@/components/custom/logout-button";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
-	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -20,8 +18,6 @@ import {
 } from "@/components/ui/sidebar";
 
 export function SidebarUserNav({ user }: { user: User }) {
-	const { setTheme, theme } = useTheme();
-
 	return (
 		<SidebarMenu>
 			<SidebarMenuItem>
@@ -43,13 +39,6 @@ export function SidebarUserNav({ user }: { user: User }) {
 						side="top"
 						className="w-[--radix-popper-anchor-width]"
 					>
-						<DropdownMenuItem
-							className="cursor-pointer"
-							onSelect={() => setTheme(theme === "dark" ? "light" : "dark")}
-						>
-							{`Toggle ${theme === "light" ? "dark" : "light"} mode`}
-						</DropdownMenuItem>
-						<DropdownMenuSeparator />
 						<LogoutButton />
 					</DropdownMenuContent>
 				</DropdownMenu>

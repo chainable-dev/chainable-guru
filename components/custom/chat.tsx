@@ -162,12 +162,12 @@ export function Chat({ id, initialMessages, selectedModelId }: ChatProps) {
 
   return (
     <>
-      <div className="flex flex-col min-w-0 h-screen bg-gray-100">
+      <div className="flex flex-col min-w-0 h-screen bg-gradient-to-b from-white to-gray-50 dark:from-gray-900 dark:to-gray-950">
         <ChatHeader selectedModelId={selectedModelId} />
         <Suspense fallback={<LoadingPage />}>
           <motion.div
             ref={messagesContainerRef}
-            className="flex flex-col min-w-0 gap-4 flex-1 overflow-y-auto p-4"
+            className="flex flex-col min-w-0 gap-4 flex-1 overflow-y-auto p-4 bg-transparent"
             variants={containerAnimationVariants}
             initial="initial"
             animate="animate"
@@ -204,7 +204,7 @@ export function Chat({ id, initialMessages, selectedModelId }: ChatProps) {
           layout
           id="chat-form"
           name="chat-form"
-          className="flex mx-auto px-4 bg-white shadow-md rounded-lg pb-4 md:pb-6 gap-2 w-full md:max-w-3xl"
+          className="flex mx-auto px-4 bg-white dark:bg-gray-800 shadow-lg rounded-lg pb-4 md:pb-6 gap-2 w-full md:max-w-3xl border border-gray-200 dark:border-gray-700"
           onSubmit={(e) => {
             e.preventDefault();
             handleSubmit(e);
@@ -255,7 +255,7 @@ export function Chat({ id, initialMessages, selectedModelId }: ChatProps) {
         <Tooltip>
           <TooltipTrigger asChild>
             <button
-              className="p-2 rounded-full bg-blue-500 text-white shadow-md"
+              className="p-2 rounded-full bg-indigo-500 hover:bg-indigo-600 text-white shadow-md transition-colors duration-200"
               type="button"
               aria-label="Keyboard shortcuts"
             >
@@ -273,9 +273,9 @@ export function Chat({ id, initialMessages, selectedModelId }: ChatProps) {
       </div>
 
       {fileUpload.uploading && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md mx-auto p-4 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg">
-          <Progress value={fileUpload.progress} className="w-full" />
-          <p className="text-sm text-muted-foreground mt-2 text-center">
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md mx-auto p-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+          <Progress value={fileUpload.progress} className="w-full bg-indigo-100 dark:bg-gray-700" />
+          <p className="text-sm text-gray-600 dark:text-gray-300 mt-2 text-center">
             Uploading... {fileUpload.progress}%
           </p>
         </div>

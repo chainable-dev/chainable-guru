@@ -1,15 +1,14 @@
 import { Metadata, Viewport } from "next";
-
 import { RootProvider } from "@/components/providers/root-provider";
-
 import "./globals.css";
-import "../styles/dark-mode.css";
 
 export const viewport: Viewport = {
 	width: "device-width",
 	initialScale: 1,
 	maximumScale: 1,
 	userScalable: false,
+	themeColor: "#000000",
+	colorScheme: "dark",
 };
 
 export const metadata: Metadata = {
@@ -33,8 +32,11 @@ export default function RootLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<html lang="en" suppressHydrationWarning>
-			<body className="antialiased bg-background text-foreground dark:bg-gray-900">
+		<html lang="en" className="dark" style={{ colorScheme: "dark" }}>
+			<head>
+				<meta name="color-scheme" content="dark" />
+			</head>
+			<body className="min-h-screen bg-background font-sans antialiased">
 				<RootProvider>{children}</RootProvider>
 			</body>
 		</html>

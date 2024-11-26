@@ -1,23 +1,32 @@
-import { cookies } from "next/headers";
+"use client";
 
-import { AppSidebar } from "@/components/custom/app-sidebar";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { getSession } from "@/db/cached-queries";
+import { AppSidebar } from "@/app/components/app-sidebar";
+import { Sidebar, SidebarProvider } from "@/components/ui/sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
-export default async function Layout({
-	children,
-}: {
+interface ChatLayoutProps {
 	children: React.ReactNode;
-}) {
-	const cookieStore = await cookies();
-	const isCollapsed = cookieStore.get("sidebar:state")?.value !== "true";
+	defaultOpen?: boolean;
+}
 
-	const user = await getSession();
-
+export default function ChatLayout({
+	children,
+	defaultOpen = true,
+}: ChatLayoutProps) {
 	return (
-		<SidebarProvider defaultOpen={!isCollapsed}>
-			<AppSidebar user={user} />
-			<SidebarInset>{children}</SidebarInset>
-		</SidebarProvider>
+		<TooltipProvider>
+			<SidebarProvider defaultOpen={defaultOpen}>
+				<div className="relative flex h-[100dvh] overflow-hidden bg-zinc-950">
+					<Sidebar className="border-r border-zinc-800 bg-zinc-950">
+						<AppSidebar />
+					</Sidebar>
+					<main className="flex-1 overflow-auto bg-zinc-950">
+						<div className="flex h-full flex-col bg-zinc-950">
+							{children}
+						</div>
+					</main>
+				</div>
+			</SidebarProvider>
+		</TooltipProvider>
 	);
 }

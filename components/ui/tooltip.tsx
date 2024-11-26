@@ -16,7 +16,13 @@ const TooltipContent = React.forwardRef<
     ref={ref}
     sideOffset={sideOffset}
     className={cn(
-      "z-50 overflow-hidden rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2",
+      "z-40 overflow-hidden rounded-md px-2.5 py-1.5 text-xs",
+      "bg-gray-900/95 text-gray-100",
+      "shadow-xl",
+      "animate-in fade-in-0 zoom-in-95 duration-100",
+      "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
+      "data-[side=bottom]:slide-in-from-top-1 data-[side=left]:slide-in-from-right-1",
+      "data-[side=right]:slide-in-from-left-1 data-[side=top]:slide-in-from-bottom-1",
       className
     )}
     {...props}
@@ -29,15 +35,26 @@ interface BetterTooltipProps {
   children: React.ReactNode;
   align?: "start" | "center" | "end";
   side?: "top" | "right" | "bottom" | "left";
+  className?: string;
 }
 
-function BetterTooltip({ content, children, align = "center", side = "top" }: BetterTooltipProps) {
+function BetterTooltip({ 
+  content, 
+  children, 
+  align = "center", 
+  side = "bottom",
+  className 
+}: BetterTooltipProps) {
   return (
-    <Tooltip>
+    <Tooltip delayDuration={200}>
       <TooltipTrigger asChild>
         {children}
       </TooltipTrigger>
-      <TooltipContent align={align} side={side}>
+      <TooltipContent 
+        align={align} 
+        side={side} 
+        className={className}
+      >
         {content}
       </TooltipContent>
     </Tooltip>
