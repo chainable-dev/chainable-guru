@@ -18,36 +18,52 @@ export async function GET(request: Request) {
   });
 
   const stream = new ReadableStream({
-    start(controller) {
-      const supabase = createClient();
-      
-      // Subscribe to realtime changes using channel
-      const channel = supabase.channel('messages')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'messages',
-            filter: `chat_id=eq.${chatId}`,
-          },
-          (payload) => {
-            if (payload.new && payload.new.type === 'intermediate') {
-              const data = JSON.stringify({
-                type: 'intermediate',
-                content: payload.new.content,
-                data: payload.new.data
-              });
-              controller.enqueue(`data: ${data}\n\n`);
+    async start(controller) {
+      try {
+        const supabase = await createClient();
+        
+        // Subscribe to realtime changes using channel
+        const channel = supabase.channel(`messages:${chatId}`)
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'messages',
+              filter: `chat_id=eq.${chatId}`,
+            },
+            (payload) => {
+              if (payload.new && payload.new.type === 'intermediate') {
+                const data = JSON.stringify({
+                  type: 'intermediate',
+                  content: payload.new.content,
+                  data: payload.new.data
+                });
+                controller.enqueue(`data: ${data}\n\n`);
+              }
             }
-          }
-        )
-        .subscribe();
+          );
 
-      // Clean up subscription when client disconnects
-      return () => {
-        channel.unsubscribe();
-      };
+        // Subscribe to the channel
+        await channel.subscribe((status) => {
+          if (status === 'SUBSCRIBED') {
+            // Send initial connection success message
+            const data = JSON.stringify({
+              type: 'connection',
+              status: 'connected'
+            });
+            controller.enqueue(`data: ${data}\n\n`);
+          }
+        });
+
+        // Clean up subscription when client disconnects
+        return () => {
+          channel.unsubscribe();
+        };
+      } catch (error) {
+        console.error('Streaming error:', error);
+        controller.error(error);
+      }
     }
   });
 
