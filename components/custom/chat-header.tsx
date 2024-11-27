@@ -1,12 +1,11 @@
 "use client";
 
-import { ConnectButton } from "@rainbow-me/rainbowkit";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useWindowSize } from "usehooks-ts";
 
 import { ModelSelector } from "@/components/custom/model-selector";
 import { SidebarToggle } from "@/components/custom/sidebar-toggle";
+import { SettingsDialog } from "@/components/custom/settings-dialog";
 import { Button } from "@/components/ui/button";
 import { BetterTooltip } from "@/components/ui/tooltip";
 
@@ -17,38 +16,36 @@ export function ChatHeader({ selectedModelId }: { selectedModelId: string }) {
 	const router = useRouter();
 	const { open } = useSidebar();
 	const { width: windowWidth } = useWindowSize();
+	const isMobile = windowWidth < 768;
 
 	return (
-		<header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2">
+		<header className="sticky top-0 z-50 flex items-center gap-2 border-b bg-background px-2 py-1.5">
 			<SidebarToggle />
-			{(!open || windowWidth < 768) && (
+			
+			{(!open || isMobile) && (
 				<BetterTooltip content="New Chat">
 					<Button
 						variant="outline"
-						className="order-2 md:order-1 md:px-2 px-2 md:h-fit ml-auto md:ml-0"
+						size="icon"
+						className="h-9 w-9"
 						onClick={() => {
 							router.push("/");
 							router.refresh();
 						}}
 					>
-						<PlusIcon />
-						<span className="md:sr-only">New Chat</span>
+						<PlusIcon className="h-4 w-4" />
+						<span className="sr-only">New Chat</span>
 					</Button>
 				</BetterTooltip>
 			)}
+			
 			<ModelSelector
 				selectedModelId={selectedModelId}
-				className="order-1 md:order-2"
+				className="w-[180px]"
 			/>
-			<div className="flex gap-2 order-4 md:ml-auto items-center">
-				<ConnectButton
-					chainStatus="full"
-					showBalance={false}
-					accountStatus={{
-						smallScreen: "avatar",
-						largeScreen: "full",
-					}}
-				/>
+
+			<div className="ml-auto flex items-center gap-2">
+				<SettingsDialog />
 			</div>
 		</header>
 	);

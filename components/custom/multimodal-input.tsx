@@ -24,6 +24,8 @@ import { PreviewAttachment } from "./preview-attachment";
 import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import { ChatSkeleton } from "./chat-skeleton";
+import { WalletButton } from '@/components/custom/wallet-button';
+import { BetterTooltip } from "@/components/ui/tooltip";
 
 import type { Attachment as SupabaseAttachment } from "@/types/supabase";
 import type {
@@ -569,6 +571,10 @@ export function MultimodalInput({
 		[chatId, createStagedFile, removeStagedFile, setAttachments],
 	);
 
+	const handleFileClick = () => {
+		fileInputRef.current?.click();
+	};
+
 	return (
 		<div className="relative w-full flex flex-col gap-4">
 			{isLoading && expectingText && (
@@ -689,31 +695,41 @@ export function MultimodalInput({
 				/>
 
 				<div className="absolute bottom-2 right-2 flex items-center gap-2">
-					<Button
-						size="icon"
-						variant="outline"
-						onClick={() => fileInputRef.current?.click()}
-						disabled={isLoading}
-						className="size-8 rounded-full"
-					>
-						<PaperclipIcon className="size-4" />
-					</Button>
+					<WalletButton />
+
+					<BetterTooltip content="Attach files">
+						<Button
+							variant="outline"
+							size="icon"
+							className="size-8 rounded-full"
+							onClick={handleFileClick}
+							disabled={isLoading}
+						>
+							<PaperclipIcon className="h-4 w-4" />
+							<span className="sr-only">Attach files</span>
+						</Button>
+					</BetterTooltip>
 
 					<Button
+						type="submit"
 						size="icon"
+						className="size-8 rounded-full"
 						variant={input.length > 0 ? "default" : "outline"}
+						disabled={input.length === 0 || stagedFiles.length > 0}
 						onClick={(e) => {
 							e.preventDefault();
 							isLoading ? stop() : submitForm();
 						}}
-						disabled={input.length === 0 || stagedFiles.length > 0}
-						className="size-8 rounded-full"
+						aria-label="Send message"
 					>
 						{isLoading ? (
-							<StopIcon className="size-4" />
+							<StopIcon className="h-4 w-4" />
 						) : (
-							<ArrowUpIcon className="size-4" />
+							<ArrowUpIcon className="h-4 w-4" />
 						)}
+						<span className="sr-only">
+							{isLoading ? "Stop generating" : "Send message"}
+						</span>
 					</Button>
 				</div>
 			</div>

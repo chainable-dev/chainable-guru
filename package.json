@@ -8,6 +8,8 @@
 		"start": "next start",
 		"lint": "next lint",
 		"test": "vitest run",
+		"test:ollama": "vitest run __tests__/components/ollama-chat.test.tsx",
+		"test:ollama:watch": "vitest __tests__/components/ollama-chat.test.tsx --watch",
 		"setup-favicons": "pnpm optimize-images && tsx scripts/setup-favicons.ts",
 		"optimize-images": "tsx scripts/optimize-images.ts",
 		"biome:clean": "npx biome format --write && npx biome lint --fix"
