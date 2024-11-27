@@ -41,6 +41,8 @@ export async function GET() {
         models: [
           // Default OpenAI models
           { id: 'gpt-4', name: 'GPT-4', provider: 'openai' },
+          { id: 'gpt-4o-mini', name: 'GPT-4O Mini', provider: 'openai' },
+          { id: 'gpt-4o', name: 'GPT-4O', provider: 'openai' },
           { id: 'gpt-3.5-turbo', name: 'GPT-3.5', provider: 'openai' },
           // Add top 2 local Llama models
           ...models.map(model => ({
@@ -57,6 +59,8 @@ export async function GET() {
     return Response.json({
       models: [
         { id: 'gpt-4', name: 'GPT-4', provider: 'openai' },
+        { id: 'gpt-4o-mini', name: 'GPT-4O Mini', provider: 'openai' },
+        { id: 'gpt-4o', name: 'GPT-4O', provider: 'openai' },
         { id: 'gpt-3.5-turbo', name: 'GPT-3.5', provider: 'openai' }
       ]
     });
