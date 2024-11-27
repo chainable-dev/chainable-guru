@@ -169,129 +169,24 @@ export function Chat({
 	}, [id]);
 
 	return (
-		<>
-			<div className="flex flex-col min-w-0 h-dvh bg-background">
-				<ChatHeader selectedModelId={selectedModelId} />
-				<div
-					ref={messagesContainerRef}
-					className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4"
-				>
-					{messages.length === 0 && <Overview />}
-
-					{messages.map((message, index) => (
-						<PreviewMessage
-							key={message.id}
-							chatId={id}
-							message={message}
-							block={block}
-							setBlock={setBlock}
-							isLoading={isLoading && messages.length - 1 === index}
-							vote={votes?.find((vote) => vote.message_id === message.id)}
-							streamingResponse={
-								isLoading && messages.length - 1 === index ? streamingResponse : undefined
-							}
-						/>
-					))}
-
-					{isLoading &&
-						messages.length > 0 &&
-						messages[messages.length - 1].role === "user" && (
-							<ThinkingMessage />
-						)}
-
-					<div
-						ref={messagesEndRef}
-						className="shrink-0 min-w-[24px] min-h-[24px]"
-					/>
-				</div>
-
-				<form
-					id="chat-form"
-					name="chat-form"
-					className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl"
-					onSubmit={(e) => {
-						e.preventDefault();
-						handleSubmit(e);
-					}}
-					aria-label="Chat input form"
-				>
-					<MultimodalInput
-						chatId={id}
-						input={input}
-						setInput={setInput}
-						handleSubmit={handleSubmit}
-						isLoading={isLoading}
-						stop={stop}
-						attachments={attachments}
-						setAttachments={setAttachments}
-						messages={messages}
-						setMessages={setMessages}
-						append={append}
-					/>
-				</form>
+		<div className="flex h-full flex-col">
+			<ChatHeader selectedModelId={selectedModelId} />
+			<div className="flex-1 overflow-y-auto">
+				<Overview messages={messages} />
 			</div>
-
-			<AnimatePresence>
-				{block && block.isVisible && (
-					<Block
-						chatId={id}
-						input={input}
-						setInput={setInput}
-						handleSubmit={handleSubmit}
-						isLoading={isLoading}
-						stop={stop}
-						attachments={attachments}
-						setAttachments={setAttachments}
-						append={append}
-						block={block}
-						setBlock={setBlock}
-						messages={messages}
-						setMessages={setMessages}
-						votes={votes}
-					/>
-				)}
-			</AnimatePresence>
-
-			<BlockStreamHandler streamingData={streamingData} setBlock={setBlock} />
-
-			<div className="fixed bottom-4 right-4 opacity-50 hover:opacity-100 transition-opacity">
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<button
-							className="p-2 rounded-full bg-muted"
-							type="button"
-							aria-label="Keyboard shortcuts"
-						></button>
-					</TooltipTrigger>
-					<TooltipContent>
-						<div className="text-sm">
-							<p>⌘ / to focus input</p>
-							<p>⌘ K to clear chat</p>
-							<p>ESC to stop generation</p>
-						</div>
-					</TooltipContent>
-				</Tooltip>
+			<div className="border-t p-4">
+				<MultimodalInput
+					input={input}
+					setInput={setInput}
+					isLoading={isLoading}
+					stop={stop}
+					messages={messages}
+					setMessages={setMessages}
+					append={append}
+					handleSubmit={handleSubmit}
+					chatId={id}
+				/>
 			</div>
-
-			{fileUpload.uploading && (
-				<div className="fixed bottom-20 left-1/2 -translate-x-1/2 w-full max-w-md mx-auto p-4 bg-background/80 backdrop-blur-sm rounded-lg shadow-lg">
-					<Progress value={fileUpload.progress} className="w-full" />
-					<p className="text-sm text-muted-foreground mt-2 text-center">
-						Uploading... {fileUpload.progress}%
-					</p>
-				</div>
-			)}
-
-			<input
-				type="file"
-				onChange={(e) => {
-					const file = e.target.files?.[0];
-					if (file) handleFileUpload(file);
-				}}
-				className="hidden"
-				id="file-upload"
-				accept="image/*,.pdf,.doc,.docx,.txt"
-			/>
-		</>
+		</div>
 	);
 }

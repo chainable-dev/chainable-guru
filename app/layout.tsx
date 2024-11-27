@@ -15,6 +15,10 @@ export const metadata: Metadata = {
 		icon: [
 			{ url: "/favicon.ico", sizes: "any" },
 			{ url: "/icon.svg", type: "image/svg+xml", sizes: "any" },
+			{ url: "/favicon-16x16.webp", sizes: "16x16", type: "image/webp" },
+			{ url: "/favicon-32x32.webp", sizes: "32x32", type: "image/webp" },
+			{ url: "/favicon-48x48.webp", sizes: "48x48", type: "image/webp" },
+			{ url: "/favicon-180x180.webp", sizes: "180x180", type: "image/webp" },
 		],
 		apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
 		shortcut: "/favicon.ico",

@@ -2,6 +2,9 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { cn } from "@/lib/utils";
 
 const quotes = [
 	"Building bridges in the Web3 ecosystem, one transaction at a time",
@@ -11,108 +14,44 @@ const quotes = [
 	"Your trusted companion in the blockchain journey",
 ];
 
-export const Overview = () => {
-	const [currentQuote, setCurrentQuote] = useState("");
-
-	useEffect(() => {
-		const updateQuote = () => {
-			const randomIndex = Math.floor(Math.random() * quotes.length);
-			setCurrentQuote(quotes[randomIndex]);
-		};
-
-		updateQuote();
-		const interval = setInterval(updateQuote, 5 * 60 * 60 * 1000);
-
-		return () => clearInterval(interval);
-	}, []);
+export function Overview({ messages = [] }: { messages?: any[] }) {
+	if (messages.length > 0) {
+		return (
+			<div className="space-y-4 p-4">
+				{messages.map((message, index) => (
+					<div
+						key={message.id}
+						className={cn(
+							"flex w-full items-start gap-4 p-4",
+							message.role === "assistant" ? "bg-muted/50" : "bg-background"
+						)}
+					>
+						<div className="flex-1">
+							<div className="prose prose-neutral dark:prose-invert max-w-none">
+								<ReactMarkdown remarkPlugins={[remarkGfm]}>
+									{message.content}
+								</ReactMarkdown>
+							</div>
+						</div>
+					</div>
+				))}
+			</div>
+		);
+	}
 
 	return (
-		<motion.div
-			key="overview"
-			className="max-w-3xl mx-auto md:mt-20"
-			initial={{ opacity: 0, scale: 0.98 }}
-			animate={{ opacity: 1, scale: 1 }}
-			exit={{ opacity: 0, scale: 0.98 }}
-			transition={{ delay: 0.5 }}
-		>
-			<div className="rounded-xl p-6 flex flex-col items-center gap-8 leading-relaxed text-center max-w-xl mx-auto bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border">
-				<div className="flex items-center space-x-4">
-					<div className="relative w-12 h-12">
-						<Image
-							src="/logos/elron.ico"
-							alt="Elron Bot"
-							fill
-							className="rounded-full object-cover"
-							priority
-						/>
-					</div>
-					<div className="flex flex-col text-left">
-						<h2 className="text-2xl font-bold tracking-tight">Elron</h2>
-						<p className="text-sm text-muted-foreground">
-							Powered by{" "}
-							<Link
-								href="https://chainable.co"
-								target="_blank"
-								rel="noopener noreferrer"
-								className="font-medium hover:underline"
-							>
-								chainable.co
-							</Link>
-						</p>
-					</div>
-				</div>
-
-				<p className="text-sm italic text-muted-foreground">
-					&ldquo;{currentQuote}&rdquo;
+		<div className="mx-auto max-w-2xl px-4">
+			<div className="rounded-lg border bg-background p-8">
+				<h1 className="mb-2 text-lg font-semibold">
+					Welcome to AI Chat Bot
+				</h1>
+				<p className="mb-2 leading-normal text-muted-foreground">
+					This is a chat bot built with Next.js and OpenAI.
 				</p>
-
-				<div className="space-y-4">
-					<p>
-						Welcome to Chainable Chat Bot - your AI-powered Web3 assistant.
-						Built with Next.js and the latest Web3 technologies, this chatbot
-						helps you interact with blockchain data and perform crypto
-						operations seamlessly.
-					</p>
-					<p>
-						Connect your wallet to access personalized features like balance
-						checks, transaction history, and smart contract interactions.
-					</p>
-					<p>
-						Powered by{" "}
-						<Link
-							className="font-medium underline underline-offset-4"
-							href="https://base.org"
-							target="_blank"
-							rel="noopener noreferrer"
-						>
-							Base
-						</Link>{" "}
-						and secured with{" "}
-						<Link
-							className="font-medium underline underline-offset-4"
-							href="https://supabase.com"
-							target="_blank"
-							rel="noopener noreferrer"
-						>
-							Supabase
-						</Link>
-					</p>
-				</div>
-
-				<Link
-					href="https://chainable.co"
-					target="_blank"
-					rel="noopener noreferrer"
-					className="relative w-[120px] h-[30px]"
-				>
-					<Image
-						src="/logos/favicon-dark.ico"
-						alt="Chainable Logo"
-						fill
-						className="opacity-80 dark:opacity-100 object-contain hover:opacity-100 transition-opacity"
-					/>
-				</Link>
+				<p className="leading-normal text-muted-foreground">
+					You can start a conversation below.
+				</p>
 			</div>
-		</motion.div>
+		</div>
 	);
-};
+}
