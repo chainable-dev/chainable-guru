@@ -1,10 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
 	reactStrictMode: true,
-	experimental: {
-		serverActions: {
-			allowedOrigins: ['localhost:3000']
-		}
+	compiler: {
+		styledComponents: true,
 	},
 	images: {
 		remotePatterns: [
@@ -14,20 +12,16 @@ const nextConfig = {
 			},
 		],
 	},
-	webpack: (config) => {
-		config.resolve.fallback = {
-			...config.resolve.fallback,
-			encoding: false,
-		};
-		return config;
+	experimental: {
+		serverActions: {
+			allowedOrigins: ['localhost:3000'],
+		},
 	},
-	distDir: '.next',
-	poweredByHeader: false,
 	typescript: {
-		ignoreBuildErrors: process.env.NODE_ENV === 'development',
+		ignoreBuildErrors: false,
 	},
 	eslint: {
-		ignoreDuringBuilds: process.env.NODE_ENV === 'development',
+		ignoreDuringBuilds: false,
 	},
 };
 
