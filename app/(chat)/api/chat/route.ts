@@ -36,6 +36,8 @@ import { kv } from "@vercel/kv";
 import { useAccount, useBalance, useChainId } from "wagmi";
 
 import { generateTitleFromUserMessage } from "../../actions";
+import { OpenAIStream, StreamingTextResponse } from 'ai';
+import OpenAI from 'openai';
 
 export const maxDuration = 60;
 
@@ -610,36 +612,49 @@ export async function POST(request: Request) {
 		return Response.json("Unauthorized!", { status: 401 });
 	}
 
-	const model = models.find((m) => m.id === modelId) || customModel;
-	const chatId = json.id || generateUUID();
-
-	const stream = await model.chat({
-		messages,
-		functions: [
-			{
-				name: "streamIntermediateResponse",
-				description: "Stream an intermediate response to the client",
-				parameters: {
-					type: "object",
-					properties: {
-						content: { type: "string" },
-						data: { type: "object" }
-					},
-					required: ["content"]
-				}
-			}
-		],
-		stream: true,
-		onIntermediateResponse: async (response: StreamingResponse) => {
-			await streamObject({
-				type: 'intermediate',
-				content: response.content,
-				data: response.data
-			});
-		}
+	const openai = new OpenAI({
+		apiKey: process.env.OPENAI_API_KEY,
 	});
 
-	return new Response(stream);
+	const chatId = json.id || generateUUID();
+
+	// Create stream
+	const response = await openai.chat.completions.create({
+		model: modelId || 'gpt-3.5-turbo',
+		messages: messages.map((message: any) => ({
+			role: message.role,
+			content: message.content,
+		})),
+		stream: true,
+		temperature: 0.7,
+		max_tokens: 1000,
+	});
+
+	// Convert the response into a friendly text-stream
+	const stream = OpenAIStream(response, {
+		async onCompletion(completion) {
+			// Save the message to the database
+			const coreMessages = convertToCoreMessages(messages);
+			await saveMessages({
+				chatId,
+				messages: coreMessages.map(msg => ({
+					id: generateUUID(),
+					chatId,
+					role: msg.role as MessageRole,
+					content: formatMessageContent(msg),
+					createdAt: new Date(),
+					userId: user.id,
+				})),
+			});
+		},
+		async experimental_onFunctionCall(functionCall) {
+			// Handle function calls if needed
+			return undefined;
+		},
+	});
+
+	// Return a StreamingTextResponse
+	return new StreamingTextResponse(stream);
 }
 
 export async function DELETE(request: Request) {
