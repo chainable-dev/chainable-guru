@@ -1,6 +1,5 @@
 import { cookies } from "next/headers";
-
-import { DEFAULT_MODEL_NAME, models } from "@/ai/models";
+import { modelsService } from '@/lib/services/models.service';
 import { Chat } from "@/components/custom/chat";
 import { generateUUID } from "@/lib/utils";
 
@@ -10,9 +9,9 @@ export default async function Page() {
 	const cookieStore = await cookies();
 	const modelIdFromCookie = cookieStore.get("model-id")?.value;
 
-	const selectedModelId =
-		models.find((model) => model.id === modelIdFromCookie)?.id ||
-		DEFAULT_MODEL_NAME;
+	const selectedModelId = modelIdFromCookie && modelsService.isValidModelId(modelIdFromCookie)
+		? modelIdFromCookie
+		: modelsService.getDefaultModel().id;
 
 	return (
 		<Chat

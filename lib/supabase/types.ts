@@ -453,30 +453,19 @@ export type CompositeTypes<
 
 export type Client = SupabaseClient<Database>;
 
-export type MessageRole = "user" | "assistant" | "system" | "tool";
-
-// Add types for tool invocations and annotations
-export interface ToolInvocation {
-	state: "call" | "result";
-	toolCallId: string;
-	toolName: string;
-	args?: any;
-	result?: any;
+export enum MessageRole {
+	System = 'system',
+	User = 'user',
+	Assistant = 'assistant',
+	Function = 'function'
 }
 
-export interface MessageAnnotation {
-	messageIdFromServer?: string;
-}
-
-// Update Message interface to match AI library format
 export interface Message {
-	id: string;
-	chat_id: string;
+	id?: string;
 	role: MessageRole;
-	content: string | Record<string, unknown>;
-	created_at: string;
-	toolInvocations?: ToolInvocation[];
-	annotations?: MessageAnnotation[];
+	content: string;
+	name?: string;
+	function_call?: any;
 }
 
 export interface PostgrestError {
