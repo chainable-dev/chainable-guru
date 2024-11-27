@@ -1,6 +1,0 @@
-export const FEATURES = {
-	ATTACHMENTS: process.env.NEXT_PUBLIC_FEATURE_ATTACHMENTS === "true",
-	WEB_SEARCH: process.env.NEXT_PUBLIC_FEATURE_WEB_SEARCH === "true",
-} as const;
-
-export type FeatureKey = keyof typeof FEATURES;
