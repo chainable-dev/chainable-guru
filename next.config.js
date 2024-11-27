@@ -42,7 +42,6 @@ const nextConfig = {
 				hostname: "**.vercel.app",
 				pathname: "/**",
 			},
-			// Add blockchain-specific patterns
 			{
 				protocol: "https",
 				hostname: "**.opensea.io",
@@ -59,23 +58,19 @@ const nextConfig = {
 				pathname: "/**",
 			},
 		],
-		// Configure local image handling
 		dangerouslyAllowSVG: true,
 		contentDispositionType: "attachment",
 		contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-		// Optimize images
 		deviceSizes: [640, 750, 828, 1080, 1200, 1920],
 		imageSizes: [16, 32, 48, 64, 96, 128, 256],
 		formats: ["image/webp", "image/avif"],
-		minimumCacheTTL: 60 * 60 * 24 * 30, // 30 days
-		// Allow local logos
+		minimumCacheTTL: 60 * 60 * 24 * 30,
 		loader: "default",
 		loaderFile: undefined,
 		path: "/_next/image",
 		disableStaticImages: false,
-		unoptimized: process.env.NODE_ENV === "production",
+			unoptimized: process.env.NODE_ENV === "production",
 	},
-	// Other config
 	typescript: {
 		ignoreBuildErrors: true,
 	},
@@ -85,27 +80,18 @@ const nextConfig = {
 			bodySizeLimit: "2mb",
 		},
 	},
-	// Add webpack configuration for handling local images
 	webpack(config) {
 		config.module.rules.push({
 			test: /\.(png|jpe?g|gif|svg|webp|avif)$/i,
-			issuer: /\.[jt]sx?$/,
-			use: [
-				{
-					loader: "url-loader",
-					options: {
-						limit: 10000,
-						name: "static/media/[name].[hash:8].[ext]",
-						publicPath: "/_next",
-					},
-				},
-			],
+			type: 'asset',
+			generator: {
+				filename: 'static/media/[name].[hash][ext]'
+			}
 		});
 
 		return config;
 	},
-	// Add public directory handling
-	async rewrites() {
+	rewrites() {
 		return [
 			{
 				source: "/favicon.ico",
@@ -125,8 +111,7 @@ const nextConfig = {
 			},
 		];
 	},
-	// Add headers for cache control
-	async headers() {
+	headers() {
 		return [
 			{
 				source: "/favicon.ico",
@@ -166,26 +151,6 @@ const nextConfig = {
 			},
 		];
 	},
-	// Add webpack configuration for static files
-	webpack(config) {
-		config.module.rules.push({
-			test: /\.(ico|png|jpe?g|gif|svg|webp|avif)$/i,
-			issuer: /\.[jt]sx?$/,
-			use: [
-				{
-					loader: "url-loader",
-					options: {
-						limit: 10000,
-						name: "static/media/[name].[hash:8].[ext]",
-						publicPath: "/_next",
-						fallback: "file-loader",
-					},
-				},
-			],
-		});
-
-		return config;
-	},
-};
+}
 
 module.exports = nextConfig;
