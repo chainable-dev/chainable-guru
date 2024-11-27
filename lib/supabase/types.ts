@@ -267,11 +267,6 @@ export type Database = {
 					},
 				];
 			};
-			tasks: {
-				Row: Task;
-				Insert: Omit<Task, 'created_at'>;
-				Update: Partial<Omit<Task, 'id' | 'created_at'>>;
-			};
 		};
 		Views: {
 			[_ in never]: never;
@@ -612,19 +607,4 @@ export interface FileUpload {
 export interface StorageError {
 	message: string;
 	statusCode: string;
-}
-
-export interface Task {
-	id: string;
-	user_id: string;
-	type: 'chat' | 'analysis' | 'research';
-	priority: number;
-	status: 'pending' | 'running' | 'completed' | 'failed';
-	input: string;
-	output?: string;
-	error?: string;
-	progress: number;
-	created_at: string;
-	started_at?: string;
-	completed_at?: string;
 }

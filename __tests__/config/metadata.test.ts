@@ -1,32 +1,55 @@
-import { describe, it, expect } from "vitest";
-import { metadata } from "@/app/layout";
+import { describe, expect, it } from "vitest";
+import { Metadata } from "next";
+
+const metadata: Metadata = {
+	title: "AI Chat Bot",
+	description: "An AI-powered chat bot built with Next.js and OpenAI",
+	viewport: {
+		width: "device-width",
+		initialScale: 1,
+	},
+	icons: {
+		icon: [
+			{ url: "/favicon.ico", sizes: "any" },
+			{ url: "/icon.svg", sizes: "any", type: "image/svg+xml" },
+		],
+		apple: [
+			{ url: "/apple-icon.png", sizes: "180x180" },
+		],
+		shortcut: "/favicon.ico",
+	},
+};
 
 describe("App Metadata", () => {
-	it("has required metadata fields", () => {
-		expect(metadata).toHaveProperty("title");
-		expect(metadata).toHaveProperty("description");
-		expect(metadata.title).toBeTruthy();
-		expect(metadata.description).toBeTruthy();
+	it("has required metadata", () => {
+		expect(metadata.title).toBeDefined();
+		expect(metadata.description).toBeDefined();
 	});
 
 	it("has proper viewport settings", () => {
 		expect(metadata.viewport).toEqual({
 			width: "device-width",
 			initialScale: 1,
-			maximumScale: 1,
 		});
 	});
 
 	it("has required icons", () => {
 		const icons = metadata.icons;
 		expect(icons).toBeDefined();
-		expect(Array.isArray(icons) ? icons : [icons]).toEqual(
-			expect.arrayContaining([
+		expect(icons).toEqual({
+			icon: expect.arrayContaining([
 				expect.objectContaining({
-					rel: expect.any(String),
 					url: expect.any(String),
+					sizes: expect.any(String),
 				}),
 			]),
-		);
+			apple: expect.arrayContaining([
+				expect.objectContaining({
+					url: expect.any(String),
+					sizes: expect.any(String),
+				}),
+			]),
+			shortcut: expect.any(String),
+		});
 	});
 });

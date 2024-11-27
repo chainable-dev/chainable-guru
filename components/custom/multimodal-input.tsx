@@ -127,6 +127,15 @@ export function MultimodalInput({
 	const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
 	const [expectingText, setExpectingText] = useState(false);
 	const stagedFileNames = useRef<Set<string>>(new Set());
+	const [intermediateResponse, setIntermediateResponse] = useState<string | null>(null);
+	const [fileUpload, setFileUpload] = useState<FileUploadState>({
+		progress: 0,
+		uploading: false,
+		error: null,
+	});
+	const fileInputRef = useRef<HTMLInputElement>(null);
+	const textAreaRef = useRef<HTMLTextAreaElement>(null);
+	const { width: windowWidth = 1920 } = useWindowSize();
 
 	useEffect(() => {
 		if (textareaRef.current) {
@@ -167,7 +176,77 @@ export function MultimodalInput({
 		adjustHeight();
 	};
 
-	const fileInputRef = useRef<HTMLInputElement>(null);
+	// Handle intermediate responses
+	useEffect(() => {
+		const handleStreamingResponse = (event: MessageEvent) => {
+			try {
+				const data = JSON.parse(event.data);
+				if (data.type === 'intermediate') {
+					setIntermediateResponse(data.content);
+				} else if (data.type === 'final') {
+					setIntermediateResponse(null);
+				}
+			} catch (error) {
+				console.error('Error parsing streaming response:', error);
+			}
+		};
+
+		// Set up event source for streaming
+		const eventSource = new EventSource(`/api/chat/stream?chatId=${chatId}`);
+		eventSource.onmessage = handleStreamingResponse;
+
+		return () => {
+			eventSource.close();
+		};
+	}, [chatId]);
+
+	// Handle file upload with progress
+	const handleFileUpload = async (file: File) => {
+		if (!file) return;
+
+		if (file.size > 10 * 1024 * 1024) {
+			toast.error("File size must be less than 10MB");
+			return;
+		}
+
+		setFileUpload({ progress: 0, uploading: true, error: null });
+
+		try {
+			const formData = new FormData();
+			formData.append('file', file);
+			formData.append('chatId', chatId);
+
+			const response = await fetch('/api/upload', {
+				method: 'POST',
+				body: formData,
+			});
+
+			if (!response.ok) throw new Error('Upload failed');
+
+			const data = await response.json();
+			toast.success("File uploaded successfully");
+			
+			setAttachments(prev => [...prev, {
+				url: data.url,
+				name: file.name,
+				type: file.type
+			}]);
+
+			append({
+				role: "user",
+				content: `[File uploaded: ${file.name}](${data.url})`,
+			});
+		} catch (error) {
+			console.error('Error uploading file:', error);
+			toast.error(`Failed to upload ${file.name}`);
+			setFileUpload(prev => ({
+				...prev,
+				error: "Upload failed",
+			}));
+		} finally {
+			setFileUpload(prev => ({ ...prev, uploading: false }));
+		}
+	};
 
 	// Create blob URLs for file previews
 	const createStagedFile = useCallback((file: File): StagedFile => {

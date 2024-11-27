@@ -40,8 +40,8 @@ export function Chat({
 	selectedModelId: string;
 }) {
 	const { mutate } = useSWRConfig();
-	const { width: windowWidth = 1920, height: windowHeight = 1080 } =
-		useWindowSize();
+	const [streamingResponse, setStreamingResponse] = useState<StreamingResponse | null>(null);
+	const { width: windowWidth = 1920, height: windowHeight = 1080 } = useWindowSize();
 
 	const {
 		messages,
@@ -146,6 +146,28 @@ export function Chat({
 		});
 	};
 
+	// Set up streaming response handler
+	useEffect(() => {
+		const eventSource = new EventSource(`/api/chat/stream?chatId=${id}`);
+		
+		eventSource.onmessage = (event) => {
+			try {
+				const data = JSON.parse(event.data);
+				if (data.type === 'intermediate') {
+					setStreamingResponse(data);
+				} else if (data.type === 'final') {
+					setStreamingResponse(null);
+				}
+			} catch (error) {
+				console.error('Error parsing streaming response:', error);
+			}
+		};
+
+		return () => {
+			eventSource.close();
+		};
+	}, [id]);
+
 	return (
 		<>
 			<div className="flex flex-col min-w-0 h-dvh bg-background">
@@ -165,6 +187,9 @@ export function Chat({
 							setBlock={setBlock}
 							isLoading={isLoading && messages.length - 1 === index}
 							vote={votes?.find((vote) => vote.message_id === message.id)}
+							streamingResponse={
+								isLoading && messages.length - 1 === index ? streamingResponse : undefined
+							}
 						/>
 					))}
 

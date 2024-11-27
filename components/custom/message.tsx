@@ -17,6 +17,12 @@ import { MessageActions } from "./message-actions";
 import { PreviewAttachment } from "./preview-attachment";
 import { Weather } from "./weather";
 
+interface StreamingResponse {
+	type: 'intermediate' | 'final';
+	content: string;
+	data?: any;
+}
+
 export const PreviewMessage = ({
 	chatId,
 	message,
@@ -24,6 +30,7 @@ export const PreviewMessage = ({
 	setBlock,
 	vote,
 	isLoading,
+	streamingResponse,
 }: {
 	chatId: string;
 	message: Message;
@@ -31,9 +38,26 @@ export const PreviewMessage = ({
 	setBlock: Dispatch<SetStateAction<UIBlock>>;
 	vote: Vote | undefined;
 	isLoading: boolean;
+	streamingResponse?: StreamingResponse;
 }) => {
 	const renderContent = () => {
 		try {
+			if (streamingResponse && isLoading) {
+				return (
+					<div className="space-y-2">
+						<div className="flex items-center gap-2">
+							<div className="animate-pulse h-2 w-2 rounded-full bg-primary"></div>
+							<p className="text-muted-foreground">Thinking...</p>
+						</div>
+						{streamingResponse.content && (
+							<div className="prose dark:prose-invert max-w-none">
+								<Markdown>{streamingResponse.content}</Markdown>
+							</div>
+						)}
+					</div>
+				);
+			}
+
 			const content = JSON.parse(message.content);
 			return (
 				<div className="space-y-2">

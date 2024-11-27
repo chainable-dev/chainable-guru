@@ -595,213 +595,51 @@ const tools = {
 		: {}),
 };
 
+interface StreamingResponse {
+	type: 'intermediate' | 'final';
+	content: string;
+	data?: any;
+}
+
 export async function POST(request: Request) {
-	try {
-		const {
-			id,
-			messages,
-			modelId,
-		}: { id: string; messages: Array<Message>; modelId: string } =
-			await request.json();
+	const json = await request.json();
+	const { messages, modelId } = json;
+	const user = await getUser();
 
-		const user = await getUser();
-
-		if (!user) {
-			return new Response("Unauthorized", { status: 401 });
-		}
-
-		const model = models.find((model) => model.id === modelId);
-
-		if (!model) {
-			return new Response("Model not found", { status: 404 });
-		}
-
-		const coreMessages = convertToCoreMessages(messages);
-		const userMessage = getMostRecentUserMessage(coreMessages);
-
-		if (!userMessage) {
-			return new Response("No user message found", { status: 400 });
-		}
-
-		// Parse the message content and create context
-		let walletInfo: WalletMessageContent = { text: "" };
-		try {
-			if (typeof userMessage.content === "string") {
-				try {
-					walletInfo = JSON.parse(userMessage.content);
-				} catch {
-					walletInfo = { text: userMessage.content };
-				}
-			}
-		} catch (e) {
-			console.error("Error processing message content:", e);
-			walletInfo = {
-				text:
-					typeof userMessage.content === "string" ? userMessage.content : "",
-			};
-		}
-
-		// Create messages with enhanced wallet context
-		const messagesWithContext = coreMessages.map((msg) => {
-			if (msg.role === "user" && msg === userMessage) {
-				const baseMessage = {
-					...msg,
-					content:
-						walletInfo.text ||
-						(typeof msg.content === "string"
-							? msg.content
-							: JSON.stringify(msg.content)),
-				};
-
-				if (walletInfo.walletAddress && walletInfo.chainId !== undefined) {
-					return {
-						...baseMessage,
-						walletAddress: walletInfo.walletAddress,
-						chainId: walletInfo.chainId,
-						isWalletConnected: true,
-						lastChecked: new Date().toISOString(),
-					};
-				}
-
-				return {
-					...baseMessage,
-					isWalletConnected: false,
-					lastChecked: new Date().toISOString(),
-				};
-			}
-			return msg;
-		});
-
-		// Initialize streaming data
-		const streamingData = new StreamData();
-
-		try {
-			// Try to get existing chat
-			const chat = await getChatById(id);
-
-			// If chat doesn't exist, create it
-			if (!chat) {
-				const title = await generateTitleFromUserMessage({
-					message: userMessage as unknown as { role: "user"; content: string },
-				});
-				try {
-					await saveChat({ id, userId: user.id, title });
-				} catch (error) {
-					// Ignore duplicate chat error, continue with message saving
-					if (
-						!(
-							error instanceof Error &&
-							error.message === "Chat ID already exists"
-						)
-					) {
-						throw error;
-					}
-				}
-			} else if (chat.user_id !== user.id) {
-				return new Response("Unauthorized", { status: 401 });
-			}
-
-			// Save the user message
-			await saveMessages({
-				chatId: id,
-				messages: [
-					{
-						id: generateUUID(),
-						chat_id: id,
-						role: userMessage.role as MessageRole,
-						content: formatMessageContent(userMessage),
-						created_at: new Date().toISOString(),
-					},
-				],
-			});
-
-			// Process the message with AI
-			const result = await streamText({
-				model: customModel(model.apiIdentifier),
-				system: systemPrompt,
-				messages: messagesWithContext,
-				maxSteps: 5,
-				experimental_activeTools: allTools,
-				tools: {
-					...tools,
-					createDocument: {
-						...tools.createDocument,
-						execute: (params) =>
-							tools.createDocument.execute({
-								...params,
-								modelId: model.apiIdentifier,
-							}),
-					},
-					updateDocument: {
-						...tools.updateDocument,
-						execute: (params) =>
-							tools.updateDocument.execute({
-								...params,
-								modelId: model.apiIdentifier,
-							}),
-					},
-					requestSuggestions: {
-						...tools.requestSuggestions,
-						execute: (params) =>
-							tools.requestSuggestions.execute({
-								...params,
-								modelId: model.apiIdentifier,
-							}),
-					},
-				},
-				onFinish: async ({ responseMessages }) => {
-					if (user && user.id) {
-						try {
-							const responseMessagesWithoutIncompleteToolCalls =
-								sanitizeResponseMessages(responseMessages);
-
-							await saveMessages({
-								chatId: id,
-								messages: responseMessagesWithoutIncompleteToolCalls.map(
-									(message) => {
-										const messageId = generateUUID();
-										if (message.role === "assistant") {
-											streamingData.appendMessageAnnotation({
-												messageIdFromServer: messageId,
-											});
-										}
-										return {
-											id: messageId,
-											chat_id: id,
-											role: message.role as MessageRole,
-											content: formatMessageContent(message),
-											created_at: new Date().toISOString(),
-										};
-									},
-								),
-							});
-						} catch (error) {
-							console.error("Failed to save chat:", error);
-						}
-					}
-					streamingData.close();
-				},
-				experimental_telemetry: {
-					isEnabled: true,
-					functionId: "stream-text",
-				},
-			});
-
-			return result.toDataStreamResponse({
-				data: streamingData,
-			});
-		} catch (error) {
-			console.error("Error in chat route:", error);
-			return new Response(JSON.stringify({ error: "Internal server error" }), {
-				status: 500,
-			});
-		}
-	} catch (error) {
-		console.error("Error parsing request:", error);
-		return new Response(JSON.stringify({ error: "Invalid request" }), {
-			status: 400,
-		});
+	if (!user) {
+		return Response.json("Unauthorized!", { status: 401 });
 	}
+
+	const model = models.find((m) => m.id === modelId) || customModel;
+	const chatId = json.id || generateUUID();
+
+	const stream = await model.chat({
+		messages,
+		functions: [
+			{
+				name: "streamIntermediateResponse",
+				description: "Stream an intermediate response to the client",
+				parameters: {
+					type: "object",
+					properties: {
+						content: { type: "string" },
+						data: { type: "object" }
+					},
+					required: ["content"]
+				}
+			}
+		],
+		stream: true,
+		onIntermediateResponse: async (response: StreamingResponse) => {
+			await streamObject({
+				type: 'intermediate',
+				content: response.content,
+				data: response.data
+			});
+		}
+	});
+
+	return new Response(stream);
 }
 
 export async function DELETE(request: Request) {
