@@ -21,24 +21,32 @@ export async function GET(request: Request) {
     start(controller) {
       const supabase = createClient();
       
-      // Subscribe to realtime changes
-      const subscription = supabase
-        .from('messages')
-        .on('INSERT', (payload) => {
-          if (payload.new && payload.new.chat_id === chatId && payload.new.type === 'intermediate') {
-            const data = JSON.stringify({
-              type: 'intermediate',
-              content: payload.new.content,
-              data: payload.new.data
-            });
-            controller.enqueue(`data: ${data}\n\n`);
+      // Subscribe to realtime changes using channel
+      const channel = supabase.channel('messages')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `chat_id=eq.${chatId}`,
+          },
+          (payload) => {
+            if (payload.new && payload.new.type === 'intermediate') {
+              const data = JSON.stringify({
+                type: 'intermediate',
+                content: payload.new.content,
+                data: payload.new.data
+              });
+              controller.enqueue(`data: ${data}\n\n`);
+            }
           }
-        })
+        )
         .subscribe();
 
       // Clean up subscription when client disconnects
       return () => {
-        subscription.unsubscribe();
+        channel.unsubscribe();
       };
     }
   });

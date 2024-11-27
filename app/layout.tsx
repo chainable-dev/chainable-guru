@@ -19,18 +19,13 @@ export const metadata: Metadata = {
 		apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
 		shortcut: "/favicon.ico",
 	},
-	viewport: {
-		width: "device-width",
-		initialScale: 1,
-		maximumScale: 1,
-		userScalable: false,
-	},
 };
 
 export const viewport: Viewport = {
 	width: 'device-width',
 	initialScale: 1,
 	maximumScale: 1,
+	userScalable: false,
 };
 
 export default function RootLayout({
