@@ -2,10 +2,13 @@ import { OpenAIStream, StreamingTextResponse } from 'ai';
 import { Configuration, OpenAIApi } from 'openai-edge';
 import { headers } from 'next/headers';
 import { kv } from '@vercel/kv';
+import { getCoinPrice, getCoinMarketChart, searchCoins } from '@/app/lib/services/coingecko';
+import { functions, errorMessages, responseTemplates } from '@/ai/prompts';
+import { WeatherParams, CryptoPriceParams } from '@/app/lib/types/functions';
 
 export const runtime = 'edge';
 
-const OPENAI_API_KEY = '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';
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY!;
 
 // Available models configuration
 const MODELS = {
@@ -22,35 +25,126 @@ const RATE_LIMIT = {
 	MAX_TOKENS: 100000 // Maximum tokens per window
 };
 
+// Logger function
+const logger = {
+	info: (message: string, data?: any) => {
+		console.log(`[INFO] ${message}`, data ? JSON.stringify(data) : '');
+	},
+	error: (message: string, error: any) => {
+		console.error(`[ERROR] ${message}:`, error);
+		console.error('Stack trace:', error.stack);
+	},
+	warn: (message: string, data?: any) => {
+		console.warn(`[WARN] ${message}`, data ? JSON.stringify(data) : '');
+	}
+};
+
 async function checkRateLimit(identifier: string) {
-	const now = Date.now();
-	const windowStart = now - RATE_LIMIT.WINDOW_MS;
-	
-	// Get current usage
-	const usage = await kv.get<{ requests: number; tokens: number; timestamp: number }>(
-		`ratelimit:${identifier}`
-	) || { requests: 0, tokens: 0, timestamp: now };
+	try {
+		const now = Date.now();
+		const windowStart = now - RATE_LIMIT.WINDOW_MS;
+		
+		const usage = await kv.get<{ requests: number; tokens: number; timestamp: number }>(
+			`ratelimit:${identifier}`
+		) || { requests: 0, tokens: 0, timestamp: now };
 
-	// Reset if outside window
-	if (usage.timestamp < windowStart) {
-		usage.requests = 0;
-		usage.tokens = 0;
-		usage.timestamp = now;
+		if (usage.timestamp < windowStart) {
+			usage.requests = 0;
+			usage.tokens = 0;
+			usage.timestamp = now;
+		}
+
+		if (usage.requests >= RATE_LIMIT.MAX_REQUESTS) {
+			logger.warn('Rate limit exceeded', { identifier, usage });
+			throw new Error('Rate limit exceeded - too many requests');
+		}
+		if (usage.tokens >= RATE_LIMIT.MAX_TOKENS) {
+			logger.warn('Token limit exceeded', { identifier, usage });
+			throw new Error('Rate limit exceeded - token limit reached');
+		}
+
+		usage.requests++;
+		await kv.set(`ratelimit:${identifier}`, usage, { ex: 60 });
+		return usage;
+	} catch (error) {
+		logger.error('Rate limit check failed', error);
+		throw error;
+	}
+}
+
+// Function implementations
+async function getCurrentWeather({ location, unit = 'celsius' }: WeatherParams) {
+	try {
+		logger.info('Fetching weather data', { location, unit });
+		// This would normally call a weather API
+		// For demo purposes, returning mock data
+		return {
+			location,
+			temperature: 22,
+			unit,
+			condition: 'sunny',
+		};
+	} catch (error) {
+		logger.error('Weather fetch failed', error);
+		throw error;
+	}
+}
+
+async function getCryptoPriceWithRetry({ symbol, currency = 'USD' }: CryptoPriceParams) {
+	const maxRetries = 3;
+	let lastError;
+
+	for (let attempt = 1; attempt <= maxRetries; attempt++) {
+		try {
+			logger.info('Fetching crypto price', { symbol, currency, attempt });
+			
+			// Search for the coin ID
+			const searchResults = await searchCoins(symbol);
+			if (!searchResults.length) {
+				throw new Error(errorMessages.cryptoNotFound);
+			}
+
+			const coin = searchResults[0];
+			
+			// Get current price
+			const price = await getCoinPrice(coin.id, currency.toLowerCase());
+			
+			// Get historical data for chart
+			const chartData = await getCoinMarketChart(coin.id, currency.toLowerCase(), 7);
+			
+			// Format the data for the chart
+			const formattedChartData = {
+				timestamps: chartData.prices.map(([timestamp]) => timestamp),
+				prices: chartData.prices.map(([, price]) => price),
+			};
+
+			const response = {
+				symbol: coin.symbol.toUpperCase(),
+				name: coin.name,
+				price,
+				currency,
+				chartData: formattedChartData,
+				thumbnail: coin.thumb,
+				marketCapRank: coin.market_cap_rank,
+			};
+
+			logger.info('Crypto price fetched successfully', { symbol, currency });
+			return response;
+		} catch (error: any) {
+			lastError = error;
+			logger.error(`Crypto price fetch attempt ${attempt} failed`, error);
+			
+			if (error.message.includes('Rate limit exceeded')) {
+				// Wait longer for rate limit errors
+				await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+			} else if (attempt < maxRetries) {
+				// Wait less for other errors
+				await new Promise(resolve => setTimeout(resolve, 1000));
+			}
+		}
 	}
 
-	// Check limits
-	if (usage.requests >= RATE_LIMIT.MAX_REQUESTS) {
-		throw new Error('Rate limit exceeded - too many requests');
-	}
-	if (usage.tokens >= RATE_LIMIT.MAX_TOKENS) {
-		throw new Error('Rate limit exceeded - token limit reached');
-	}
-
-	// Update usage
-	usage.requests++;
-	await kv.set(`ratelimit:${identifier}`, usage, { ex: 60 }); // Expire after 1 minute
-
-	return usage;
+	throw lastError;
 }
 
 export async function POST(req: Request) {
@@ -61,9 +155,12 @@ export async function POST(req: Request) {
 			throw new Error('Invalid messages format');
 		}
 
+		logger.info('Processing chat request', { modelId });
+
 		// Get client identifier (IP address or user ID)
 		const headersList = headers();
-		const identifier = await headersList.get('x-forwarded-for') || 'anonymous';
+		const forwardedFor = headersList.get('x-forwarded-for');
+		const identifier = forwardedFor || 'anonymous';
 		
 		// Check rate limits
 		await checkRateLimit(identifier);
@@ -75,25 +172,88 @@ export async function POST(req: Request) {
 		const config = new Configuration({ apiKey: OPENAI_API_KEY });
 		const openai = new OpenAIApi(config);
 
-		// Make the request to OpenAI with model configuration
+		// Make the request to OpenAI with model configuration and function calling
 		const response = await openai.createChatCompletion({
 			model: actualModelId,
 			messages: messages.map((message: any) => ({
 				role: message.role,
 				content: message.content,
 			})),
+			functions,
+			function_call: 'auto',
 			max_tokens: 1000,
 			temperature: 0.7,
 			stream: true,
 		});
 
-		// Create a stream from the response
-		const stream = OpenAIStream(response);
+		// Handle function calls if present
+		const responseBody = await response.json();
+		if (responseBody.choices?.[0]?.message?.function_call) {
+			const functionCall = responseBody.choices[0].message.function_call;
+			let functionResponse;
 
-		// Return the stream response
+			logger.info('Function call detected', { function: functionCall.name });
+
+			try {
+				// Execute the appropriate function
+				switch (functionCall.name) {
+					case 'get_current_weather':
+						functionResponse = await getCurrentWeather(JSON.parse(functionCall.arguments));
+						break;
+					case 'get_crypto_price':
+						functionResponse = await getCryptoPriceWithRetry(JSON.parse(functionCall.arguments));
+						break;
+					default:
+						throw new Error(`Unknown function: ${functionCall.name}`);
+				}
+
+				// Add the function response to messages and make another request
+				const newMessages = [
+					...messages,
+					{
+						role: 'assistant',
+						content: null,
+						function_call: functionCall,
+					},
+					{
+						role: 'function',
+						name: functionCall.name,
+						content: JSON.stringify(functionResponse),
+					},
+				];
+
+				const secondResponse = await openai.createChatCompletion({
+					model: actualModelId,
+					messages: newMessages,
+					stream: true,
+				});
+
+				// Create a stream from the second response
+				const stream = OpenAIStream(secondResponse);
+				return new StreamingTextResponse(stream);
+			} catch (error: any) {
+				logger.error('Function execution failed', error);
+				
+				// Return a friendly error message
+				const errorMessage = error.message.includes('Rate limit exceeded')
+					? errorMessages.rateLimitExceeded
+					: error.message.includes('not found')
+					? errorMessages.cryptoNotFound
+					: errorMessages.generalError;
+
+				return new Response(
+					JSON.stringify({ error: errorMessage }),
+					{ status: 500, headers: { 'Content-Type': 'application/json' } }
+				);
+			}
+		}
+
+		// If no function call, just stream the response
+		const stream = OpenAIStream(response);
 		return new StreamingTextResponse(stream);
 	} catch (error: any) {
-		console.error('Chat API error:', error);
+		logger.error('Chat request failed', error);
+		
 		return new Response(
 			JSON.stringify({ 
 				error: error.message || 'Internal Server Error',
