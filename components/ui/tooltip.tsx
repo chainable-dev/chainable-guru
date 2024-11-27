@@ -27,28 +27,4 @@ const TooltipContent = React.forwardRef<
 ))
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
-// Add BetterTooltip component
-interface BetterTooltipProps {
-  content: React.ReactNode;
-  children?: React.ReactNode;
-  align?: "start" | "center" | "end";
-  side?: "top" | "right" | "bottom" | "left";
-}
-
-const BetterTooltip = React.forwardRef<
-  React.ElementRef<typeof TooltipContent>,
-  BetterTooltipProps
->(({ content, children, align = "center", side = "top", ...props }, ref) => (
-  <TooltipContent ref={ref} align={align} side={side} {...props}>
-    {content}
-  </TooltipContent>
-))
-BetterTooltip.displayName = "BetterTooltip"
-
-export { 
-  Tooltip, 
-  TooltipTrigger, 
-  TooltipContent, 
-  TooltipProvider,
-  BetterTooltip 
-}
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }

@@ -3,7 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 export const updateSession = async (request: NextRequest) => {
 	try {
-		let response = NextResponse.next({
+		// Create response early to ensure consistent cookie handling
+		const response = NextResponse.next({
 			request: {
 				headers: request.headers,
 			},
@@ -14,42 +15,54 @@ export const updateSession = async (request: NextRequest) => {
 			process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 			{
 				cookies: {
-					getAll() {
-						return request.cookies.getAll();
+					get(name: string) {
+						return request.cookies.get(name)?.value;
 					},
-					setAll(cookiesToSet) {
-						cookiesToSet.forEach(({ name, value }) =>
-							request.cookies.set(name, value),
-						);
-						response = NextResponse.next({
-							request,
-						});
-						cookiesToSet.forEach(({ name, value, options }) =>
-							response.cookies.set(name, value, options),
-						);
+					set(name: string, value: string, options: any) {
+						response.cookies.set({ name, value, ...options });
+					},
+					remove(name: string, options: any) {
+						response.cookies.set({ name, value: "", ...options });
 					},
 				},
-			},
+			}
 		);
 
-		const user = await supabase.auth.getUser();
+		// Refresh session if it exists
+		const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-		// Protected routes
-		if (request.nextUrl.pathname === "/" && user.error) {
-			return NextResponse.redirect(new URL("/register", request.url));
+		// Protected routes that require authentication
+		const protectedPaths = ["/admin", "/queue"];
+		const isProtectedPath = protectedPaths.some(path => 
+			request.nextUrl.pathname.startsWith(path)
+		);
+
+		if (isProtectedPath && (!session || sessionError)) {
+			return NextResponse.redirect(new URL("/login", request.url));
 		}
 
-		// Redirect logged in users from auth pages
-		if (
-			(request.nextUrl.pathname === "/login" ||
-				request.nextUrl.pathname === "/register") &&
-			!user.error
-		) {
+		// Auth pages (login, register) should redirect to home if user is logged in
+		const authPaths = ["/login", "/register"];
+		if (authPaths.includes(request.nextUrl.pathname) && session) {
 			return NextResponse.redirect(new URL("/", request.url));
+		}
+
+		// Special case for root path
+		if (request.nextUrl.pathname === "/" && (!session || sessionError)) {
+			return NextResponse.redirect(new URL("/register", request.url));
 		}
 
 		return response;
 	} catch (e) {
+		console.error("Middleware error:", e);
+		
+		// For auth-related paths, we should still redirect to maintain security
+		if (request.nextUrl.pathname.startsWith("/admin") || 
+			request.nextUrl.pathname.startsWith("/queue")) {
+			return NextResponse.redirect(new URL("/login", request.url));
+		}
+		
+		// For other paths, continue but with a new response
 		return NextResponse.next({
 			request: {
 				headers: request.headers,

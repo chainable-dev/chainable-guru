@@ -2,9 +2,6 @@
 
 import dynamic from "next/dynamic";
 
-import { ThemeProvider } from "@/components/custom/theme-provider";
-import { Toaster } from "@/components/ui/toast";
-
 const ClientProviders = dynamic(
 	() =>
 		import("@/components/providers/client-providers").then(
@@ -14,17 +11,5 @@ const ClientProviders = dynamic(
 );
 
 export function RootProvider({ children }: { children: React.ReactNode }) {
-	return (
-		<ThemeProvider
-			attribute="class"
-			defaultTheme="system"
-			enableSystem
-			disableTransitionOnChange
-		>
-			<ClientProviders>
-				{children}
-				<Toaster />
-			</ClientProviders>
-		</ThemeProvider>
-	);
+	return <ClientProviders>{children}</ClientProviders>;
 }
