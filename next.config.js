@@ -69,7 +69,7 @@ const nextConfig = {
 		loaderFile: undefined,
 		path: "/_next/image",
 		disableStaticImages: false,
-			unoptimized: process.env.NODE_ENV === "production",
+		unoptimized: process.env.NODE_ENV === "production",
 	},
 	typescript: {
 		ignoreBuildErrors: true,
@@ -91,7 +91,7 @@ const nextConfig = {
 
 		return config;
 	},
-	rewrites() {
+	async rewrites() {
 		return [
 			{
 				source: "/favicon.ico",
@@ -111,7 +111,7 @@ const nextConfig = {
 			},
 		];
 	},
-	headers() {
+	async headers() {
 		return [
 			{
 				source: "/favicon.ico",
