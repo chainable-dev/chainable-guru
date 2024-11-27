@@ -8,7 +8,7 @@ import { WeatherParams, CryptoPriceParams } from '@/app/lib/types/functions';
 
 export const runtime = 'edge';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY!;
+const OPENAI_API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY!;
 
 // Available models configuration
 const MODELS = {
