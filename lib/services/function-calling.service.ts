@@ -9,7 +9,6 @@ export interface FunctionDefinition {
   parameters: z.ZodSchema;
   handler: (args: any) => Promise<any>;
 }
-
 export class FunctionCallingError extends Error {
   constructor(message: string) {
     super(`Function Calling Error: ${message}`);
@@ -54,7 +53,7 @@ export class FunctionCallingService {
     return Array.from(this.functions.values()).map(func => ({
       name: func.name,
       description: func.description,
-      parameters: func.parameters.shape,
+      parameters: func.parameters.describe(),
     }));
   }
 
@@ -103,7 +102,7 @@ export class FunctionCallingService {
         functions: functionDefinitions.map(f => ({
           name: f.name,
           description: f.description,
-          parameters: f.parameters.shape,
+          parameters: f.parameters.describe(),
         })),
         function_call: 'auto',
       });

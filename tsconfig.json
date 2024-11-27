@@ -1,14 +1,16 @@
 {
 	"compilerOptions": {
-		"target": "ESNext",
+		"target": "es5",
 		"lib": ["dom", "dom.iterable", "esnext"],
 		"allowJs": true,
 		"skipLibCheck": true,
 		"strict": true,
+		"forceConsistentCasingInFileNames": true,
 		"noEmit": true,
 		"esModuleInterop": true,
 		"module": "esnext",
 		"moduleResolution": "bundler",
+		"allowImportingTsExtensions": true,
 		"resolveJsonModule": true,
 		"isolatedModules": true,
 		"jsx": "preserve",
@@ -19,41 +21,17 @@
 			}
 		],
 		"paths": {
-			"@/*": ["./*"],
-			"@/app/*": ["./app/*"],
-			"@/components/*": ["./components/*"],
-			"@/lib/*": ["./lib/*"],
-			"@/hooks/*": ["./hooks/*"],
-			"@/utils/*": ["./utils/*"],
-			"@/tests/*": ["./__tests__/*"],
-			"@/components/custom/*": ["./components/custom/*"],
-			"@/ai/*": ["./ai/*"],
-			"@/db/*": ["./db/*"],
-			"@/actions/*": ["./actions/*"],
-			"@/public/*": ["./public/*"]
-		},
-		"types": [
-			"node",
-			"@types/react",
-			"@types/react-dom",
-			"@testing-library/jest-dom",
-			"vitest/importMeta",
-			"vitest/globals"
-		]
+			"@/*": ["*"]
+		}
 	},
 	"include": [
+		"next-env.d.ts",
 		"**/*.ts",
 		"**/*.tsx",
-		".",
-		"__tests__/**/*",
-		".next/types/**/*.ts"
+		".next/types/**/*.ts",
+		"__tests__/**/*"
 	],
 	"exclude": [
-		"node_modules",
-		".next",
-		"coverage",
-		"dist",
-		"__test__",
-		"**/__tests__/**"
+		"node_modules"
 	]
 }
