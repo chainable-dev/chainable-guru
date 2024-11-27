@@ -1,3 +1,5 @@
+"use client";
+
 import { useAccount, useChainId, useWalletClient } from "wagmi";
 import { useEffect, useMemo } from "react";
 import { toast } from "sonner";
