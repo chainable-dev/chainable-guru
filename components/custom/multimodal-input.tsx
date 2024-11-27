@@ -108,7 +108,7 @@ export function MultimodalInput({
 				name: file.name,
 				type: file.type
 			}]);
-
+			
 			append({
 				role: "user",
 				content: `[File uploaded: ${file.name}](${data.url})`,

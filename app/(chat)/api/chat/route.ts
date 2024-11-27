@@ -37,7 +37,8 @@ import { useAccount, useBalance, useChainId } from "wagmi";
 
 import { generateTitleFromUserMessage } from "../../actions";
 import { OpenAIStream, StreamingTextResponse } from 'ai';
-import OpenAI from 'openai';
+import { Configuration, OpenAIApi } from "openai-edge";
+import { headers } from "next/headers";
 
 export const maxDuration = 60;
 
@@ -603,58 +604,54 @@ interface StreamingResponse {
 	data?: any;
 }
 
-export async function POST(request: Request) {
-	const json = await request.json();
+// Create an OpenAI API client (that's edge friendly!)
+const config = new Configuration({
+	apiKey: process.env.OPENAI_API_KEY,
+});
+const openai = new OpenAIApi(config);
+
+export async function POST(req: Request) {
+	const json = await req.json();
 	const { messages, modelId } = json;
-	const user = await getUser();
+	const headersList = headers();
+	
+	// Check for custom API key in development
+	const customApiKey = process.env.NODE_ENV === 'development' 
+		? headersList.get('x-openai-key')
+		: null;
 
-	if (!user) {
-		return Response.json("Unauthorized!", { status: 401 });
+	// Create new config with custom key if provided
+	const apiConfig = customApiKey ? new Configuration({
+		apiKey: customApiKey,
+	}) : config;
+
+	const apiClient = customApiKey ? new OpenAIApi(apiConfig) : openai;
+
+	try {
+		const user = await getSession();
+		if (!user) {
+			return new Response("Unauthorized", { status: 401 });
+		}
+
+		// Ask OpenAI for a streaming chat completion
+		const response = await apiClient.createChatCompletion({
+			model: modelId || "gpt-3.5-turbo",
+			stream: true,
+			messages: messages.map((message: any) => ({
+				content: message.content,
+				role: message.role,
+			})),
+		});
+
+		// Convert the response into a friendly text-stream
+		const stream = OpenAIStream(response);
+
+		// Return a StreamingTextResponse, which can be consumed by the client
+		return new StreamingTextResponse(stream);
+	} catch (error) {
+		console.error("Error in chat route:", error);
+		return new Response("Error processing your request", { status: 500 });
 	}
-
-	const openai = new OpenAI({
-		apiKey: process.env.OPENAI_API_KEY,
-	});
-
-	const chatId = json.id || generateUUID();
-
-	// Create stream
-	const response = await openai.chat.completions.create({
-		model: modelId || 'gpt-3.5-turbo',
-		messages: messages.map((message: any) => ({
-			role: message.role,
-			content: message.content,
-		})),
-		stream: true,
-		temperature: 0.7,
-		max_tokens: 1000,
-	});
-
-	// Convert the response into a friendly text-stream
-	const stream = OpenAIStream(response, {
-		async onCompletion(completion) {
-			// Save the message to the database
-			const coreMessages = convertToCoreMessages(messages);
-			await saveMessages({
-				chatId,
-				messages: coreMessages.map(msg => ({
-					id: generateUUID(),
-					chatId,
-					role: msg.role as MessageRole,
-					content: formatMessageContent(msg),
-					createdAt: new Date(),
-					userId: user.id,
-				})),
-			});
-		},
-		async experimental_onFunctionCall(functionCall) {
-			// Handle function calls if needed
-			return undefined;
-		},
-	});
-
-	// Return a StreamingTextResponse
-	return new StreamingTextResponse(stream);
 }
 
 export async function DELETE(request: Request) {

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Metadata } from "next";
 
 const metadata: Metadata = {
-	title: "AI Chat Bot",
+	title: "Elron - AI web3 chatbot",
 	description: "An AI-powered chat bot built with Next.js and OpenAI",
 	viewport: {
 		width: "device-width",
