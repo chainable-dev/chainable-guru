@@ -7,6 +7,41 @@ import { WalletButton } from "@/components/custom/wallet-button";
 import { BetterTooltip } from "@/components/ui/tooltip";
 import { PaperclipIcon, StopIcon, ArrowUpIcon } from "./icons";
 import { PreviewAttachment } from "./preview-attachment";
+import { motion } from "framer-motion";
+import cx from "classnames";
+
+const suggestedActions = [
+	{
+		title: "Create a new document",
+		label: 'with the title "My New Document"',
+		action: 'Create a new document with the title "My New Document"',
+	},
+	{
+		title: "Update an existing document",
+		label: 'with the description "Add more details"',
+		action: 'Update the document with ID "123" with the description "Add more details"',
+	},
+	{
+		title: "Request suggestions for a document",
+		label: 'with ID "123"',
+		action: 'Request suggestions for the document with ID "123"',
+	},
+	{
+		title: "Get the current weather",
+		label: "in San Francisco",
+		action: "Get the current weather in San Francisco",
+	},
+	{
+		title: "Check wallet balance",
+		label: "for my connected wallet",
+		action: "Check the balance of my connected wallet",
+	},
+	{
+		title: "Check wallet state",
+		label: "for my connected wallet",
+		action: "Check the state of my connected wallet",
+	},
+];
 
 interface FileUploadState {
 	progress: number;
@@ -124,6 +159,13 @@ export function MultimodalInput({
 		fileInputRef.current?.click();
 	};
 
+	const handleSuggestedAction = useCallback((action: string) => {
+		setInput(action);
+		// Trigger form submission with the suggested action
+		const formEvent = new Event('submit', { cancelable: true }) as unknown as React.FormEvent;
+		handleSubmit(formEvent);
+	}, [setInput, handleSubmit]);
+
 	return (
 		<div className="relative w-full">
 			<input
@@ -133,6 +175,34 @@ export function MultimodalInput({
 				onChange={handleFileChange}
 				multiple
 			/>
+
+			{messages.length === 0 && attachments.length === 0 && (
+				<div className="grid sm:grid-cols-2 gap-2 w-full mb-4">
+					{suggestedActions.map((suggestedAction, index) => (
+						<motion.div
+							initial={{ opacity: 0, y: 20 }}
+							animate={{ opacity: 1, y: 0 }}
+							exit={{ opacity: 0, y: 20 }}
+							transition={{ delay: 0.05 * index }}
+							key={index}
+							className={cx("group", index > 1 ? "hidden sm:block" : "block")}
+						>
+							<Button
+								variant="ghost"
+								onClick={() => handleSuggestedAction(suggestedAction.action)}
+								className="text-left border rounded-xl px-4 py-3.5 text-sm w-full h-auto flex flex-col items-start gap-1 transition-colors hover:bg-muted/80"
+							>
+								<span className="font-medium group-hover:text-primary">
+									{suggestedAction.title}
+								</span>
+								<span className="text-muted-foreground text-xs">
+									{suggestedAction.label}
+								</span>
+							</Button>
+						</motion.div>
+					))}
+				</div>
+			)}
 
 			{attachments.length > 0 && (
 				<div className="flex flex-wrap gap-2 mb-2">
