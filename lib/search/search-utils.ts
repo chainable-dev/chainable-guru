@@ -1,5 +1,5 @@
-import { FEATURES } from "@/lib/features";
 import GPT3TokenizerImport from "gpt3-tokenizer";
+import { FEATURES } from "@/lib/features";
 
 // Initialize tokenizer
 const GPT3Tokenizer =
