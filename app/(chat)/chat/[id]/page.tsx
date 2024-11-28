@@ -2,17 +2,18 @@ import { Chat } from "@/components/custom/chat";
 import { getChat } from "@/app/(chat)/actions";
 import { redirect } from "next/navigation";
 
-export interface PageProps {
-	params: {
+interface PageProps {
+	params: Promise<{
 		id: string;
-	};
+	}>;
 	searchParams: {
 		model?: string;
 	};
 }
 
 export default async function ChatPage({ params, searchParams = {} }: PageProps) {
-	const chat = await getChat(params.id);
+	const resolvedParams = await params;
+	const chat = await getChat(resolvedParams.id);
 	
 	if (!chat) {
 		redirect("/");
@@ -20,7 +21,7 @@ export default async function ChatPage({ params, searchParams = {} }: PageProps)
 
 	return (
 		<Chat
-			id={params.id}
+			id={resolvedParams.id}
 			initialMessages={chat.messages}
 			selectedModelId={searchParams.model || "gpt-3.5-turbo"}
 		/>
