@@ -37,7 +37,7 @@ export function ElronIcon({
 				viewBox="0 0 100 100"
 				fill="none"
 				xmlns="http://www.w3.org/2000/svg"
-				className="w-full h-full"
+				className="size-full"
 			>
 				{/* Ninja star shape */}
 				<path

@@ -2,9 +2,26 @@ import { OpenAIStream, StreamingTextResponse } from 'ai';
 import { Configuration, OpenAIApi } from 'openai-edge';
 import { headers } from 'next/headers';
 import { kv } from '@vercel/kv';
-import { getCoinPrice, getCoinMarketChart, searchCoins } from '@/app/lib/services/coingecko';
+
 import { functions, errorMessages, responseTemplates } from '@/ai/prompts';
-import { WeatherParams, CryptoPriceParams } from '@/app/lib/types/functions';
+import { getCoinPrice, getCoinMarketChart, searchCoins } from '@/app/lib/services/coingecko';
+import { useModelSettings } from '@/lib/store/model-settings';
+import { createClient } from '@/lib/supabase/client';
+
+interface WeatherParams {
+	location: string;
+	unit?: 'celsius' | 'fahrenheit';
+}
+
+interface CryptoPriceParams {
+	symbol: string;
+	currency?: string;
+}
+
+interface ChartDataPoint {
+	timestamp: number;
+	price: number;
+}
 
 export const runtime = 'edge';
 
@@ -94,28 +111,20 @@ async function getCryptoPriceWithRetry({ symbol, currency = 'USD' }: CryptoPrice
 	const maxRetries = 3;
 	let lastError;
 
-	for (let attempt = 1; attempt <= maxRetries; attempt++) {
+	for (let i = 0; i < maxRetries; i++) {
 		try {
-			logger.info('Fetching crypto price', { symbol, currency, attempt });
-			
-			// Search for the coin ID
 			const searchResults = await searchCoins(symbol);
 			if (!searchResults.length) {
 				throw new Error(errorMessages.cryptoNotFound);
 			}
 
 			const coin = searchResults[0];
-			
-			// Get current price
 			const price = await getCoinPrice(coin.id, currency.toLowerCase());
-			
-			// Get historical data for chart
 			const chartData = await getCoinMarketChart(coin.id, currency.toLowerCase(), 7);
-			
-			// Format the data for the chart
+
 			const formattedChartData = {
-				timestamps: chartData.prices.map(([timestamp]) => timestamp),
-				prices: chartData.prices.map(([, price]) => price),
+				timestamps: chartData.prices.map(([timestamp]: [number, number]) => timestamp),
+				prices: chartData.prices.map(([, price]: [number, number]) => price),
 			};
 
 			const response = {
@@ -130,14 +139,14 @@ async function getCryptoPriceWithRetry({ symbol, currency = 'USD' }: CryptoPrice
 
 			logger.info('Crypto price fetched successfully', { symbol, currency });
 			return response;
-		} catch (error: any) {
+		} catch (error) {
 			lastError = error;
-			logger.error(`Crypto price fetch attempt ${attempt} failed`, error);
+			logger.error(`Crypto price fetch attempt ${i + 1} failed`, error);
 			
 			if (error.message.includes('Rate limit exceeded')) {
 				// Wait longer for rate limit errors
-				await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
-			} else if (attempt < maxRetries) {
+				await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)));
+			} else if (i < maxRetries - 1) {
 				// Wait less for other errors
 				await new Promise(resolve => setTimeout(resolve, 1000));
 			}
@@ -148,78 +157,41 @@ async function getCryptoPriceWithRetry({ symbol, currency = 'USD' }: CryptoPrice
 }
 
 export async function POST(req: Request) {
+	const json = await req.json();
+	const { messages, previewToken } = json;
+	const userId = headers().get('x-user-id');
+
+	if (!userId) {
+		return new Response('Unauthorized', { status: 401 });
+	}
+
 	try {
-		const { messages, modelId = 'gpt-4o-mini' } = await req.json();
-		
-		if (!messages || !Array.isArray(messages)) {
-			throw new Error('Invalid messages format');
+		const OPENAI_API_KEY = previewToken || process.env.OPENAI_API_KEY;
+		if (!OPENAI_API_KEY) {
+			return new Response('OpenAI API key not configured', { status: 500 });
 		}
 
-		logger.info('Processing chat request', { modelId });
-
-		// Get client identifier (IP address or user ID)
-		const headersList = await headers();
-		const forwardedFor = headersList.get('x-forwarded-for');
-		const identifier = forwardedFor || 'anonymous';
-		
-		// Check rate limits
-		await checkRateLimit(identifier);
-
-		// Get the actual model identifier
-		const actualModelId = MODELS[modelId as keyof typeof MODELS] || MODELS['gpt-4o-mini'];
-
-		// Create OpenAI client with the provided API key
 		const config = new Configuration({ apiKey: OPENAI_API_KEY });
 		const openai = new OpenAIApi(config);
+		const modelSettings = useModelSettings.getState();
 
-		try {
-			// Make the request to OpenAI with model configuration and function calling
-			const response = await openai.createChatCompletion({
-				model: actualModelId,
-				messages: messages.map((message: any) => ({
-					role: message.role,
-					content: message.content,
-				})),
-				functions,
-				function_call: 'auto',
-				max_tokens: 1000,
-				temperature: 0.7,
-				stream: true,
-			});
+		const response = await openai.createChatCompletion({
+			model: modelSettings.model || 'gpt-3.5-turbo',
+			messages: messages.map((message: any) => ({
+				role: message.role,
+				content: message.content,
+			})),
+			functions,
+			function_call: 'auto',
+			max_tokens: modelSettings.maxTokens || 1000,
+			temperature: modelSettings.temperature || 0.7,
+			stream: true,
+		});
 
-			// Create a stream from the response
-			const stream = OpenAIStream(response);
-			return new StreamingTextResponse(stream);
-		} catch (error: any) {
-			logger.error('OpenAI API error:', error);
-			
-			if (error.response?.status === 401) {
-				return new Response(
-					JSON.stringify({ error: 'Invalid API key or unauthorized' }),
-					{ status: 401, headers: { 'Content-Type': 'application/json' } }
-				);
-			}
-
-			return new Response(
-				JSON.stringify({ 
-					error: error.message || 'OpenAI API error',
-					details: error.response?.data || error.cause?.toString()
-				}),
-				{ status: 500, headers: { 'Content-Type': 'application/json' } }
-			);
-		}
+		const stream = OpenAIStream(response);
+		return new StreamingTextResponse(stream);
 	} catch (error: any) {
-		logger.error('Chat request failed', error);
-		
-		return new Response(
-			JSON.stringify({ 
-				error: error.message || 'Internal Server Error',
-				details: error.cause?.toString()
-			}),
-			{ 
-				status: error.status || 500,
-				headers: { 'Content-Type': 'application/json' }
-			}
-		);
+		console.error('Chat API error:', error);
+		return new Response(error.message || 'Internal Server Error', { status: 500 });
 	}
 }
