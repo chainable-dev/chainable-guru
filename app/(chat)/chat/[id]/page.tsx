@@ -2,11 +2,11 @@ import { Chat } from "@/components/custom/chat";
 import { getChat } from "@/app/(chat)/actions";
 import { redirect } from "next/navigation";
 
-interface PageProps {
+export interface PageProps {
 	params: {
 		id: string;
 	};
-	searchParams?: {
+	searchParams: {
 		model?: string;
 	};
 }
