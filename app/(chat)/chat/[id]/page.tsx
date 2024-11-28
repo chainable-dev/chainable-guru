@@ -3,21 +3,16 @@ import { getChat } from "@/app/(chat)/actions";
 import { redirect } from "next/navigation";
 
 interface PageProps {
-	params: Promise<{
+	params: {
 		id: string;
-	}>;
-	searchParams: Promise<{
+	};
+	searchParams?: {
 		model?: string;
-	}>;
+	};
 }
 
-export default async function ChatPage({ params, searchParams }: PageProps) {
-	const [resolvedParams, resolvedSearchParams] = await Promise.all([
-		params,
-		searchParams
-	]);
-	
-	const chat = await getChat(resolvedParams.id);
+export default async function ChatPage({ params, searchParams = {} }: PageProps) {
+	const chat = await getChat(params.id);
 	
 	if (!chat) {
 		redirect("/");
@@ -25,9 +20,9 @@ export default async function ChatPage({ params, searchParams }: PageProps) {
 
 	return (
 		<Chat
-			id={resolvedParams.id}
+			id={params.id}
 			initialMessages={chat.messages}
-			selectedModelId={resolvedSearchParams.model || "gpt-3.5-turbo"}
+			selectedModelId={searchParams.model || "gpt-3.5-turbo"}
 		/>
 	);
 }

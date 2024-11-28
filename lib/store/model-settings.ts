@@ -7,6 +7,7 @@ interface ModelSettings {
   topP: number;
   repeatPenalty: number;
   systemPrompt: string;
+  numPredict: number;
 }
 
 interface ModelSettingsState {
@@ -21,6 +22,7 @@ const DEFAULT_SETTINGS: ModelSettings = {
   topP: 0.9,
   repeatPenalty: 1.1,
   systemPrompt: "You are a helpful AI assistant. You are direct and concise in your responses.",
+  numPredict: 256,
 };
 
 export const useModelSettings = create<ModelSettingsState>()(
