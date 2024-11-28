@@ -8,6 +8,9 @@ interface ModelSettings {
   repeatPenalty: number;
   systemPrompt: string;
   numPredict: number;
+  stop: string[];
+  maxTokens: number;
+  model: string;
 }
 
 interface ModelSettingsState {
@@ -23,6 +26,9 @@ const DEFAULT_SETTINGS: ModelSettings = {
   repeatPenalty: 1.1,
   systemPrompt: "You are a helpful AI assistant. You are direct and concise in your responses.",
   numPredict: 256,
+  stop: [],
+  maxTokens: 2048,
+  model: "gpt-3.5-turbo"
 };
 
 export const useModelSettings = create<ModelSettingsState>()(

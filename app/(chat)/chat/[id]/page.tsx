@@ -2,7 +2,16 @@ import { Chat } from "@/components/custom/chat";
 import { getChat } from "@/app/(chat)/actions";
 import { redirect } from "next/navigation";
 
-export default async function ChatPage({ params, searchParams }) {
+interface PageProps {
+	params: {
+		id: string;
+	};
+	searchParams: {
+		model?: string;
+	};
+}
+
+export default async function ChatPage({ params, searchParams }: PageProps) {
 	const chat = await getChat(params.id);
 	
 	if (!chat) {
