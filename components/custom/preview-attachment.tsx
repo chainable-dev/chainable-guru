@@ -1,12 +1,16 @@
 import { X } from "lucide-react";
 import { formatFileName } from "@/lib/utils/format-filename";
 import { Button } from "../ui/button";
+import { CryptoPriceChart } from "./crypto-price-chart";
+import { CryptoPrice } from "@/types/crypto";
 
 interface Attachment {
 	url: string;
 	name: string;
 	contentType: string;
 	path?: string;
+	type?: string;
+	data?: CryptoPrice;
 }
 
 interface PreviewAttachmentProps {
@@ -20,6 +24,12 @@ export function PreviewAttachment({
 	isUploading,
 	onRemove,
 }: PreviewAttachmentProps) {
+	// Handle crypto price data
+	if (attachment.type === 'crypto-price' && attachment.data) {
+		return <CryptoPriceChart data={attachment.data} />;
+	}
+
+	// Handle regular attachments
 	const isImage = attachment.contentType.startsWith("image/");
 	const displayName = formatFileName(attachment.name);
 

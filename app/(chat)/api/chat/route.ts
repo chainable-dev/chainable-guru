@@ -36,6 +36,7 @@ import { kv } from "@vercel/kv";
 import { useAccount, useBalance, useChainId } from "wagmi";
 
 import { generateTitleFromUserMessage } from "../../actions";
+import { CryptoPrice, CryptoPriceResponse } from '@/types/crypto';
 
 export const maxDuration = 60;
 
@@ -72,7 +73,8 @@ type AllowedTools =
 	| "getWeather"
 	| "getWalletBalance"
 	| "checkWalletState"
-	| "webSearch";
+	| "webSearch"
+	| "getCryptoPrice";
 
 const blocksTools: AllowedTools[] = [
 	"createDocument",
@@ -88,6 +90,7 @@ const allTools: AllowedTools[] = [
 	"getWalletBalance" as AllowedTools,
 	"checkWalletState" as AllowedTools,
 	...(FEATURES.WEB_SEARCH ? ["webSearch" as AllowedTools] : []),
+	"getCryptoPrice" as AllowedTools,
 ];
 
 async function getUser() {
@@ -593,7 +596,73 @@ const tools = {
 				},
 			}
 		: {}),
+	getCryptoPrice: {
+		description: 'Get current cryptocurrency price and market data',
+		parameters: z.object({
+			symbol: z.string().describe('The cryptocurrency symbol (e.g., bitcoin, ethereum)')
+		}),
+		execute: async ({ symbol }: { symbol: string }) => {
+			try {
+				const response = await fetch(
+					`https://api.coingecko.com/api/v3/simple/price?ids=${symbol}&vs_currencies=usd&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true&include_last_updated_at=true`
+				);
+				
+				if (!response.ok) {
+					throw new Error('Failed to fetch crypto data');
+				}
+
+				const rawData = await response.json();
+				
+				// Create the data object with proper structure
+				const cryptoData = {
+					symbol,
+					price: rawData[symbol].usd,
+					timestamp: new Date().toISOString(),
+					change_24h: rawData[symbol].usd_24h_change,
+					market_cap: rawData[symbol].usd_market_cap,
+					volume_24h: rawData[symbol].usd_24h_vol,
+					last_updated: new Date(rawData[symbol].last_updated_at * 1000).toISOString()
+				};
+
+				// Validate the data with Zod
+				const validatedData = CryptoPriceSchema.parse(cryptoData);
+
+				// Return as a tool result with type information
+				return {
+					type: "tool-result",
+					result: {
+						type: "crypto-price",
+						data: validatedData
+					}
+				};
+			} catch (error) {
+				console.error('Error fetching crypto price:', error);
+				return {
+					type: "tool-result",
+					result: {
+						error: "Failed to fetch crypto price",
+						details: error instanceof Error ? error.message : "Unknown error"
+					}
+				};
+			}
+		}
+	},
 };
+
+// Define Zod schema for crypto price data
+const CryptoPriceSchema = z.object({
+	symbol: z.string(),
+	price: z.number(),
+	timestamp: z.string(),
+	change_24h: z.number().optional(),
+	market_cap: z.number().optional(),
+	volume_24h: z.number().optional(),
+	last_updated: z.string().optional(),
+	historical_data: z.array(z.object({
+		timestamp: z.string(),
+		price: z.number()
+	})).optional()
+});
 
 export async function POST(request: Request) {
 	try {
@@ -721,34 +790,8 @@ export async function POST(request: Request) {
 				system: systemPrompt,
 				messages: messagesWithContext,
 				maxSteps: 5,
-				experimental_activeTools: allTools,
-				tools: {
-					...tools,
-					createDocument: {
-						...tools.createDocument,
-						execute: (params) =>
-							tools.createDocument.execute({
-								...params,
-								modelId: model.apiIdentifier,
-							}),
-					},
-					updateDocument: {
-						...tools.updateDocument,
-						execute: (params) =>
-							tools.updateDocument.execute({
-								...params,
-								modelId: model.apiIdentifier,
-							}),
-					},
-					requestSuggestions: {
-						...tools.requestSuggestions,
-						execute: (params) =>
-							tools.requestSuggestions.execute({
-								...params,
-								modelId: model.apiIdentifier,
-							}),
-					},
-				},
+				experimental_activeTools: ['getWeather', 'getCryptoPrice'],
+				tools,
 				onFinish: async ({ responseMessages }) => {
 					if (user && user.id) {
 						try {
