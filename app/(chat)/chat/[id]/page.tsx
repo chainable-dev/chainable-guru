@@ -2,12 +2,7 @@ import { Chat } from "@/components/custom/chat";
 import { getChat } from "@/app/(chat)/actions";
 import { redirect } from "next/navigation";
 
-type Props = {
-	params: { id: string }
-	searchParams: { [key: string]: string | string[] | undefined }
-}
-
-export default async function ChatPage({ params, searchParams }: Props) {
+export default async function ChatPage({ params, searchParams }) {
 	const chat = await getChat(params.id);
 	
 	if (!chat) {
