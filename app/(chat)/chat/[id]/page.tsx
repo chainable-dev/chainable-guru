@@ -6,13 +6,17 @@ interface PageProps {
 	params: Promise<{
 		id: string;
 	}>;
-	searchParams: {
+	searchParams: Promise<{
 		model?: string;
-	};
+	}>;
 }
 
-export default async function ChatPage({ params, searchParams = {} }: PageProps) {
-	const resolvedParams = await params;
+export default async function ChatPage({ params, searchParams }: PageProps) {
+	const [resolvedParams, resolvedSearchParams] = await Promise.all([
+		params,
+		searchParams
+	]);
+	
 	const chat = await getChat(resolvedParams.id);
 	
 	if (!chat) {
@@ -23,7 +27,7 @@ export default async function ChatPage({ params, searchParams = {} }: PageProps)
 		<Chat
 			id={resolvedParams.id}
 			initialMessages={chat.messages}
-			selectedModelId={searchParams.model || "gpt-3.5-turbo"}
+			selectedModelId={resolvedSearchParams.model || "gpt-3.5-turbo"}
 		/>
 	);
 }
