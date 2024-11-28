@@ -8,7 +8,7 @@ import { WeatherParams, CryptoPriceParams } from '@/app/lib/types/functions';
 
 export const runtime = 'edge';
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY!;
+const OPENAI_API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY!;
 
 // Available models configuration
 const MODELS = {
@@ -158,7 +158,7 @@ export async function POST(req: Request) {
 		logger.info('Processing chat request', { modelId });
 
 		// Get client identifier (IP address or user ID)
-		const headersList = headers();
+		const headersList = await headers();
 		const forwardedFor = headersList.get('x-forwarded-for');
 		const identifier = forwardedFor || 'anonymous';
 		
@@ -172,85 +172,42 @@ export async function POST(req: Request) {
 		const config = new Configuration({ apiKey: OPENAI_API_KEY });
 		const openai = new OpenAIApi(config);
 
-		// Make the request to OpenAI with model configuration and function calling
-		const response = await openai.createChatCompletion({
-			model: actualModelId,
-			messages: messages.map((message: any) => ({
-				role: message.role,
-				content: message.content,
-			})),
-			functions,
-			function_call: 'auto',
-			max_tokens: 1000,
-			temperature: 0.7,
-			stream: true,
-		});
+		try {
+			// Make the request to OpenAI with model configuration and function calling
+			const response = await openai.createChatCompletion({
+				model: actualModelId,
+				messages: messages.map((message: any) => ({
+					role: message.role,
+					content: message.content,
+				})),
+				functions,
+				function_call: 'auto',
+				max_tokens: 1000,
+				temperature: 0.7,
+				stream: true,
+			});
 
-		// Handle function calls if present
-		const responseBody = await response.json();
-		if (responseBody.choices?.[0]?.message?.function_call) {
-			const functionCall = responseBody.choices[0].message.function_call;
-			let functionResponse;
-
-			logger.info('Function call detected', { function: functionCall.name });
-
-			try {
-				// Execute the appropriate function
-				switch (functionCall.name) {
-					case 'get_current_weather':
-						functionResponse = await getCurrentWeather(JSON.parse(functionCall.arguments));
-						break;
-					case 'get_crypto_price':
-						functionResponse = await getCryptoPriceWithRetry(JSON.parse(functionCall.arguments));
-						break;
-					default:
-						throw new Error(`Unknown function: ${functionCall.name}`);
-				}
-
-				// Add the function response to messages and make another request
-				const newMessages = [
-					...messages,
-					{
-						role: 'assistant',
-						content: null,
-						function_call: functionCall,
-					},
-					{
-						role: 'function',
-						name: functionCall.name,
-						content: JSON.stringify(functionResponse),
-					},
-				];
-
-				const secondResponse = await openai.createChatCompletion({
-					model: actualModelId,
-					messages: newMessages,
-					stream: true,
-				});
-
-				// Create a stream from the second response
-				const stream = OpenAIStream(secondResponse);
-				return new StreamingTextResponse(stream);
-			} catch (error: any) {
-				logger.error('Function execution failed', error);
-				
-				// Return a friendly error message
-				const errorMessage = error.message.includes('Rate limit exceeded')
-					? errorMessages.rateLimitExceeded
-					: error.message.includes('not found')
-					? errorMessages.cryptoNotFound
-					: errorMessages.generalError;
-
+			// Create a stream from the response
+			const stream = OpenAIStream(response);
+			return new StreamingTextResponse(stream);
+		} catch (error: any) {
+			logger.error('OpenAI API error:', error);
+			
+			if (error.response?.status === 401) {
 				return new Response(
-					JSON.stringify({ error: errorMessage }),
-					{ status: 500, headers: { 'Content-Type': 'application/json' } }
+					JSON.stringify({ error: 'Invalid API key or unauthorized' }),
+					{ status: 401, headers: { 'Content-Type': 'application/json' } }
 				);
 			}
-		}
 
-		// If no function call, just stream the response
-		const stream = OpenAIStream(response);
-		return new StreamingTextResponse(stream);
+			return new Response(
+				JSON.stringify({ 
+					error: error.message || 'OpenAI API error',
+					details: error.response?.data || error.cause?.toString()
+				}),
+				{ status: 500, headers: { 'Content-Type': 'application/json' } }
+			);
+		}
 	} catch (error: any) {
 		logger.error('Chat request failed', error);
 		
