@@ -13,9 +13,9 @@ const OPENAI_API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY!;
 // Available models configuration
 const MODELS = {
 	'gpt-4': 'gpt-4',
-	'gpt-4o-mini': 'gpt-4o-mini-2024-07-18',
-	'gpt-4o': 'gpt-4o',
-	'gpt-3.5-turbo': 'gpt-3.5-turbo-1106'
+	'gpt-4-turbo': 'gpt-4-0125-preview',
+	'gpt-4-1106': 'gpt-4-1106-preview',
+	'gpt-3.5-turbo': 'gpt-3.5-turbo-0125'
 } as const;
 
 // Rate limiting configuration

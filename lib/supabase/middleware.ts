@@ -14,42 +14,47 @@ export const updateSession = async (request: NextRequest) => {
 			process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 			{
 				cookies: {
-					getAll() {
-						return request.cookies.getAll();
+					get(name: string) {
+						return request.cookies.get(name)?.value;
 					},
-					setAll(cookiesToSet) {
-						cookiesToSet.forEach(({ name, value }) =>
-							request.cookies.set(name, value),
-						);
-						response = NextResponse.next({
-							request,
-						});
-						cookiesToSet.forEach(({ name, value, options }) =>
-							response.cookies.set(name, value, options),
-						);
+					set(name: string, value: string, options: { path: string; maxAge?: number; domain?: string; sameSite?: "lax" | "strict" | "none"; secure?: boolean }) {
+						try {
+							request.cookies.set({
+								name,
+								value,
+								...options,
+							});
+							response.cookies.set({
+								name,
+								value,
+								...options,
+							});
+						} catch (error) {
+							console.error("Error setting cookie in middleware:", error);
+						}
+					},
+					remove(name: string, options: { path: string; domain?: string }) {
+						try {
+							request.cookies.delete(name);
+							response.cookies.set({
+								name,
+								value: "",
+								...options,
+								maxAge: 0,
+							});
+						} catch (error) {
+							console.error("Error removing cookie in middleware:", error);
+						}
 					},
 				},
 			},
 		);
 
-		const user = await supabase.auth.getUser();
-
-		// Protected routes
-		if (request.nextUrl.pathname === "/" && user.error) {
-			return NextResponse.redirect(new URL("/register", request.url));
-		}
-
-		// Redirect logged in users from auth pages
-		if (
-			(request.nextUrl.pathname === "/login" ||
-				request.nextUrl.pathname === "/register") &&
-			!user.error
-		) {
-			return NextResponse.redirect(new URL("/", request.url));
-		}
+		await supabase.auth.getSession();
 
 		return response;
-	} catch (e) {
+	} catch (error) {
+		console.error("Error in updateSession middleware:", error);
 		return NextResponse.next({
 			request: {
 				headers: request.headers,

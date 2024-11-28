@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { Database } from "./types";
 
 export const createClient = async () => {
-	const cookieStore = await cookies();
+	const cookieStore = cookies();
 
 	return createServerClient<Database>(
 		process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,6 +13,22 @@ export const createClient = async () => {
 			cookies: {
 				get(name: string) {
 					return cookieStore.get(name)?.value;
+				},
+				set(name: string, value: string, options: { path: string; maxAge?: number; domain?: string; sameSite?: "lax" | "strict" | "none"; secure?: boolean }) {
+					try {
+						cookieStore.set({ name, value, ...options });
+					} catch (error) {
+						// Handle cookie setting errors
+						console.error("Error setting cookie:", error);
+					}
+				},
+				remove(name: string, options: { path: string; domain?: string }) {
+					try {
+						cookieStore.set({ name, value: "", ...options, maxAge: 0 });
+					} catch (error) {
+						// Handle cookie removal errors
+						console.error("Error removing cookie:", error);
+					}
 				},
 			},
 		},
