@@ -159,7 +159,8 @@ async function getCryptoPriceWithRetry({ symbol, currency = 'USD' }: CryptoPrice
 export async function POST(req: Request) {
 	const json = await req.json();
 	const { messages, previewToken } = json;
-	const userId = headers().get('x-user-id');
+	const headersList = await headers();
+	const userId = headersList.get('x-user-id');
 
 	if (!userId) {
 		return new Response('Unauthorized', { status: 401 });

@@ -9,15 +9,11 @@ export default async function ChatPage({ params, searchParams }) {
 		redirect("/");
 	}
 
-	const modelId = typeof searchParams.model === 'string' 
-		? searchParams.model 
-		: "gpt-3.5-turbo";
-
 	return (
 		<Chat
 			id={params.id}
 			initialMessages={chat.messages}
-			selectedModelId={modelId}
+			selectedModelId={searchParams.model || "gpt-3.5-turbo"}
 		/>
 	);
 }
