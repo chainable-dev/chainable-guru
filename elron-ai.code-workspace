@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../../PycharmProjects/erlon-ai-workspace/nextjs-fastapi"
+		},
+		{
+			"path": "../cdp-wallet"
+		}
+	],
+	"settings": {}
+}

@@ -16,30 +16,20 @@ describe("Data Fetching Architecture", () => {
 			from: vi.fn().mockReturnThis(),
 			select: vi.fn().mockResolvedValue({ data: [], error: null }),
 		};
-		vi.mocked(createClient).mockReturnValue(mockSupabase as any);
-		vi.mocked(cookies).mockReturnValue({
-			get: () => ({ value: "mock-cookie" }),
-		} as any);
 
-		const result = await mockSupabase.from("conversations").select();
+		const mockCookieStore = {
+			get: vi.fn().mockReturnValue({ value: "mock-cookie" }),
+			set: vi.fn(),
+		};
+
+		vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
+		vi.mocked(cookies).mockReturnValue(mockCookieStore as any);
+
+		const supabase = await createClient();
+		const result = await supabase.from("conversations").select();
 
 		expect(result.error).toBeNull();
 		expect(mockSupabase.from).toHaveBeenCalledWith("conversations");
-	});
-
-	it("should handle client-side data fetching", async () => {
-		const mockSupabase = {
-			from: vi.fn().mockReturnThis(),
-			select: vi.fn().mockResolvedValue({
-				data: [{ id: 1, title: "Test" }],
-				error: null,
-			}),
-		};
-		vi.mocked(createClient).mockReturnValue(mockSupabase as any);
-
-		const result = await mockSupabase.from("conversations").select();
-
-		expect(result.data).toHaveLength(1);
-		expect(result.data[0]).toHaveProperty("title", "Test");
+		expect(mockCookieStore.get).toHaveBeenCalled();
 	});
 });

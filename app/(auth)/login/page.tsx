@@ -13,7 +13,6 @@ import { signIn } from "@/db/auth";
 
 export default function LoginPage() {
 	const [isLoading, setIsLoading] = useState(false);
-	const [isTransitioning, setIsTransitioning] = useState(false);
 	const router = useRouter();
 
 	async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -26,28 +25,18 @@ export default function LoginPage() {
 			const password = formData.get("password") as string;
 
 			await signIn(email, password);
-			setIsTransitioning(true);
 			router.push("/");
 			router.refresh();
 		} catch (error: any) {
-			toast.error(error.message);
+			console.error("Login error:", error);
+			toast.error(error.message || "Failed to sign in");
+		} finally {
 			setIsLoading(false);
 		}
 	}
 
-	if (isTransitioning) {
-		return (
-			<div className="fixed inset-0 flex items-center justify-center bg-background">
-				<div className="space-y-4 text-center">
-					<Loader2 className="h-8 w-8 animate-spin" />
-					<p className="text-sm text-muted-foreground">Redirecting...</p>
-				</div>
-			</div>
-		);
-	}
-
 	return (
-		<div className="flex h-[calc(100vh-theme(spacing.16))] items-center justify-center py-10">
+		<div className="flex min-h-screen items-center justify-center py-10">
 			<div className="w-full max-w-sm space-y-6">
 				<div className="space-y-2 text-center">
 					<h1 className="text-3xl font-bold">Login</h1>

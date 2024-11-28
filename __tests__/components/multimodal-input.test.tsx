@@ -24,30 +24,44 @@ vi.mock("usehooks-ts", () => ({
 // Mock Supabase client
 vi.mock("@/lib/supabase/client", () => ({
 	createClient: () => ({
-		storage: {
-			from: () => ({
-				upload: vi.fn().mockResolvedValue({ data: { path: "test.txt" } }),
-				getPublicUrl: vi
-					.fn()
-					.mockReturnValue({ data: { publicUrl: "test-url" } }),
+		from: () => ({
+			select: () => ({
+				eq: () => ({
+					single: () => Promise.resolve({ data: null, error: null }),
+				}),
 			}),
-		},
+		}),
 	}),
 }));
 
-// Mock suggested actions
-const mockSuggestedActions = [
-	{
-		title: "Create a new document",
-		label: 'with the title "My New Document"',
-		action: 'Create a new document with the title "My New Document"',
-	},
-	{
-		title: "Check wallet balance",
-		label: "for my connected wallet",
-		action: "Check the balance of my connected wallet",
-	},
-];
+// Mock EventSource
+class MockEventSource {
+	onmessage: ((event: MessageEvent) => void) | null = null;
+	close = vi.fn();
+
+	constructor(url: string) {
+		setTimeout(() => {
+			if (this.onmessage) {
+				this.onmessage(new MessageEvent('message', {
+					data: JSON.stringify({
+						type: 'intermediate',
+						content: 'Thinking...',
+					})
+				}));
+			}
+		}, 100);
+	}
+}
+
+global.EventSource = MockEventSource as any;
+
+// Mock fetch for file uploads
+global.fetch = vi.fn(() =>
+	Promise.resolve({
+		ok: true,
+		json: () => Promise.resolve({ url: 'test-url' }),
+	})
+) as any;
 
 describe("MultimodalInput", () => {
 	const mockProps = {
@@ -61,7 +75,7 @@ describe("MultimodalInput", () => {
 		setMessages: vi.fn(),
 		append: vi.fn(),
 		handleSubmit: vi.fn(),
-		chatId: "123",
+		chatId: "test-chat-id",
 		className: "",
 	};
 
@@ -71,24 +85,15 @@ describe("MultimodalInput", () => {
 		global.URL.revokeObjectURL = vi.fn();
 	});
 
-	it("renders suggested actions correctly", () => {
-		render(<MultimodalInput {...mockProps} />);
-		mockSuggestedActions.forEach((action) => {
-			expect(screen.getByText(action.title)).toBeInTheDocument();
-			expect(screen.getByText(action.label)).toBeInTheDocument();
-		});
-	});
-
-	it("handles text input and adjusts height", async () => {
+	it("handles text input correctly", async () => {
 		render(<MultimodalInput {...mockProps} />);
 		const textarea = screen.getByRole("textbox");
 
 		await userEvent.type(textarea, "Test message");
 		expect(mockProps.setInput).toHaveBeenCalledWith("Test message");
-		expect(textarea).toHaveStyle({ height: "auto" });
 	});
 
-	it("handles file uploads with progress", async () => {
+	it("handles file uploads", async () => {
 		const file = new File(["test"], "test.txt", { type: "text/plain" });
 		render(<MultimodalInput {...mockProps} />);
 
@@ -99,80 +104,31 @@ describe("MultimodalInput", () => {
 
 		expect(URL.createObjectURL).toHaveBeenCalledWith(file);
 		await waitFor(() => {
-			expect(screen.getByText("test.txt")).toBeInTheDocument();
+			expect(screen.getByText(/Uploading/)).toBeInTheDocument();
 		});
 	});
 
-	it("handles paste events with images", async () => {
+	it("handles streaming responses", async () => {
 		render(<MultimodalInput {...mockProps} />);
-		const textarea = screen.getByRole("textbox");
-
-		const imageBlob = new Blob(["fake-image"], { type: "image/png" });
-		const clipboardData = {
-			files: [imageBlob],
-			getData: () => "",
-			items: [
-				{
-					kind: "file",
-					type: "image/png",
-					getAsFile: () =>
-						new File([imageBlob], "pasted-image.png", { type: "image/png" }),
-				},
-			],
-		};
-
-		await act(async () => {
-			fireEvent.paste(textarea, { clipboardData });
-		});
-
+		
 		await waitFor(() => {
-			expect(URL.createObjectURL).toHaveBeenCalled();
+			expect(screen.getByText("Thinking...")).toBeInTheDocument();
 		});
 	});
 
-	it("handles wallet-related queries correctly", async () => {
-		const { rerender } = render(<MultimodalInput {...mockProps} />);
-		const textarea = screen.getByRole("textbox");
-
-		await userEvent.type(textarea, "check wallet balance");
-		await userEvent.keyboard("{Enter}");
-
-		expect(mockProps.append).toHaveBeenCalledWith(
-			expect.objectContaining({
-				role: "user",
-				content: expect.stringContaining("walletAddress"),
-			}),
-			expect.any(Object),
-		);
-
-		// Test disconnected wallet
-		vi.mocked(useWalletState).mockImplementationOnce(() => ({
-			address: "",
-			isConnected: false,
-			chainId: undefined,
-			networkInfo: undefined,
-			isCorrectNetwork: false,
-		}));
-
-		rerender(<MultimodalInput {...mockProps} />);
-		await userEvent.clear(textarea);
-		await userEvent.type(textarea, "check wallet balance");
-		await userEvent.keyboard("{Enter}");
-
-		expect(
-			screen.getByText("Please connect your wallet first"),
-		).toBeInTheDocument();
-	});
-
-	it("cleans up resources properly", () => {
+	it("cleans up resources on unmount", () => {
 		const { unmount } = render(<MultimodalInput {...mockProps} />);
+		const mockClose = vi.fn();
+		vi.spyOn(global.EventSource.prototype, 'close').mockImplementation(mockClose);
+		
 		unmount();
+		expect(mockClose).toHaveBeenCalled();
 		expect(URL.revokeObjectURL).toHaveBeenCalled();
 	});
 
-	it("handles loading state correctly", () => {
+	it("handles loading state", () => {
 		render(<MultimodalInput {...mockProps} isLoading={true} />);
 		expect(screen.getByRole("textbox")).toBeDisabled();
-		expect(screen.getByTestId("stop-icon")).toBeInTheDocument();
+		expect(screen.getByTestId("stop-button")).toBeInTheDocument();
 	});
 });

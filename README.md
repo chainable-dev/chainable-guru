@@ -1,4 +1,4 @@
-# AI Chat Bot with Blockchain Integration
+# Elron - AI Web3 Chatbot with Blockchain Integration
 
 A sophisticated AI chat interface built with Next.js, featuring blockchain wallet integration, real-time content generation, and image handling capabilities. This project combines the power of AI with blockchain technology to provide a secure, intelligent chat experience.
 

@@ -1,27 +1,30 @@
-import { describe, it, expect } from "vitest";
-import path from "path";
+import { describe, expect, it } from "vitest";
+import nextConfig from "@/next.config";
 
 describe("Next.js Configuration", () => {
-	const nextConfig = require(path.join(process.cwd(), "next.config.js"));
-
-	it("has required compiler options", () => {
-		expect(nextConfig).toHaveProperty("compiler");
-		if (nextConfig.compiler) {
-			expect(nextConfig.compiler).toHaveProperty("styledComponents");
-		}
+	it("has required config options", () => {
+		expect(nextConfig).toBeDefined();
+		expect(nextConfig).toHaveProperty("reactStrictMode", true);
+		expect(nextConfig).toHaveProperty("typescript");
+		expect(nextConfig).toHaveProperty("eslint");
 	});
 
 	it("has proper image configuration", () => {
 		expect(nextConfig).toHaveProperty("images");
 		if (nextConfig.images) {
-			expect(nextConfig.images).toHaveProperty("domains");
-			expect(Array.isArray(nextConfig.images.domains)).toBe(true);
+			expect(nextConfig.images).toHaveProperty("remotePatterns");
+			expect(Array.isArray(nextConfig.images.remotePatterns)).toBe(true);
+			expect(nextConfig.images.remotePatterns).toContainEqual({
+				protocol: 'https',
+				hostname: '**',
+			});
 		}
 	});
 
-	it("has typescript enabled", () => {
-		const tsConfig = require(path.join(process.cwd(), "tsconfig.json"));
-		expect(tsConfig).toBeDefined();
-		expect(tsConfig.compilerOptions.strict).toBe(true);
+	it("has proper experimental features", () => {
+		expect(nextConfig).toHaveProperty("experimental");
+		if (nextConfig.experimental) {
+			expect(nextConfig.experimental).toHaveProperty("serverActions", true);
+		}
 	});
 });

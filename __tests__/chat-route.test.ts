@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { POST, DELETE } from "@/app/(chat)/api/chat/route";
 
-// Basic mocks
+// Mock Supabase client with async auth
 vi.mock("@/lib/supabase/server", () => ({
-	createClient: () => ({
+	createClient: async () => ({
 		auth: {
-			getUser: () => ({
+			getUser: async () => ({
 				data: { user: { id: "test-user-id" } },
 				error: null,
 			}),
