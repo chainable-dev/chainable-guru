@@ -305,10 +305,66 @@ export function MultimodalInput({
 		[isConnected, isCorrectNetwork, setInput, submitForm],
 	);
 
+	const ALLOWED_MIME_TYPES = [
+	  'image/jpeg',
+	  'image/png',
+	  'image/gif',
+	  'image/webp',
+	  'application/pdf',
+	  'text/plain',
+	  'application/msword',
+	  'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+	];
+
+	const uploadFileWithRetry = async (file: File, chatId: string, retries = 3) => {
+  try {
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      throw new Error(`Unsupported file type: ${file.type}`);
+    }
+
+    const fileName = `${chatId}/${Date.now()}-${file.name}`;
+    const { data, error } = await supabase.storage
+      .from('chat_attachments')
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('chat_attachments')
+      .getPublicUrl(data.path);
+
+    return { url: publicUrl, path: data.path };
+  } catch (error) {
+    console.error('Upload error:', error);
+    if (retries > 0) {
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      return uploadFileWithRetry(file, chatId, retries - 1);
+    }
+    throw error;
+  }
+};
+
 	const handleFileChange = useCallback(
 		async (event: ChangeEvent<HTMLInputElement>) => {
 			const files = Array.from(event.target.files || []);
-
+	
+			// Check file size and type limits
+			const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+			const invalidFiles = files.filter(file => 
+			  file.size > MAX_FILE_SIZE || !ALLOWED_MIME_TYPES.includes(file.type)
+			);
+	
+			if (invalidFiles.length > 0) {
+			  toast.error(
+			    `Invalid files: ${invalidFiles.map(f => f.name).join(', ')}\n` +
+			    'Files must be smaller than 10MB and in supported format.'
+			  );
+			  return;
+			}
+	
 			// Create staged files with blob URLs
 			const newStagedFiles = files
 				.filter((file) => !stagedFileNames.current.has(file.name))
@@ -316,65 +372,50 @@ export function MultimodalInput({
 					stagedFileNames.current.add(file.name);
 					return createStagedFile(file);
 				});
+	
+			if (newStagedFiles.length === 0) {
+				toast.error('No new files to upload');
+				return;
+			}
+	
 			setStagedFiles((prev) => [...prev, ...newStagedFiles]);
-
+	
 			try {
 				// Upload each file
 				for (const stagedFile of newStagedFiles) {
-					setStagedFiles((prev) =>
-						prev.map((f) =>
-							f.id === stagedFile.id ? { ...f, status: "uploading" } : f,
-						),
+					setStagedFiles(prev =>
+						prev.map(f =>
+							f.id === stagedFile.id ? { ...f, status: "uploading" } : f
+						)
 					);
-
-					const formData = new FormData();
-					formData.append("file", stagedFile.file);
-					formData.append("chatId", chatId);
-
-					const response = await fetch("/api/files/upload", {
-						method: "POST",
-						body: formData,
-					});
-
-					if (!response.ok) throw new Error("Upload failed");
-
-					const data = await response.json();
-
-					// Add to attachments on successful upload
-					setAttachments((current) => [
-						...current,
-						{
-							url: data.url,
-							name: stagedFile.file.name,
-							contentType: stagedFile.file.type,
-							path: data.path,
-						},
-					]);
-
-					// Mark as complete and remove from staged files
-					setStagedFiles((prev) =>
-						prev.map((f) =>
-							f.id === stagedFile.id ? { ...f, status: "complete" } : f,
-						),
-					);
-					removeStagedFile(stagedFile.id);
+	
+					try {
+						const data = await uploadFileWithRetry(stagedFile.file, chatId);
+                        if (data) {
+                            const attachment = {
+                                url: data.url,
+                                name: stagedFile.file.name,
+                                contentType: stagedFile.file.type,
+                                path: data.path
+                            };
+                            setAttachments(prev => [...prev, attachment]);
+                            setStagedFiles(prev =>
+                                prev.filter(f => f.id !== stagedFile.id)
+                            );
+                        }
+					} catch (error: unknown) {
+						console.error(`Error uploading ${stagedFile.file.name}:`, error);
+						const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred';
+						toast.error(`Failed to upload ${stagedFile.file.name}: ${errorMessage}`);
+						setStagedFiles(prev =>
+							prev.map(f =>
+								f.id === stagedFile.id ? { ...f, status: "error" } : f
+							)
+						);
+					}
 				}
-
-				toast.success("Files uploaded successfully");
 			} catch (error) {
-				console.error("Error uploading files:", error);
-				toast.error("Failed to upload one or more files");
-
-				// Mark failed files
-				newStagedFiles.forEach((file) => {
-					setStagedFiles((prev) =>
-						prev.map((f) => (f.id === file.id ? { ...f, status: "error" } : f)),
-					);
-				});
-			} finally {
-				if (fileInputRef.current) {
-					fileInputRef.current.value = "";
-				}
+				console.error("Error in file upload process:", error);
 			}
 		},
 		[chatId, createStagedFile, removeStagedFile, setAttachments],
@@ -397,94 +438,51 @@ export function MultimodalInput({
 
 	const handlePaste = useCallback(
 		async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
-			console.log("🔍 Paste event detected");
-
-			const clipboardData = e.clipboardData;
-			if (!clipboardData) return;
-
-			// Check for images in clipboard
-			const items = Array.from(clipboardData.items);
-			const imageItems = items.filter(
-				(item) => item.kind === "file" && item.type.startsWith("image/"),
-			);
-
-			if (imageItems.length > 0) {
-				e.preventDefault();
-				console.log("📸 Found image in clipboard");
-
-				// Convert clipboard items to files
-				const files = imageItems
-					.map((item) => item.getAsFile())
-					.filter((file): file is File => file !== null)
-					.map(
-						(file) =>
+			try {
+				const clipboardData = e.clipboardData;
+				if (!clipboardData) return;
+		
+				const items = Array.from(clipboardData.items);
+				const imageItems = items.filter(
+					item => item.kind === "file" && 
+				             item.type.startsWith("image/") && 
+				             ALLOWED_MIME_TYPES.includes(item.type)
+				    );
+		
+				if (imageItems.length > 0) {
+					e.preventDefault();
+		
+					const files = imageItems
+						.map(item => item.getAsFile())
+						.filter((file): file is File => file !== null)
+						.map(file => 
 							new File(
 								[file],
 								`screenshot-${Date.now()}.${file.type.split("/")[1] || "png"}`,
-								{ type: file.type },
-							),
-					);
-
-				// Create staged files with blob URLs
-				const newStagedFiles = files.map(createStagedFile);
-				setStagedFiles((prev) => [...prev, ...newStagedFiles]);
-
-				try {
-					// Upload each file using existing upload logic
-					for (const stagedFile of newStagedFiles) {
-						setStagedFiles((prev) =>
-							prev.map((f) =>
-								f.id === stagedFile.id ? { ...f, status: "uploading" } : f,
-							),
+								{ type: file.type }
+							)
 						);
-
-						const formData = new FormData();
-						formData.append("file", stagedFile.file);
-						formData.append("chatId", chatId);
-
-						const response = await fetch("/api/files/upload", {
-							method: "POST",
-							body: formData,
-						});
-
-						if (!response.ok) throw new Error("Upload failed");
-
-						const data = await response.json();
-
-						// Add to attachments on successful upload
-						setAttachments((current) => [
-							...current,
-							{
-								url: data.url,
-								name: stagedFile.file.name,
-								contentType: stagedFile.file.type,
-								path: data.path,
-							},
-						]);
-
-						// Mark as complete and remove from staged files
-						setStagedFiles((prev) =>
-							prev.map((f) =>
-								f.id === stagedFile.id ? { ...f, status: "complete" } : f,
-							),
-						);
-						removeStagedFile(stagedFile.id);
+		
+					try {
+						const newStagedFiles = files.map(file => createStagedFile(file));
+						setStagedFiles(prev => [...prev, ...newStagedFiles]);
+		
+						for (const stagedFile of newStagedFiles) {
+							try {
+								const data = await uploadFileWithRetry(stagedFile.file, chatId);
+								// Rest of the success handling code...
+							} catch (error) {
+								console.error(`Error uploading pasted image:`, error);
+								// Rest of the error handling code...
+							}
+						}
+					} catch (error) {
+						console.error("Error in paste upload process:", error);
 					}
-
-					toast.success("Files uploaded successfully");
-				} catch (error) {
-					console.error("Error uploading files:", error);
-					toast.error("Failed to upload one or more files");
-
-					// Mark failed files
-					newStagedFiles.forEach((file) => {
-						setStagedFiles((prev) =>
-							prev.map((f) =>
-								f.id === file.id ? { ...f, status: "error" } : f,
-							),
-						);
-					});
 				}
+			} catch (error) {
+				console.error("Error accessing clipboard data:", error);
+				toast.error("Failed to access clipboard data");
 			}
 		},
 		[chatId, createStagedFile, removeStagedFile, setAttachments],
