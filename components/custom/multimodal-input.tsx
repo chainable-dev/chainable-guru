@@ -206,46 +206,23 @@ export function MultimodalInput({
 	const submitForm = useCallback(async () => {
 		if (!input && attachments.length === 0) return;
 
-		const isWalletQuery =
-			input.toLowerCase().includes("wallet") ||
-			input.toLowerCase().includes("balance");
-
 		// Set expecting text based on input type
 		setExpectingText(true);
 
-		if (isWalletQuery) {
-			if (!isConnected) {
-				toast.error("Please connect your wallet first");
-				return;
-			}
-			if (!isCorrectNetwork) {
-				toast.error("Please switch to Base Mainnet or Base Sepolia");
-				return;
-			}
-		}
-
-		const messageContent = isWalletQuery
-			? {
-					text: input,
-					attachments: attachments.map((att) => ({
-						url: att.url,
-						name: att.name,
-						type: att.contentType,
-					})),
-					walletAddress: address,
-					chainId,
-					network: networkInfo?.name,
-					isWalletConnected: isConnected,
-					isCorrectNetwork,
-				}
-			: {
-					text: input,
-					attachments: attachments.map((att) => ({
-						url: att.url,
-						name: att.name,
-						type: att.contentType,
-					})),
-				};
+		// Always include wallet state in message content
+		const messageContent = {
+			text: input,
+			attachments: attachments.map((att) => ({
+				url: att.url,
+				name: att.name,
+				type: att.contentType,
+			})),
+			walletAddress: address,
+			chainId,
+			network: networkInfo?.name,
+			isWalletConnected: isConnected,
+			isCorrectNetwork,
+		};
 
 		try {
 			await append(

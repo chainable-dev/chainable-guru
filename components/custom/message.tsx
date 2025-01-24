@@ -40,10 +40,105 @@ export const PreviewMessage = ({
 			// If successfully parsed as JSON, render structured content
 			return (
 				<div className="space-y-3">
+					{/* Render wallet state if present */}
+					{content.isWalletConnected !== undefined && (
+						<motion.div 
+							initial={{ opacity: 0, y: -10 }}
+							animate={{ opacity: 1, y: 0 }}
+							transition={{ duration: 0.3 }}
+							className="bg-muted/50 p-3 rounded-lg space-y-2 text-sm"
+						>
+							<div className="flex items-center gap-2">
+								<span className="font-medium">Wallet Status:</span>
+								<span className={cx(
+									"transition-colors duration-200",
+									content.isWalletConnected ? "text-green-500" : "text-red-500"
+								)}>
+									{content.isWalletConnected ? "Connected" : "Not Connected"}
+								</span>
+							</div>
+							{content.walletAddress && (
+								<div className="flex items-center gap-2">
+									<span className="font-medium">Address:</span>
+									<span className="font-mono bg-muted/30 px-2 py-0.5 rounded select-all">{content.walletAddress}</span>
+									{content.isWalletConnected && (
+										<a 
+											href={`https://basescan.org/address/${content.walletAddress}`}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-primary hover:underline text-xs ml-2"
+										>
+											View on BaseScan
+										</a>
+									)}
+								</div>
+							)}
+							{content.network && (
+								<div className="flex items-center gap-2">
+									<span className="font-medium">Network:</span>
+									<span className="bg-muted/30 px-2 py-0.5 rounded">{content.network}</span>
+								</div>
+							)}
+							{content.chainId && (
+								<div className="flex items-center gap-2">
+									<span className="font-medium">Chain ID:</span>
+									<span className="bg-muted/30 px-2 py-0.5 rounded">{content.chainId}</span>
+								</div>
+							)}
+							{content.balance && (
+								<div className="flex items-center gap-2">
+									<span className="font-medium">Balance:</span>
+									<span className="bg-muted/30 px-2 py-0.5 rounded">
+										{content.balance} ETH
+										{content.ethPrice && (
+											<span className="text-xs text-muted-foreground ml-1">
+												(${(parseFloat(content.balance) * content.ethPrice).toFixed(2)} USD)
+											</span>
+										)}
+									</span>
+								</div>
+							)}
+							{content.tokens && content.tokens.length > 0 && (
+								<div className="mt-2">
+									<span className="font-medium">Significant Tokens:</span>
+									<div className="mt-1 space-y-1">
+										{content.tokens
+											.filter(token => token.usdValue >= 1) // Only show tokens worth $1 or more
+											.sort((a, b) => b.usdValue - a.usdValue) // Sort by USD value descending
+											.map((token, index) => (
+												<div key={index} className="flex items-center justify-between bg-muted/30 px-2 py-1 rounded">
+													<div className="flex items-center gap-2">
+														<span className="font-medium">{token.symbol}</span>
+														<span className="text-xs text-muted-foreground">{token.balance}</span>
+													</div>
+													<span className="text-sm">${token.usdValue.toFixed(2)}</span>
+												</div>
+											))}
+									</div>
+								</div>
+							)}
+						</motion.div>
+					)}
 					{/* Render text content if present */}
 					{content.text && (
 						<div className="whitespace-pre-wrap leading-relaxed">
-							<Markdown>{content.text}</Markdown>
+							{content.text.toLowerCase().includes('search firefox') ? (
+								<div className="bg-muted/50 p-3 rounded-lg space-y-2 text-sm">
+									<div className="flex items-center gap-2">
+										<span className="font-medium">Firefox Search:</span>
+										<a 
+											href={`https://www.firefox.com/search?q=${encodeURIComponent(content.text.replace('search firefox', '').trim())}`}
+											target="_blank"
+											rel="noopener noreferrer"
+											className="text-primary hover:underline"
+										>
+											{content.text.replace('search firefox', '').trim()}
+										</a>
+									</div>
+								</div>
+							) : (
+								<Markdown>{content.text}</Markdown>
+							)}
 						</div>
 					)}
 

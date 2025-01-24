@@ -22,6 +22,7 @@ import { ThinkingMessage } from "./thinking-message";
 
 import { Database } from "@/lib/supabase/types";
 import { fetcher } from "@/lib/utils";
+import { useWalletState } from "@/hooks/useWalletState";
 
 type Vote = Database["public"]["Tables"]["votes"]["Row"];
 
@@ -41,9 +42,10 @@ export function Chat({
 	selectedModelId: string;
 }) {
 	const { mutate } = useSWRConfig();
-	const { width: windowWidth = 1920, height: windowHeight = 1080 } =
-		useWindowSize();
+	const { width: windowWidth = 1920, height: windowHeight = 1080 } = useWindowSize();
+	const { address, isConnected, chainId, networkInfo, isCorrectNetwork } = useWalletState();
 
+	// Initialize chat hook first
 	const {
 		messages,
 		setMessages,
@@ -56,11 +58,44 @@ export function Chat({
 		data: streamingData,
 	} = useChat({
 		body: { id, modelId: selectedModelId },
-		initialMessages,
+		initialMessages: [
+			{
+				id: 'system-wallet-info',
+				role: 'system',
+				content: JSON.stringify({
+					text: 'Initializing chat with wallet information',
+					walletAddress: address,
+					chainId,
+					network: networkInfo?.name,
+					isWalletConnected: isConnected,
+					isCorrectNetwork
+				})
+			},
+			...initialMessages
+		],
 		onFinish: () => {
-			mutate("/api/history");
+			mutate('/api/history');
 		},
 	});
+
+	// Update messages when wallet state changes after chat initialization
+	useEffect(() => {
+		if (!setMessages) return; // Guard against undefined setMessages
+
+		const walletStateMessage = {
+			id: `wallet-state-${Date.now()}`,
+			role: 'system',
+			content: JSON.stringify({
+				text: 'Wallet state updated',
+				walletAddress: address,
+				chainId,
+				network: networkInfo?.name,
+				isWalletConnected: isConnected,
+				isCorrectNetwork
+			})
+		};
+		setMessages(prev => [...prev, walletStateMessage]);
+	}, [address, chainId, networkInfo, isConnected, isCorrectNetwork, setMessages]);
 
 	const [block, setBlock] = useState<UIBlock>({
 		documentId: "init",
@@ -237,7 +272,9 @@ export function Chat({
 							className="p-2 rounded-full bg-muted"
 							type="button"
 							aria-label="Keyboard shortcuts"
-						></button>
+						>
+							<KeyboardIcon className="size-4" />
+						</button>
 					</TooltipTrigger>
 					<TooltipContent>
 						<div className="text-sm">
@@ -268,6 +305,6 @@ export function Chat({
 				id="file-upload"
 				accept="image/*,.pdf,.doc,.docx,.txt"
 			/>
-		</>
-	);
+	</>
+);
 }
