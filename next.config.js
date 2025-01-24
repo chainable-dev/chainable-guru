@@ -6,6 +6,7 @@ const nextConfig = {
 			"chainable.guru",
 			"avatars.githubusercontent.com",
 			"img.clerk.com",
+			"bujdigxtkpickaksgsj.supabase.co"
 		],
 		remotePatterns: [
 			{
@@ -36,6 +37,11 @@ const nextConfig = {
 			{
 				protocol: "https",
 				hostname: "**.vercel.app",
+				pathname: "/**",
+			},
+			{
+				protocol: "https",
+				hostname: "**.supabase.co",
 				pathname: "/**",
 			},
 			// Add blockchain-specific patterns

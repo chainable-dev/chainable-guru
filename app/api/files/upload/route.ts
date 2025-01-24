@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateUUID } from "@/lib/utils";
-
-export const runtime = "nodejs";
+import { BUCKET_NAME } from "@/db/storage";
 
 export async function POST(request: NextRequest) {
   try {
@@ -34,12 +33,11 @@ export async function POST(request: NextRequest) {
     // Upload to Supabase storage bucket with improved configuration
     const { data: storageData, error: storageError } = await supabase
       .storage
-      .from('files')
+      .from(BUCKET_NAME)
       .upload(filePath, file, {
         upsert: true,
-        cacheControl: '3600',
-        contentType: file.type,
-        duplex: 'half'
+        cacheControl: "max-age=31536000",
+        contentType: file.type
       });
 
     if (storageError) {
@@ -49,7 +47,7 @@ export async function POST(request: NextRequest) {
     // Get public URL for the uploaded file
     const { data: { publicUrl } } = supabase
       .storage
-      .from('files')
+      .from(BUCKET_NAME)
       .getPublicUrl(filePath);
 
     // Save file metadata if chatId is provided
@@ -57,22 +55,21 @@ export async function POST(request: NextRequest) {
       await supabase
         .from("file_uploads")
         .insert({
-          chat_id: chatId,
           user_id: user.id,
-          bucket_id: "files",
+          chat_id: chatId,
+          bucket_id: BUCKET_NAME,
           storage_path: filePath,
           filename: file.name,
           original_name: file.name,
           content_type: file.type,
           size: file.size,
-          url: publicUrl,
-          version: 1
+          url: publicUrl
         });
     }
 
     return NextResponse.json({
       url: publicUrl,
-      path: publicUrl,
+      path: filePath,
       name: file.name,
       contentType: file.type,
       success: true,
