@@ -390,13 +390,23 @@ export function MultimodalInput({
 					);
 	
 					try {
+						let base64Data = null;
+						if (stagedFile.file.type.startsWith('image/')) {
+							const reader = new FileReader();
+							base64Data = await new Promise((resolve) => {
+								reader.onload = () => resolve(reader.result?.toString().split(',')[1]);
+								reader.readAsDataURL(stagedFile.file);
+							});
+						}
+	
 						const data = await uploadFileWithRetry(stagedFile.file, chatId);
                         if (data) {
                             const attachment = {
                                 url: data.url,
                                 name: stagedFile.file.name,
                                 contentType: stagedFile.file.type,
-                                path: data.path
+                                path: data.path,
+                                base64: base64Data
                             };
                             setAttachments(prev => [...prev, attachment]);
                             setStagedFiles(prev =>
@@ -469,11 +479,34 @@ export function MultimodalInput({
 		
 						for (const stagedFile of newStagedFiles) {
 							try {
+								const reader = new FileReader();
+								const base64Data = await new Promise<string>((resolve) => {
+									reader.onload = () => resolve(reader.result?.toString().split(',')[1] || '');
+									reader.readAsDataURL(stagedFile.file);
+								});
+
 								const data = await uploadFileWithRetry(stagedFile.file, chatId);
-								// Rest of the success handling code...
+								if (data) {
+									const attachment = {
+										url: data.url,
+										name: stagedFile.file.name,
+										contentType: stagedFile.file.type,
+										path: data.path,
+										base64: base64Data
+									};
+									setAttachments(prev => [...prev, attachment]);
+									setStagedFiles(prev =>
+										prev.filter(f => f.id !== stagedFile.id)
+									);
+								}
 							} catch (error) {
 								console.error(`Error uploading pasted image:`, error);
-								// Rest of the error handling code...
+								toast.error(`Failed to upload pasted image`);
+								setStagedFiles(prev =>
+									prev.map(f =>
+										f.id === stagedFile.id ? { ...f, status: "error" } : f
+									)
+								);
 							}
 						}
 					} catch (error) {
