@@ -7,7 +7,14 @@
 		"build": "next build",
 		"start": "next start",
 		"lint": "next lint",
-		"biome:clean": "npx biome format --write && npx biome lint --fix"
+		"type-check": "tsc --noEmit",
+		"format": "biome format --write",
+		"lint:fix": "biome lint --fix",
+		"biome:clean": "npx biome format --write && npx biome lint --fix",
+		"clean": "rm -rf .next out dist",
+		"security-audit": "npm audit --audit-level=moderate",
+		"deps:check": "npm outdated",
+		"deps:update": "npm update"
 	},
 	"dependencies": {
 		"@ai-sdk/openai": "^0.0.60",
