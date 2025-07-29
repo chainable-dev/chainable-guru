@@ -1,17 +1,4 @@
-import type { Metadata, Viewport } from "next";
-
-export const metadata: Metadata = {
-	title: "Chainable",
-	description: "Secure blockchain integration with AI",
-	icons: {
-		icon: [
-			{ url: "/icon.svg", type: "image/svg+xml", sizes: "any" },
-			{ url: "/icon.png", sizes: "32x32", type: "image/png" },
-		],
-		apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
-		shortcut: "/icon.png",
-	},
-};
+import type { Viewport } from "next";
 
 export const viewport: Viewport = {
 	width: "device-width",
