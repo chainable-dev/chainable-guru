@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "next-themes";
 import { useState } from "react";
 
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/toast";
 
 export function RootProvider({ children }: { children: React.ReactNode }) {
 	const [queryClient] = useState(

@@ -12,16 +12,5 @@ export default function AuthLayout({
 }: {
 	children: React.ReactNode;
 }) {
-	return (
-		<html lang="en" suppressHydrationWarning>
-			<head>
-				<link rel="icon" href="/icon.svg" type="image/svg+xml" />
-				<link rel="alternate icon" href="/icon.png" />
-				<link rel="apple-touch-icon" href="/apple-icon.png" />
-			</head>
-			<body className="antialiased" suppressHydrationWarning>
-				{children}
-			</body>
-		</html>
-	);
+	return <>{children}</>;
 }
