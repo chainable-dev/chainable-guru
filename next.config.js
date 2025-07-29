@@ -77,7 +77,7 @@ const nextConfig = {
 	},
 	experimental: {
 		serverActions: {
-			allowedOrigins: ["localhost:3000", "chainable.guru"],
+			allowedOrigins: ["localhost:3000", "localhost:3001", "localhost:3002", "chainable.guru"],
 			bodySizeLimit: "2mb",
 		},
 	},
@@ -161,26 +161,6 @@ const nextConfig = {
 				],
 			},
 		];
-	},
-	// Add webpack configuration for static files
-	webpack(config) {
-		config.module.rules.push({
-			test: /\.(ico|png|jpe?g|gif|svg|webp|avif)$/i,
-			issuer: /\.[jt]sx?$/,
-			use: [
-				{
-					loader: "url-loader",
-					options: {
-						limit: 10000,
-						name: "static/media/[name].[hash:8].[ext]",
-						publicPath: "/_next",
-						fallback: "file-loader",
-					},
-				},
-			],
-		});
-
-		return config;
 	},
 };
 

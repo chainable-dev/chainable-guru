@@ -6,12 +6,11 @@ import {
 	streamObject,
 	streamText,
 } from "ai";
-import { ethers } from "ethers";
 import { z } from "zod";
 
 import { customModel } from "@/ai";
 import { models } from "@/ai/models";
-import { blocksPrompt, regularPrompt, systemPrompt } from "@/ai/prompts";
+
 import { getChatById, getDocumentById, getSession } from "@/db/cached-queries";
 import {
 	saveChat,
@@ -28,15 +27,9 @@ import {
 	sanitizeResponseMessages,
 } from "@/lib/utils";
 import { searchDuckDuckGo, searchOpenSearch } from "@/lib/search/search-utils";
-import { FEATURES } from "@/lib/features";
-import { useWalletState } from "@/hooks/useWalletState";
-import { getServerWalletState } from "@/hooks/useServerWalletState";
 import { kv } from "@vercel/kv";
 
-import { useAccount, useBalance, useChainId } from "wagmi";
-
 import { generateTitleFromUserMessage } from "../../actions";
-import { CryptoPrice, CryptoPriceResponse } from '@/types/crypto';
 
 export const maxDuration = 60;
 
@@ -61,18 +54,13 @@ interface RequestSuggestionsParams {
 	modelId: string;
 }
 
-interface WalletStateParams {
-	address?: string;
-	chainId?: number;
-}
+// Removed wallet state params interface
 
 type AllowedTools =
 	| "createDocument"
 	| "updateDocument"
 	| "requestSuggestions"
 	| "getWeather"
-	| "getWalletBalance"
-	| "checkWalletState"
 	| "webSearch"
 	| "getCryptoPrice";
 
@@ -87,9 +75,7 @@ const weatherTools: AllowedTools[] = ["getWeather"];
 const allTools: AllowedTools[] = [
 	...blocksTools,
 	...weatherTools,
-	"getWalletBalance" as AllowedTools,
-	"checkWalletState" as AllowedTools,
-	...(FEATURES.WEB_SEARCH ? ["webSearch" as AllowedTools] : []),
+	"webSearch" as AllowedTools,
 	"getCryptoPrice" as AllowedTools,
 ];
 
@@ -156,43 +142,9 @@ function formatMessageContent(message: CoreMessage): string {
 }
 
 // Add type for wallet balance parameters
-interface WalletBalanceParams {
-	address: string;
-	network?: string;
-}
+// Removed wallet-related interfaces
 
-// Add interface for wallet message content
-interface WalletMessageContent {
-	text: string;
-	walletAddress?: string;
-	chainId?: number;
-	network?: string;
-	isWalletConnected?: boolean;
-	attachments?: Array<{
-		url: string;
-		name: string;
-		type: string;
-	}>;
-}
-
-// Add interface for wallet state
-interface WalletState {
-	address: string | null;
-	isConnected: boolean;
-	chainId?: number;
-	networkInfo?: {
-		name: string;
-		id: number;
-	};
-	isCorrectNetwork: boolean;
-	balances?: {
-		eth?: string;
-		usdc?: string;
-	};
-	lastUpdated?: string;
-}
-
-const WALLET_KEY_PREFIX = "wallet-state:";
+// Removed wallet key prefix
 
 // Update the tools object to properly handle tool results
 const tools = {
@@ -406,149 +358,8 @@ const tools = {
 			};
 		},
 	},
-	getWalletBalance: {
-		description: "Get the balance of the connected wallet",
-		parameters: z.object({
-			address: z.string().describe("The wallet address to check"),
-			chainId: z.number().describe("The chain ID of the connected wallet"),
-		}),
-		execute: async ({
-			address,
-			chainId,
-		}: {
-			address: string;
-			chainId: number;
-		}) => {
-			try {
-				const walletState = await kv.get<WalletState>(
-					`${WALLET_KEY_PREFIX}${address}`,
-				);
-
-				if (!walletState) {
-					return {
-						type: "tool-result",
-						result: {
-							error: "No wallet state found",
-							details: "Please connect your wallet first",
-						},
-					};
-				}
-
-				// Validate supported network
-				if (![8453, 84532].includes(chainId)) {
-					return {
-						type: "tool-result",
-						result: {
-							error: `Unsupported chain ID: ${chainId}`,
-							details: "Please connect to Base Mainnet or Base Sepolia.",
-						},
-					};
-				}
-
-				const networkName = chainId === 8453 ? "Base Mainnet" : "Base Sepolia";
-				const usdcAddress =
-					chainId === 8453
-						? "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913" // Base Mainnet USDC
-						: "0x036CbD53842c5426634e7929541eC2318f3dCF7e"; // Base Sepolia USDC
-
-				// Create provider based on network
-				const provider = new ethers.JsonRpcProvider(
-					chainId === 8453
-						? "https://mainnet.base.org"
-						: "https://sepolia.base.org",
-				);
-
-				// Get ETH balance
-				const ethBalance = await provider.getBalance(address);
-
-				// Create USDC contract instance
-				const usdcContract = new ethers.Contract(
-					usdcAddress,
-					["function balanceOf(address) view returns (uint256)"],
-					provider,
-				);
-
-				// Get USDC balance
-				const usdcBalance = await usdcContract.balanceOf(address);
-
-				// Update wallet state with new balances
-				const updatedState = {
-					...walletState,
-					balances: {
-						eth: ethers.formatEther(ethBalance),
-						usdc: ethers.formatUnits(usdcBalance, 6),
-					},
-					lastUpdated: new Date().toISOString(),
-				};
-
-				// Save updated state
-				await kv.set(
-					`${WALLET_KEY_PREFIX}${address}`,
-					JSON.stringify(updatedState),
-				);
-
-				return {
-					type: "tool-result",
-					result: {
-						address,
-						network: networkName,
-						chainId,
-						balances: updatedState.balances,
-						timestamp: updatedState.lastUpdated,
-					},
-				};
-			} catch (error) {
-				console.error("Error fetching wallet balance:", error);
-				return {
-					type: "tool-result",
-					result: {
-						error: "Failed to fetch wallet balance",
-						details: error instanceof Error ? error.message : "Unknown error",
-					},
-				};
-			}
-		},
-	},
-	checkWalletState: {
-		description: "Check the current state of the connected wallet",
-		parameters: z.object({
-			address: z.string().optional().describe("The wallet address to check"),
-			chainId: z.number().optional().describe("The chain ID to check"),
-		}),
-		execute: async ({ address }: WalletStateParams) => {
-			try {
-				const walletState = address
-					? await kv.get<WalletState>(`${WALLET_KEY_PREFIX}${address}`)
-					: null;
-
-				return {
-					type: "tool-result",
-					result: {
-						isConnected: !!walletState?.address,
-						address: walletState?.address || null,
-						chainId: walletState?.chainId || null,
-						network: walletState?.networkInfo?.name || "Unknown Network",
-						isSupported: walletState?.isCorrectNetwork || false,
-						supportedNetworks: [
-							{ name: "Base Mainnet", chainId: 8453 },
-							{ name: "Base Sepolia", chainId: 84532 },
-						],
-						timestamp: new Date().toISOString(),
-					},
-				};
-			} catch (error) {
-				console.error("Error checking wallet state:", error);
-				return {
-					type: "tool-result",
-					result: {
-						error: "Failed to check wallet state",
-						details: error instanceof Error ? error.message : "Unknown error",
-					},
-				};
-			}
-		},
-	},
-	...(FEATURES.WEB_SEARCH
+	// Removed wallet-related tools
+	  ...(true
 		? {
 				webSearch: {
 					description: "Search the web using DuckDuckGo",
@@ -692,54 +503,8 @@ export async function POST(request: Request) {
 			return new Response("No user message found", { status: 400 });
 		}
 
-		// Parse the message content and create context
-		let walletInfo: WalletMessageContent = { text: "" };
-		try {
-			if (typeof userMessage.content === "string") {
-				try {
-					walletInfo = JSON.parse(userMessage.content);
-				} catch {
-					walletInfo = { text: userMessage.content };
-				}
-			}
-		} catch (e) {
-			console.error("Error processing message content:", e);
-			walletInfo = {
-				text:
-					typeof userMessage.content === "string" ? userMessage.content : "",
-			};
-		}
-
-		// Create messages with enhanced wallet context
-		const messagesWithContext = coreMessages.map((msg) => {
-			if (msg.role === "user" && msg === userMessage) {
-				const baseMessage = {
-					...msg,
-					content:
-						walletInfo.text ||
-						(typeof msg.content === "string"
-							? msg.content
-							: JSON.stringify(msg.content)),
-				};
-
-				if (walletInfo.walletAddress && walletInfo.chainId !== undefined) {
-					return {
-						...baseMessage,
-						walletAddress: walletInfo.walletAddress,
-						chainId: walletInfo.chainId,
-						isWalletConnected: true,
-						lastChecked: new Date().toISOString(),
-					};
-				}
-
-				return {
-					...baseMessage,
-					isWalletConnected: false,
-					lastChecked: new Date().toISOString(),
-				};
-			}
-			return msg;
-		});
+		// Use the original messages without wallet context
+		const messagesWithContext = coreMessages;
 
 		// Initialize streaming data
 		const streamingData = new StreamData();
@@ -787,7 +552,7 @@ export async function POST(request: Request) {
 			// Process the message with AI
 			const result = await streamText({
 				model: customModel(model.apiIdentifier),
-				system: systemPrompt,
+				    system: "You are a helpful AI assistant.",
 				messages: messagesWithContext,
 				maxSteps: 5,
 				experimental_activeTools: ['getWeather', 'getCryptoPrice'],

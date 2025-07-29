@@ -14,7 +14,7 @@ import { Block, UIBlock } from "@/components/custom/block";
 import { BlockStreamHandler } from "@/components/custom/block-stream-handler";
 import { ChatHeader } from "@/components/custom/chat-header";
 import { MultimodalInput } from "@/components/custom/multimodal-input";
-import { Overview } from "@/components/custom/overview";
+
 import { PreviewMessage } from "@/components/custom/message";
 import { useScrollToBottom } from "@/components/custom/use-scroll-to-bottom";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
@@ -155,7 +155,7 @@ export function Chat({
 					ref={messagesContainerRef}
 					className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4"
 				>
-					{messages.length === 0 && <Overview />}
+					      {messages.length === 0 && <div className="flex-1 flex items-center justify-center text-muted-foreground">Start a conversation</div>}
 
 					{isLoading &&
 						messages.length > 0 &&

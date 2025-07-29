@@ -1,17 +1,23 @@
-import { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
 	title: "Chainable",
 	description: "Secure blockchain integration with AI",
 	icons: {
 		icon: [
-			{ url: "/icons/chainable.svg", type: "image/svg+xml", sizes: "any" },
-			{ url: "/icons/chainable-32.png", sizes: "32x32", type: "image/png" },
-			{ url: "/icons/chainable-16.png", sizes: "16x16", type: "image/png" },
+			{ url: "/icon.svg", type: "image/svg+xml", sizes: "any" },
+			{ url: "/icon.png", sizes: "32x32", type: "image/png" },
 		],
-		apple: [{ url: "/icons/chainable-180.png", sizes: "180x180" }],
-		shortcut: "/icons/favicon.ico",
+		apple: [{ url: "/apple-icon.png", sizes: "180x180" }],
+		shortcut: "/icon.png",
 	},
+};
+
+export const viewport: Viewport = {
+	width: "device-width",
+	initialScale: 1,
+	maximumScale: 1,
+	userScalable: false,
 };
 
 export default function AuthLayout({
@@ -22,9 +28,9 @@ export default function AuthLayout({
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
-				<link rel="icon" href="/icons/chainable.svg" type="image/svg+xml" />
-				<link rel="alternate icon" href="/icons/favicon.ico" />
-				<link rel="apple-touch-icon" href="/icons/chainable-180.png" />
+				<link rel="icon" href="/icon.svg" type="image/svg+xml" />
+				<link rel="alternate icon" href="/icon.png" />
+				<link rel="apple-touch-icon" href="/apple-icon.png" />
 			</head>
 			<body className="antialiased" suppressHydrationWarning>
 				{children}

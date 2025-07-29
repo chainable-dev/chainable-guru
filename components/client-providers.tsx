@@ -1,7 +1,7 @@
 'use client';
 
 import { ThemeProvider } from "./custom/theme-provider";
-import { Providers } from "./providers";
+
 
 export function ClientProviders({ children }: { children: React.ReactNode }) {
   return (
@@ -11,7 +11,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
       enableSystem
       disableTransitionOnChange
     >
-      <Providers>{children}</Providers>
+      {children}
     </ThemeProvider>
   );
 } 

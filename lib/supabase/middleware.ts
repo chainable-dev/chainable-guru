@@ -9,6 +9,16 @@ export const updateSession = async (request: NextRequest) => {
 			},
 		});
 
+		// Check if we're in development mode and Supabase is not configured
+		const isDevelopment = process.env.NODE_ENV === 'development';
+		const hasSupabaseConfig = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+		
+		// If in development and no Supabase config, allow access to all routes
+		if (isDevelopment && !hasSupabaseConfig) {
+			console.log('Development mode: Bypassing authentication (no Supabase config)');
+			return response;
+		}
+
 		const supabase = createServerClient(
 			process.env.NEXT_PUBLIC_SUPABASE_URL!,
 			process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -50,6 +60,16 @@ export const updateSession = async (request: NextRequest) => {
 
 		return response;
 	} catch (e) {
+		// If there's an error and we're in development, allow access
+		if (process.env.NODE_ENV === 'development') {
+			console.log('Development mode: Allowing access due to Supabase error:', e);
+			return NextResponse.next({
+				request: {
+					headers: request.headers,
+				},
+			});
+		}
+		
 		return NextResponse.next({
 			request: {
 				headers: request.headers,

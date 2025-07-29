@@ -1,4 +1,4 @@
-import { FEATURES } from "@/lib/features";
+
 import GPT3TokenizerImport from "gpt3-tokenizer";
 
 // Initialize tokenizer
@@ -18,9 +18,7 @@ function countTokens(text: string): number {
 const MAX_TOKENS = 1000;
 
 export async function searchDuckDuckGo(query: string) {
-	if (!FEATURES.WEB_SEARCH) {
-		throw new Error("Web search feature is not enabled");
-	}
+	return "Search feature is not enabled";
 
 	try {
 		const response = await fetch(
@@ -50,9 +48,7 @@ export async function searchDuckDuckGo(query: string) {
 }
 
 export async function searchOpenSearch(query: string) {
-	if (!FEATURES.WEB_SEARCH) {
-		throw new Error("Web search feature is not enabled");
-	}
+	return "Search feature is not enabled";
 
 	try {
 		// Using Bing Web Search API as an example

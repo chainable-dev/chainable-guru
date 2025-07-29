@@ -16,7 +16,7 @@ import React, {
 import { toast } from "sonner";
 import { useLocalStorage, useWindowSize } from "usehooks-ts";
 
-import { useWalletState } from "@/hooks/useWalletState";
+// Removed wallet state import
 import { createClient } from "@/lib/supabase/client";
 import { sanitizeUIMessages } from "@/lib/utils";
 
@@ -56,14 +56,14 @@ const suggestedActions = [
 		action: "Get the current weather in San Francisco",
 	},
 	{
-		title: "Check wallet balance",
-		label: "for my connected wallet",
-		action: "Check the balance of my connected wallet",
+		title: "Check crypto prices",
+		label: "for Bitcoin and Ethereum",
+		action: "Check the current prices for Bitcoin and Ethereum",
 	},
 	{
-		title: "Check wallet state",
-		label: "for my connected wallet",
-		action: "Check the state of my connected wallet",
+		title: "Get wallet balance",
+		label: "for an Ethereum address",
+		action: "Check the balance for Ethereum address 0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b6",
 	},
 ];
 // Add type for temp attachments
@@ -120,8 +120,7 @@ export function MultimodalInput({
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const { width } = useWindowSize();
 	const supabase = createClient();
-	const { address, isConnected, chainId, networkInfo, isCorrectNetwork } =
-		useWalletState();
+	// Removed wallet state usage
 
 	const [uploadProgress, setUploadProgress] = useState<number>(0);
 	const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
@@ -206,46 +205,17 @@ export function MultimodalInput({
 	const submitForm = useCallback(async () => {
 		if (!input && attachments.length === 0) return;
 
-		const isWalletQuery =
-			input.toLowerCase().includes("wallet") ||
-			input.toLowerCase().includes("balance");
-
 		// Set expecting text based on input type
 		setExpectingText(true);
 
-		if (isWalletQuery) {
-			if (!isConnected) {
-				toast.error("Please connect your wallet first");
-				return;
-			}
-			if (!isCorrectNetwork) {
-				toast.error("Please switch to Base Mainnet or Base Sepolia");
-				return;
-			}
-		}
-
-		const messageContent = isWalletQuery
-			? {
-					text: input,
-					attachments: attachments.map((att) => ({
-						url: att.url,
-						name: att.name,
-						type: att.contentType,
-					})),
-					walletAddress: address,
-					chainId,
-					network: networkInfo?.name,
-					isWalletConnected: isConnected,
-					isCorrectNetwork,
-				}
-			: {
-					text: input,
-					attachments: attachments.map((att) => ({
-						url: att.url,
-						name: att.name,
-						type: att.contentType,
-					})),
-				};
+		const messageContent = {
+			text: input,
+			attachments: attachments.map((att) => ({
+				url: att.url,
+				name: att.name,
+				type: att.contentType,
+			})),
+		};
 
 		try {
 			await append(
@@ -274,35 +244,17 @@ export function MultimodalInput({
 		append,
 		setInput,
 		setLocalStorageInput,
-		address,
-		chainId,
 		setAttachments,
-		isConnected,
-		isCorrectNetwork,
-		networkInfo,
 	]);
 
 	const handleSuggestedAction = useCallback(
 		(action: string) => {
-			const isWalletAction =
-				action.toLowerCase().includes("wallet") ||
-				action.toLowerCase().includes("balance");
-
-			if (isWalletAction) {
-				if (!isConnected) {
-					toast.error("Please connect your wallet first");
-					return;
-				}
-				if (!isCorrectNetwork) {
-					toast.error("Please switch to Base Mainnet or Base Sepolia");
-					return;
-				}
-			}
+			// Removed wallet action logic
 
 			setInput(action);
 			submitForm();
 		},
-		[isConnected, isCorrectNetwork, setInput, submitForm],
+		  [setInput, submitForm],
 	);
 
 	const handleFileChange = useCallback(

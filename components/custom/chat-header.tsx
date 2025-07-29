@@ -1,6 +1,5 @@
 "use client";
 
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useWindowSize } from "usehooks-ts";
@@ -10,7 +9,7 @@ import { SidebarToggle } from "@/components/custom/sidebar-toggle";
 import { Button } from "@/components/ui/button";
 import { BetterTooltip } from "@/components/ui/tooltip";
 
-import { PlusIcon } from "./icons";
+import { PlusIcon, Wallet } from "./icons";
 import { useSidebar } from "../ui/sidebar";
 
 export function ChatHeader({ selectedModelId }: { selectedModelId: string }) {
@@ -41,14 +40,19 @@ export function ChatHeader({ selectedModelId }: { selectedModelId: string }) {
 				className="order-1 md:order-2"
 			/>
 			<div className="flex gap-2 order-4 md:ml-auto items-center">
-				<ConnectButton
-					chainStatus="full"
-					showBalance={false}
-					accountStatus={{
-						smallScreen: "avatar",
-						largeScreen: "full",
-					}}
-				/>
+				<BetterTooltip content="Check Wallet">
+					<Button
+						variant="outline"
+						size="sm"
+						onClick={() => {
+							// Open wallet modal or navigate to wallet page
+							router.push("/wallet");
+						}}
+					>
+						      <Wallet size={16} />
+						<span className="hidden md:inline">Wallet</span>
+					</Button>
+				</BetterTooltip>
 			</div>
 		</header>
 	);

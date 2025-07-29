@@ -756,6 +756,23 @@ export const PlusIcon = ({ size = 16 }: { size?: number }) => (
 	</svg>
 );
 
+export const Wallet = ({ size = 16 }: { size?: number }) => (
+	<svg
+		height={size}
+		strokeLinejoin="round"
+		viewBox="0 0 16 16"
+		width={size}
+		style={{ color: "currentcolor" }}
+	>
+		<path
+			fillRule="evenodd"
+			clipRule="evenodd"
+			d="M13.5 4.5C13.5 3.67157 12.8284 3 12 3H4C3.17157 3 2.5 3.67157 2.5 4.5V11.5C2.5 12.3284 3.17157 13 4 13H12C12.8284 13 13.5 12.3284 13.5 11.5V4.5ZM12 4.5H4V11.5H12V4.5ZM10.5 8.5C10.5 9.32843 9.82843 10 9 10C8.17157 10 7.5 9.32843 7.5 8.5C7.5 7.67157 8.17157 7 9 7C9.82843 7 10.5 7.67157 10.5 8.5Z"
+			fill="currentColor"
+		></path>
+	</svg>
+);
+
 export const CopyIcon = ({ size = 16 }: { size?: number }) => (
 	<svg
 		height={size}

@@ -15,7 +15,7 @@ import { SparklesIcon } from "./icons";
 import { Markdown } from "./markdown";
 import { MessageActions } from "./message-actions";
 import { PreviewAttachment } from "./preview-attachment";
-import { Weather } from "./weather";
+
 
 export const PreviewMessage = ({
 	chatId,
@@ -103,7 +103,7 @@ export const PreviewMessage = ({
 									return (
 										<div key={toolCallId}>
 											{toolName === "getWeather" ? (
-												<Weather weatherAtLocation={result} />
+												            <div className="text-sm text-muted-foreground">Weather data available</div>
 											) : toolName === "createDocument" ? (
 												<DocumentToolResult
 													type="create"
@@ -139,7 +139,7 @@ export const PreviewMessage = ({
 											})}
 										>
 											{toolName === "getWeather" ? (
-												<Weather />
+												            <div className="text-sm text-muted-foreground">Weather data available</div>
 											) : toolName === "createDocument" ? (
 												<DocumentToolCall type="create" args={args} />
 											) : toolName === "updateDocument" ? (
