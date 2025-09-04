@@ -1,6 +1,5 @@
 "use client";
 
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useWindowSize } from "usehooks-ts";
@@ -41,14 +40,7 @@ export function ChatHeader({ selectedModelId }: { selectedModelId: string }) {
 				className="order-1 md:order-2"
 			/>
 			<div className="flex gap-2 order-4 md:ml-auto items-center">
-				<ConnectButton
-					chainStatus="full"
-					showBalance={false}
-					accountStatus={{
-						smallScreen: "avatar",
-						largeScreen: "full",
-					}}
-				/>
+				{/* Wallet connection removed */}
 			</div>
 		</header>
 	);

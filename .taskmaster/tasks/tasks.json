@@ -1,0 +1,319 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Implement User Onboarding Flow",
+        "description": "Create an intuitive onboarding experience for new users to guide them through the app's core features.",
+        "details": "Design onboarding screens using Next.js 15 and Tailwind CSS. Use Supabase to track onboarding completion per user. Integrate onboarding steps such as welcome, feature highlights, and quick-start tips. Use local state to manage onboarding progress and update user profile in Supabase upon completion.",
+        "testStrategy": "Test onboarding flow with new user accounts, verify step progression, and ensure onboarding is only shown to new users. Use Vitest to automate UI and state tests.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Add Keyboard Shortcuts for Power Users",
+        "description": "Enable keyboard shortcuts for common actions to improve efficiency for advanced users.",
+        "details": "Define a set of keyboard shortcuts (e.g., Cmd+K for search, Cmd+N for new chat/document). Use a React hook to listen for key events and trigger corresponding actions. Display a shortcut reference modal accessible via a shortcut (e.g., '?').",
+        "testStrategy": "Write Vitest unit tests for shortcut handlers. Manually verify all shortcuts trigger correct actions and do not conflict with browser/system defaults.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Improve Loading States and Error Handling",
+        "description": "Enhance user feedback by providing clear loading indicators and actionable error messages throughout the app.",
+        "details": "Audit all async operations (API calls, file uploads, AI responses). Implement loading spinners and skeletons using Tailwind CSS. Standardize error messages and provide retry options where appropriate. Log errors for monitoring.",
+        "testStrategy": "Simulate slow network and error scenarios. Verify loading indicators and error messages appear as expected. Use Vitest to test error boundaries and fallback UI.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Audit All Asynchronous Operations",
+            "description": "Identify and document all asynchronous operations in the app, including API calls, file uploads, AI responses, and authentication flows.",
+            "dependencies": [],
+            "details": "Review the codebase to locate every async operation. Create a comprehensive list or spreadsheet detailing each operation, its location, and current loading/error handling implementation. This audit will inform where loading indicators and error handling need to be improved.",
+            "status": "done",
+            "testStrategy": "Verify the audit by cross-referencing with application flows and network activity during typical user actions."
+          },
+          {
+            "id": 2,
+            "title": "Implement Consistent Loading Indicators",
+            "description": "Add or update loading indicators (spinners, skeletons) for all audited async operations using Tailwind CSS, ensuring visual consistency and appropriate placement.",
+            "dependencies": [
+              "3.1"
+            ],
+            "details": "For each async operation identified, implement a loading state using Tailwind CSS components. Use skeleton loaders for content-heavy areas and spinners for actions like file uploads or AI responses. Ensure indicators are not duplicated and follow best practices for user experience.",
+            "status": "done",
+            "testStrategy": "Simulate slow network conditions and verify that loading indicators appear in all relevant places without redundancy."
+          },
+          {
+            "id": 3,
+            "title": "Standardize and Enhance Error Messages",
+            "description": "Refactor error handling to display clear, actionable, and user-friendly error messages for all async operations, with standardized formatting and tone.",
+            "dependencies": [
+              "3.1"
+            ],
+            "details": "Create a set of reusable error message components or utilities. Ensure all error messages are informative, avoid technical jargon, and provide guidance or next steps. Apply these components across the app for all async operations.",
+            "status": "done",
+            "testStrategy": "Force error scenarios (e.g., network failures, invalid responses) and confirm that standardized error messages are shown consistently."
+          },
+          {
+            "id": 4,
+            "title": "Add Retry Options and Fallback UI",
+            "description": "Provide users with retry buttons and fallback UI for failed async operations, ensuring a smooth recovery path from errors.",
+            "dependencies": [
+              "3.3"
+            ],
+            "details": "For each error state, add a retry button that re-attempts the failed operation. Where appropriate, display fallback content (e.g., cached data, empty states) to maintain usability. Ensure retry logic is robust and does not cause duplicate requests.",
+            "status": "done",
+            "testStrategy": "Trigger errors and verify that retry options work as expected and fallback UI is displayed when needed."
+          },
+          {
+            "id": 5,
+            "title": "Integrate Error Logging and Monitoring",
+            "description": "Log all errors from async operations to a centralized monitoring service for ongoing tracking and debugging.",
+            "dependencies": [
+              "3.3"
+            ],
+            "details": "Integrate an error logging solution (e.g., Sentry, LogRocket) to capture and report errors from all async operations. Ensure logs include relevant context (operation type, user action, error details) and do not expose sensitive information.",
+            "status": "done",
+            "testStrategy": "Induce errors and confirm they are correctly logged and visible in the monitoring dashboard."
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Implement Search Functionality for Chats and Documents",
+        "description": "Allow users to search through their chats and documents efficiently.",
+        "details": "Add a search bar component. Use Supabase full-text search capabilities to query chats and documents. Debounce input for performance. Highlight search terms in results.",
+        "testStrategy": "Write integration tests to verify search accuracy and performance. Test edge cases (no results, special characters).",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 5,
+        "title": "Enhance Mobile Experience",
+        "description": "Optimize the app for mobile devices to ensure a seamless experience.",
+        "details": "Review and adjust responsive layouts using Tailwind CSS. Test all interactive elements for touch usability. Optimize tap targets and mobile navigation. Ensure mobile-specific features (e.g., file uploads) work correctly.",
+        "testStrategy": "Use device emulators and real devices to test all flows. Write Vitest tests for responsive components.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Ensure Consistent Branding Throughout the App",
+        "description": "Apply a unified visual identity across all screens and components.",
+        "details": "Define a branding guide (colors, fonts, logo usage). Refactor UI components to use standardized styles via Tailwind CSS. Update favicon and meta tags for branding.",
+        "testStrategy": "Perform visual regression testing. Review all screens for consistency. Use Vitest snapshots for UI components.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Add Tooltips and Help Text",
+        "description": "Provide contextual help and tooltips to guide users through complex features.",
+        "details": "Identify UI elements that need tooltips. Use a tooltip library compatible with Next.js and Tailwind CSS. Write concise help text for each feature. Ensure accessibility (ARIA labels).",
+        "testStrategy": "Test tooltip appearance and content. Verify accessibility with screen readers. Write Vitest tests for tooltip triggers.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Optimize Responsive Design",
+        "description": "Ensure the application layout adapts smoothly to all screen sizes and orientations.",
+        "details": "Audit all pages for responsiveness. Use Tailwind CSS breakpoints to adjust layouts. Test edge cases (split-screen, landscape mode). Refactor components as needed for flexibility.",
+        "testStrategy": "Test on multiple devices and browsers. Use Vitest to validate responsive breakpoints and layout changes.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Test Authentication Flows",
+        "description": "Verify that email and GitHub OAuth authentication work reliably and securely.",
+        "details": "Write Vitest end-to-end tests for sign up, login, logout, and session persistence. Test edge cases (invalid credentials, expired tokens). Ensure Supabase RLS is enforced.",
+        "testStrategy": "Automate authentication tests. Manually test with different providers and error scenarios.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Write End-to-End Tests for Email/Password Authentication",
+            "description": "Implement Vitest end-to-end tests for email/password sign up, login, logout, and session persistence, including edge cases such as invalid credentials and expired tokens.",
+            "dependencies": [],
+            "details": "Set up Vitest with the appropriate test environment. Write tests that cover user registration, login, logout, and session persistence using email/password. Simulate invalid credentials and expired session tokens to verify error handling. Ensure tests assert correct UI feedback and backend responses.",
+            "status": "pending",
+            "testStrategy": "Run tests with valid and invalid credentials. Manually expire tokens to verify session handling. Check that error messages and redirects are correct."
+          },
+          {
+            "id": 2,
+            "title": "Write End-to-End Tests for GitHub OAuth Authentication",
+            "description": "Implement Vitest end-to-end tests for GitHub OAuth sign up, login, logout, and session persistence, including handling of OAuth-specific edge cases.",
+            "dependencies": [
+              "9.1"
+            ],
+            "details": "Mock GitHub OAuth responses where possible. Write tests for the full OAuth flow: redirect, consent, callback, and session management. Test scenarios such as denied consent, revoked access, and expired OAuth tokens. Validate that the app handles these cases gracefully and maintains secure session management.",
+            "status": "pending",
+            "testStrategy": "Simulate OAuth login/logout flows, including error scenarios. Use mocked responses to test edge cases. Verify UI and backend behavior for each scenario."
+          },
+          {
+            "id": 3,
+            "title": "Test Session Management and Persistence Across Providers",
+            "description": "Verify that session management and persistence work reliably for both email/password and GitHub OAuth users, including cross-tab and browser restart scenarios.",
+            "dependencies": [
+              "9.1",
+              "9.2"
+            ],
+            "details": "Write tests to ensure that authenticated sessions persist across page reloads, browser restarts, and multiple tabs. Test session expiration and automatic logout. Validate that session state is consistent and secure for both authentication methods.",
+            "status": "pending",
+            "testStrategy": "Automate tests for session persistence and expiration. Manually test multi-tab and browser restart scenarios. Check for unauthorized access after session expiry."
+          },
+          {
+            "id": 4,
+            "title": "Verify Supabase RLS Enforcement and Security",
+            "description": "Ensure that Supabase Row Level Security (RLS) policies are enforced for all authentication flows and that unauthorized access is prevented.",
+            "dependencies": [
+              "9.1",
+              "9.2",
+              "9.3"
+            ],
+            "details": "Review Supabase RLS policies for user tables. Write tests that attempt to access or modify data as unauthorized users (e.g., using invalid or expired tokens, or as a different user). Confirm that RLS blocks unauthorized actions and that error responses are handled correctly in the app.",
+            "status": "pending",
+            "testStrategy": "Automate tests for unauthorized data access attempts. Manually inspect Supabase logs and error responses. Ensure no data leakage or privilege escalation is possible."
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Test File Upload and Document Creation",
+        "description": "Ensure file uploads and document creation/editing work as expected.",
+        "details": "Write integration tests for file upload (various file types, sizes) and document CRUD operations. Validate Supabase storage and database updates. Test error handling for failed uploads.",
+        "testStrategy": "Automate tests for all file/document flows. Manually test edge cases (large files, unsupported formats).",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Integration Tests for File Uploads",
+            "description": "Develop automated integration tests to verify file upload functionality for various file types and sizes, ensuring correct handling and storage in Supabase.",
+            "dependencies": [],
+            "details": "Write tests that simulate uploading files (images, documents, videos) using the Supabase client. Validate that files are accepted or rejected based on allowed types and size limits. Ensure files are correctly stored in the appropriate Supabase bucket and that upload responses are handled as expected. Include tests for both successful uploads and expected failures (e.g., unsupported file types, oversized files).",
+            "status": "pending",
+            "testStrategy": "Automate tests for all supported file types and edge cases (large files, unsupported formats). Use mock files and assert storage state after each upload."
+          },
+          {
+            "id": 2,
+            "title": "Test Document Creation and Editing Operations",
+            "description": "Create integration tests for document creation, retrieval, updating, and deletion (CRUD), ensuring database consistency and correct API behavior.",
+            "dependencies": [
+              "10.1"
+            ],
+            "details": "Write tests that create new documents, update existing ones, retrieve documents by ID or query, and delete documents. Validate that each operation correctly updates the Supabase database and that the API returns the expected responses. Include tests for invalid operations (e.g., editing non-existent documents) and permission checks.",
+            "status": "pending",
+            "testStrategy": "Automate CRUD operation tests, verifying database state after each operation and handling of error cases."
+          },
+          {
+            "id": 3,
+            "title": "Validate AI Document Generation and Integration",
+            "description": "Test the AI-powered document generation feature, ensuring generated documents are correctly created, stored, and retrievable through the standard document APIs.",
+            "dependencies": [
+              "10.2"
+            ],
+            "details": "Develop tests that trigger AI document generation, then verify that the resulting documents are stored in the database and accessible via the same endpoints as manually created documents. Check for correct metadata, content integrity, and integration with existing document workflows.",
+            "status": "pending",
+            "testStrategy": "Automate tests for AI document generation, comparing generated content and metadata with expected formats and ensuring retrievability."
+          },
+          {
+            "id": 4,
+            "title": "Test Error Handling and Edge Cases for Uploads and Documents",
+            "description": "Ensure robust error handling by testing failure scenarios for file uploads and document operations, including permission errors, invalid inputs, and storage/database failures.",
+            "dependencies": [
+              "10.3"
+            ],
+            "details": "Simulate scenarios such as failed uploads (network errors, permission denied, invalid file), document operation failures (invalid IDs, unauthorized access), and storage/database outages. Verify that the system returns appropriate error messages, logs errors, and does not leave inconsistent state.",
+            "status": "pending",
+            "testStrategy": "Automate negative tests and manually test rare edge cases. Assert correct error responses and system stability after failures."
+          }
+        ]
+      },
+      {
+        "id": 11,
+        "title": "Test AI Tools Integration",
+        "description": "Verify that real-time AI tools (Weather, Search, Crypto) function correctly and return accurate results.",
+        "details": "Mock OpenAI and external API responses for testing. Write Vitest tests for tool invocation, response parsing, and error handling. Validate UI updates based on tool output.",
+        "testStrategy": "Automate tool usage tests. Manually test with live APIs for accuracy and latency.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 12,
+        "title": "Optimize Loading Times and Bundle Size",
+        "description": "Improve application performance by reducing load times and minimizing bundle size.",
+        "details": "Analyze bundle with Next.js analyzer. Implement code splitting and lazy loading for heavy components. Optimize images and static assets. Remove unused dependencies.",
+        "testStrategy": "Measure load times before and after optimization. Use Lighthouse and Vitest performance tests.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 13,
+        "title": "Implement Caching Strategies",
+        "description": "Introduce caching to reduce redundant API calls and improve perceived performance.",
+        "details": "Use SWR or React Query for client-side caching. Configure HTTP cache headers for static assets. Cache AI responses where appropriate, respecting privacy and freshness.",
+        "testStrategy": "Test cache hits/misses and data freshness. Write Vitest tests for cache logic.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 14,
+        "title": "Update Documentation and User Guide",
+        "description": "Ensure all documentation is up to date and provides clear guidance for users and developers.",
+        "details": "Update README with latest features and setup instructions. Document all API endpoints. Write a user guide covering onboarding, chat, documents, file uploads, and AI tools.",
+        "testStrategy": "Review documentation for completeness and clarity. Ask new users to follow the guide and provide feedback.",
+        "priority": "medium",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 15,
+        "title": "Set Up Production Deployment, Monitoring, and Analytics",
+        "description": "Deploy the app to production and configure monitoring and analytics for ongoing health and usage tracking.",
+        "details": "Configure Vercel or preferred host for Next.js 15 deployment. Set up Supabase production environment. Integrate monitoring (e.g., Sentry) and analytics (e.g., PostHog, Google Analytics). Set up alerts for errors and performance issues.",
+        "testStrategy": "Deploy to staging and production. Verify monitoring and analytics capture events. Simulate errors to test alerting.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-09-04T19:04:28.954Z",
+      "updated": "2025-09-04T19:11:15.681Z",
+      "description": "Tasks for master context"
+    }
+  }
+}

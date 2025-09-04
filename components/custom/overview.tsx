@@ -68,14 +68,13 @@ export const Overview = () => {
 
 				<div className="space-y-4">
 					<p>
-						Welcome to Chainable Chat Bot - your AI-powered Web3 assistant.
-						Built with Next.js and the latest Web3 technologies, this chatbot
-						helps you interact with blockchain data and perform crypto
-						operations seamlessly.
+						Welcome to Chainable Chat Bot - your AI-powered assistant.
+						Built with Next.js and modern technologies, this chatbot
+						helps you with various tasks and provides intelligent responses.
 					</p>
 					<p>
-						Connect your wallet to access personalized features like balance
-						checks, transaction history, and smart contract interactions.
+						Get started by asking me anything! I can help with weather information,
+						cryptocurrency prices, document creation, and more.
 					</p>
 					<p>
 						Powered by{" "}

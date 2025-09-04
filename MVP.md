@@ -1,20 +1,25 @@
-# Base Network AI Chat Assistant MVP Requirements
+# Chainable Guru MVP Requirements
 
-## Current Sprint (P0) - Core Functionality
-- [x] Wallet connection integration
-- [x] Base network support (Mainnet & Sepolia)
-- [x] Basic balance checking (ETH/USDC)
-- [x] Chat interface with AI
-- [x] Message persistence
-- [x] Security guardrails for wallet operations
+## Current Sprint (P0) - Core Functionality ✅ COMPLETE
+- [x] AI Chat interface with streaming responses
+- [x] User authentication (Email + GitHub OAuth)
+- [x] Message persistence with Supabase
+- [x] Document creation and editing
+- [x] File upload and management
+- [x] Real-time AI tools (Weather, Search, Crypto)
+- [x] Clean, responsive UI/UX
+- [x] Database setup with 7 tables
+- [x] Security with Row-Level Security
+- [x] Mobile-responsive design
 
-### Remaining User Stories
+### ✅ IMPLEMENTED FEATURES
 
-#### Network Switching
-- [ ] Network switching guidance
-- [ ] Loading states and error handling
-- [ ] Wallet status display
-- [ ] Network indicator
+#### Core Chat System
+- [x] Real-time AI streaming responses
+- [x] Message history and persistence
+- [x] Multi-modal input (text, files, images)
+- [x] Chat title generation
+- [x] Message voting system
 
 ## Sprint 2 (P1) - Enhanced Security & UX
 - [x] No private key/seed phrase requests

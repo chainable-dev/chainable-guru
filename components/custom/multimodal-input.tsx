@@ -16,9 +16,9 @@ import React, {
 import { toast } from "sonner";
 import { useLocalStorage, useWindowSize } from "usehooks-ts";
 
-import { useWalletState } from "@/hooks/useWalletState";
 import { createClient } from "@/lib/supabase/client";
 import { sanitizeUIMessages } from "@/lib/utils";
+import { errorHandler } from "@/lib/error-handling";
 
 import { ArrowUpIcon, PaperclipIcon, StopIcon } from "./icons";
 import { PreviewAttachment } from "./preview-attachment";
@@ -54,16 +54,6 @@ const suggestedActions = [
 		title: "Get the current weather",
 		label: "in San Francisco",
 		action: "Get the current weather in San Francisco",
-	},
-	{
-		title: "Check wallet balance",
-		label: "for my connected wallet",
-		action: "Check the balance of my connected wallet",
-	},
-	{
-		title: "Check wallet state",
-		label: "for my connected wallet",
-		action: "Check the state of my connected wallet",
 	},
 ];
 // Add type for temp attachments
@@ -120,8 +110,6 @@ export function MultimodalInput({
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const { width } = useWindowSize();
 	const supabase = createClient();
-	const { address, isConnected, chainId, networkInfo, isCorrectNetwork } =
-		useWalletState();
 
 	const [uploadProgress, setUploadProgress] = useState<number>(0);
 	const [stagedFiles, setStagedFiles] = useState<StagedFile[]>([]);
@@ -206,46 +194,17 @@ export function MultimodalInput({
 	const submitForm = useCallback(async () => {
 		if (!input && attachments.length === 0) return;
 
-		const isWalletQuery =
-			input.toLowerCase().includes("wallet") ||
-			input.toLowerCase().includes("balance");
-
 		// Set expecting text based on input type
 		setExpectingText(true);
 
-		if (isWalletQuery) {
-			if (!isConnected) {
-				toast.error("Please connect your wallet first");
-				return;
-			}
-			if (!isCorrectNetwork) {
-				toast.error("Please switch to Base Mainnet or Base Sepolia");
-				return;
-			}
-		}
-
-		const messageContent = isWalletQuery
-			? {
-					text: input,
-					attachments: attachments.map((att) => ({
-						url: att.url,
-						name: att.name,
-						type: att.contentType,
-					})),
-					walletAddress: address,
-					chainId,
-					network: networkInfo?.name,
-					isWalletConnected: isConnected,
-					isCorrectNetwork,
-				}
-			: {
-					text: input,
-					attachments: attachments.map((att) => ({
-						url: att.url,
-						name: att.name,
-						type: att.contentType,
-					})),
-				};
+		const messageContent = {
+			text: input,
+			attachments: attachments.map((att) => ({
+				url: att.url,
+				name: att.name,
+				type: att.contentType,
+			})),
+		};
 
 		try {
 			await append(
@@ -261,10 +220,9 @@ export function MultimodalInput({
 			setInput("");
 			setAttachments([]);
 			setLocalStorageInput("");
-		} catch (error) {
-			console.error("Error sending message:", error);
-			toast.error("Failed to send message");
-		} finally {
+						} catch (error) {
+					errorHandler.showError(error, "chat message submission");
+				} finally {
 			// Reset expectingText when response is received
 			setExpectingText(false);
 		}
@@ -274,59 +232,22 @@ export function MultimodalInput({
 		append,
 		setInput,
 		setLocalStorageInput,
-		address,
-		chainId,
 		setAttachments,
-		isConnected,
-		isCorrectNetwork,
-		networkInfo,
 	]);
 
 	const handleSuggestedAction = useCallback(
 		(action: string) => {
-			const isWalletAction =
-				action.toLowerCase().includes("wallet") ||
-				action.toLowerCase().includes("balance");
-
-			if (isWalletAction) {
-				if (!isConnected) {
-					toast.error("Please connect your wallet first");
-					return;
-				}
-				if (!isCorrectNetwork) {
-					toast.error("Please switch to Base Mainnet or Base Sepolia");
-					return;
-				}
-			}
 
 			setInput(action);
 			submitForm();
 		},
-		[isConnected, isCorrectNetwork, setInput, submitForm],
+		[setInput, submitForm],
 	);
 
-	const handleFileChange = useCallback(
-		async (event: ChangeEvent<HTMLInputElement>) => {
-			const files = Array.from(event.target.files || []);
-
-			// Create staged files with blob URLs
-			const newStagedFiles = files
-				.filter((file) => !stagedFileNames.current.has(file.name))
-				.map((file) => {
-					stagedFileNames.current.add(file.name);
-					return createStagedFile(file);
-				});
-			setStagedFiles((prev) => [...prev, ...newStagedFiles]);
-
-			try {
-				// Upload each file
-				for (const stagedFile of newStagedFiles) {
-					setStagedFiles((prev) =>
-						prev.map((f) =>
-							f.id === stagedFile.id ? { ...f, status: "uploading" } : f,
-						),
-					);
-
+	const uploadFileWithRetry = useCallback(
+		async (stagedFile: StagedFile, maxRetries = 3): Promise<boolean> => {
+			for (let attempt = 1; attempt <= maxRetries; attempt++) {
+				try {
 					const formData = new FormData();
 					formData.append("file", stagedFile.file);
 					formData.append("chatId", chatId);
@@ -336,7 +257,9 @@ export function MultimodalInput({
 						body: formData,
 					});
 
-					if (!response.ok) throw new Error("Upload failed");
+					if (!response.ok) {
+						throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+					}
 
 					const data = await response.json();
 
@@ -358,26 +281,71 @@ export function MultimodalInput({
 						),
 					);
 					removeStagedFile(stagedFile.id);
+					return true;
+				} catch (error) {
+					console.error(`Upload attempt ${attempt} failed:`, error);
+					
+					if (attempt === maxRetries) {
+						// Mark as error on final attempt
+						setStagedFiles((prev) =>
+							prev.map((f) => (f.id === stagedFile.id ? { ...f, status: "error" } : f)),
+						);
+						return false;
+					}
+					
+					// Wait before retry (exponential backoff)
+					await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
 				}
+			}
+			return false;
+		},
+		[chatId, setAttachments, removeStagedFile],
+	);
 
-				toast.success("Files uploaded successfully");
-			} catch (error) {
-				console.error("Error uploading files:", error);
-				toast.error("Failed to upload one or more files");
+	const handleFileChange = useCallback(
+		async (event: ChangeEvent<HTMLInputElement>) => {
+			const files = Array.from(event.target.files || []);
 
-				// Mark failed files
-				newStagedFiles.forEach((file) => {
-					setStagedFiles((prev) =>
-						prev.map((f) => (f.id === file.id ? { ...f, status: "error" } : f)),
-					);
+			// Create staged files with blob URLs
+			const newStagedFiles = files
+				.filter((file) => !stagedFileNames.current.has(file.name))
+				.map((file) => {
+					stagedFileNames.current.add(file.name);
+					return createStagedFile(file);
 				});
+			setStagedFiles((prev) => [...prev, ...newStagedFiles]);
+
+			try {
+				// Upload each file with retry logic
+				const uploadPromises = newStagedFiles.map(async (stagedFile) => {
+					setStagedFiles((prev) =>
+						prev.map((f) =>
+							f.id === stagedFile.id ? { ...f, status: "uploading" } : f,
+						),
+					);
+
+					return await uploadFileWithRetry(stagedFile);
+				});
+
+				const results = await Promise.all(uploadPromises);
+				const successCount = results.filter(Boolean).length;
+				const failureCount = results.length - successCount;
+
+				if (successCount > 0) {
+					toast.success(`${successCount} file(s) uploaded successfully`);
+				}
+				if (failureCount > 0) {
+					toast.error(`${failureCount} file(s) failed to upload. You can try uploading them again.`);
+				}
+			} catch (error) {
+				errorHandler.showError(error, "file upload");
 			} finally {
 				if (fileInputRef.current) {
 					fileInputRef.current.value = "";
 				}
 			}
 		},
-		[chatId, createStagedFile, removeStagedFile, setAttachments],
+		[createStagedFile, uploadFileWithRetry],
 	);
 
 	// Focus management

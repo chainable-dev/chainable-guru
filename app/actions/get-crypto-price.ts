@@ -25,8 +25,8 @@ export async function getCryptoPrice() {
       price_change_percentage_24h: currentData.bitcoin.usd_24h_change,
       market_cap: currentData.bitcoin.usd_market_cap,
       total_volume: currentData.bitcoin.usd_24h_vol,
-      high_24h: Math.max(...priceHistory.slice(-24).map(p => p.price)),
-      low_24h: Math.min(...priceHistory.slice(-24).map(p => p.price)),
+      high_24h: Math.max(...priceHistory.slice(-24).map((p: { price: number }) => p.price)),
+      low_24h: Math.min(...priceHistory.slice(-24).map((p: { price: number }) => p.price)),
       price_history: priceHistory
     };
   } catch (error) {

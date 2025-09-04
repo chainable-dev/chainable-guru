@@ -1,0 +1,72 @@
+# Chainable Guru - Product Requirements Document
+
+## Project Overview
+Chainable Guru is an AI-powered chat application that combines intelligent conversation capabilities with document creation, file handling, and blockchain integration. The application is built with Next.js 15, Supabase, and OpenAI, providing a seamless experience for users to interact with AI while managing their digital content.
+
+## Current Status
+The MVP is complete with core functionality implemented. We need to focus on UX/UI improvements, testing, and ensuring the application works cleanly for users.
+
+## Core Features (Already Implemented)
+- AI Chat interface with streaming responses
+- User authentication (Email + GitHub OAuth)
+- Message persistence with Supabase
+- Document creation and editing
+- File upload and management
+- Real-time AI tools (Weather, Search, Crypto)
+- Clean, responsive UI/UX
+- Database setup with 7 tables
+- Security with Row-Level Security
+- Mobile-responsive design
+
+## Priority Tasks for Clean UX/UI MVP
+
+### 1. User Experience Improvements
+- Implement onboarding flow for new users
+- Add keyboard shortcuts for power users
+- Improve loading states and error handling
+- Add search functionality for chats and documents
+- Enhance mobile experience
+
+### 2. UI/UX Polish
+- Ensure consistent branding throughout the app
+- Add proper loading indicators
+- Improve error messages and recovery
+- Add tooltips and help text
+- Optimize responsive design
+
+### 3. Testing and Quality Assurance
+- Test all core functionality end-to-end
+- Verify authentication flows work properly
+- Test file upload and document creation
+- Ensure AI tools work correctly
+- Test mobile responsiveness
+
+### 4. Performance Optimization
+- Optimize loading times
+- Implement proper caching strategies
+- Optimize image handling
+- Reduce bundle size
+- Improve API response times
+
+### 5. Documentation and Deployment
+- Update README with current features
+- Document API endpoints
+- Create user guide
+- Set up production deployment
+- Configure monitoring and analytics
+
+## Success Criteria
+- Clean, intuitive user interface
+- Fast, responsive performance
+- Reliable authentication and data persistence
+- Working AI chat and document features
+- Mobile-friendly experience
+- Comprehensive testing coverage
+
+## Technical Requirements
+- Next.js 15 with App Router
+- TypeScript for type safety
+- Supabase for backend services
+- OpenAI for AI capabilities
+- Tailwind CSS for styling
+- Comprehensive testing with Vitest

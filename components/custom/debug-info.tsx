@@ -36,7 +36,7 @@ export function DebugInfo() {
 				typeof window !== "undefined" ? window.navigator.userAgent : "",
 			memory:
 				typeof window !== "undefined"
-					? `${(performance?.memory?.usedJSHeapSize || 0) / 1024 / 1024}MB`
+					? `${((performance as any)?.memory?.usedJSHeapSize || 0) / 1024 / 1024}MB`
 					: "",
 			cpu:
 				typeof window !== "undefined"
