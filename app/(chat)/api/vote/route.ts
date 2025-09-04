@@ -1,5 +1,5 @@
-import { getSession } from "@/db/cached-queries";
-import { voteMessage } from "@/db/mutations";
+import { getSession } from "@/lib/database/cached-queries";
+import { voteMessage } from "@/lib/database/mutations";
 import { createClient } from "@/lib/supabase/server";
 export async function POST(request: Request) {
 	try {

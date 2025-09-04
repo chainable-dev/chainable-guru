@@ -16,7 +16,7 @@ import {
 	getSessionQuery,
 	getUserByIdQuery,
 	getChatWithMessagesQuery,
-} from "@/db/queries";
+} from "@/lib/database/queries";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 

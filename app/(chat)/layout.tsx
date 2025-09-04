@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 
 import { AppSidebar } from "@/components/custom/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { getSession } from "@/db/cached-queries";
+import { getSession } from "@/lib/database/cached-queries";
 
 export default async function Layout({
 	children,

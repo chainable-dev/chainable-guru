@@ -1,4 +1,4 @@
-import { getSession } from "@/db/cached-queries";
+import { getSession } from "@/lib/database/cached-queries";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {

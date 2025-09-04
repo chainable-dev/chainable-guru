@@ -11,14 +11,14 @@ import { z } from "zod";
 import { customModel } from "@/ai";
 import { models } from "@/ai/models";
 import { blocksPrompt, regularPrompt, systemPrompt } from "@/ai/prompts";
-import { getChatById, getDocumentById, getSession } from "@/db/cached-queries";
+import { getChatById, getDocumentById, getSession } from "@/lib/database/cached-queries";
 import {
 	saveChat,
 	saveDocument,
 	saveMessages,
 	saveSuggestions,
 	deleteChatById,
-} from "@/db/mutations";
+} from "@/lib/database/mutations";
 import { createClient } from "@/lib/supabase/server";
 import { MessageRole } from "@/lib/supabase/types";
 import {

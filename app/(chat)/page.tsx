@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 
 import { DEFAULT_MODEL_NAME, models } from "@/ai/models";
-import { Chat } from "@/components/custom/chat";
+import { ModernChat } from "@/components/custom/modern-chat";
 import { generateUUID } from "@/lib/utils";
 
 export default async function Page() {
@@ -15,7 +15,7 @@ export default async function Page() {
 		DEFAULT_MODEL_NAME;
 
 	return (
-		<Chat
+		<ModernChat
 			key={id}
 			id={id}
 			initialMessages={[]}
