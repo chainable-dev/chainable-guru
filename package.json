@@ -13,6 +13,7 @@
 		"biome:clean": "npx biome format --write && npx biome lint --fix"
 	},
 	"dependencies": {
+		"@ai-sdk/google": "^2.0.12",
 		"@ai-sdk/openai": "^0.0.60",
 		"@coinbase/coinbase-sdk": "^0.10.0",
 		"@radix-ui/react-alert-dialog": "^1.1.2",
