@@ -70,7 +70,7 @@ export async function POST(req: Request) {
 				.update({
 					content,
 					title,
-				} as any)
+				} as never)
 				.eq("id", id)
 				.eq("user_id", user.id);
 
@@ -116,7 +116,7 @@ export async function PATCH(request: Request) {
 
 		const { error } = await supabase
 			.from("documents")
-			.update({ content, title } as any)
+			.update({ content, title } as never)
 			.eq("id", id)
 			.eq("user_id", user.id);
 

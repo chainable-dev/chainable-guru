@@ -27,7 +27,7 @@ export const getSession = async () => {
 
 	return unstable_cache(
 		async () => {
-			return getSessionQuery(supabase as SupabaseClient<Database>);
+			return getSessionQuery(supabase as unknown as SupabaseClient<Database>);
 		},
 		["session"],
 		{
@@ -42,7 +42,7 @@ export const getUserById = async (id: string) => {
 
 	return unstable_cache(
 		async () => {
-			return getUserByIdQuery(supabase as SupabaseClient<Database>, id);
+			return getUserByIdQuery(supabase as unknown as SupabaseClient<Database>, id);
 		},
 		[`user_by_id`, id.slice(2, 12)],
 		{
@@ -58,7 +58,7 @@ export const getUser = async (email: string) => {
 
 	return unstable_cache(
 		async () => {
-			return getUserQuery(supabase as SupabaseClient<Database>, email);
+			return getUserQuery(supabase as unknown as SupabaseClient<Database>, email);
 		},
 		["user", email],
 		{
@@ -73,7 +73,7 @@ export const getChatById = async (chatId: string) => {
 
 	return unstable_cache(
 		async () => {
-			return getChatByIdQuery(supabase as SupabaseClient<Database>, { id: chatId });
+			return getChatByIdQuery(supabase as unknown as SupabaseClient<Database>, { id: chatId });
 		},
 		["chat", chatId],
 		{
@@ -88,7 +88,7 @@ export const getChatsByUserId = async (userId: string) => {
 
 	return unstable_cache(
 		async () => {
-			return getChatsByUserIdQuery(supabase as SupabaseClient<Database>, { id: userId });
+			return getChatsByUserIdQuery(supabase as unknown as SupabaseClient<Database>, { id: userId });
 		},
 		["chats", userId],
 		{
@@ -103,7 +103,7 @@ export const getMessagesByChatId = async (chatId: string) => {
 
 	return unstable_cache(
 		async () => {
-			return getMessagesByChatIdQuery(supabase as SupabaseClient<Database>, { id: chatId });
+			return getMessagesByChatIdQuery(supabase as unknown as SupabaseClient<Database>, { id: chatId });
 		},
 		["messages", chatId],
 		{
@@ -118,7 +118,7 @@ export const getVotesByChatId = async (chatId: string) => {
 
 	return unstable_cache(
 		async () => {
-			return getVotesByChatIdQuery(supabase as SupabaseClient<Database>, { id: chatId });
+			return getVotesByChatIdQuery(supabase as unknown as SupabaseClient<Database>, { id: chatId });
 		},
 		["votes", chatId],
 		{
@@ -133,7 +133,7 @@ export const getDocumentById = async (documentId: string) => {
 
 	return unstable_cache(
 		async () => {
-			return getDocumentByIdQuery(supabase as SupabaseClient<Database>, { id: documentId });
+			return getDocumentByIdQuery(supabase as unknown as SupabaseClient<Database>, { id: documentId });
 		},
 		["document", documentId],
 		{
@@ -148,7 +148,7 @@ export const getDocumentsById = async (documentId: string) => {
 
 	return unstable_cache(
 		async () => {
-			return getDocumentsByIdQuery(supabase as SupabaseClient<Database>, { id: documentId });
+			return getDocumentsByIdQuery(supabase as unknown as SupabaseClient<Database>, { id: documentId });
 		},
 		["documents", documentId],
 		{
@@ -163,9 +163,9 @@ export const getSuggestionsByDocumentId = async (documentId: string) => {
 
 	return unstable_cache(
 		async () => {
-			return getSuggestionsByDocumentIdQuery(supabase as SupabaseClient<Database>, {
-				documentId: documentId,
-			});
+					return getSuggestionsByDocumentIdQuery(supabase as unknown as SupabaseClient<Database>, {
+			documentId: documentId,
+		});
 		},
 		["suggestions", documentId],
 		{
