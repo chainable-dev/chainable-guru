@@ -17,7 +17,7 @@ async function mutateQuery<T extends any[]>(
 ) {
 	const supabase = await getSupabase();
 	try {
-		await queryFn(supabase as SupabaseClient<Database>, ...args);
+		await queryFn(supabase as unknown as SupabaseClient<Database>, ...args);
 		tags.forEach((tag) => revalidateTag(tag));
 	} catch (error) {
 		handleDatabaseError(error as PostgrestError);

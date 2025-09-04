@@ -180,7 +180,7 @@ export const getChatWithMessages = async (chatId: string) => {
 
 	return unstable_cache(
 		async () => {
-			return getChatWithMessagesQuery(supabase as SupabaseClient<Database>, { id: chatId });
+			return getChatWithMessagesQuery(supabase as unknown as SupabaseClient<Database>, { id: chatId });
 		},
 		["chat_with_messages", chatId],
 		{
