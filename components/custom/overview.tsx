@@ -68,7 +68,7 @@ export const Overview = () => {
 
 				<div className="space-y-4">
 					<p>
-						Welcome to your AI-powered assistant! I'm here to help you with a wide range of tasks,
+						Welcome to your AI-powered assistant! I&apos;m here to help you with a wide range of tasks,
 						from answering questions to providing insights and assistance with your projects.
 					</p>
 					<p>

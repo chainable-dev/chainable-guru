@@ -7,6 +7,7 @@ import { ModernIcons } from "./modern-icons";
 import Image from "next/image";
 import type { Dispatch, SetStateAction } from "react";
 import { useState } from "react";
+import { FileIcon } from "lucide-react";
 
 import { Vote } from "@/lib/supabase/types";
 
@@ -46,7 +47,7 @@ export const ModernMessage = ({
 					{content.text && (
 						<div className="whitespace-pre-wrap break-words">
 							{isAssistant ? (
-								<Markdown content={content.text} />
+								<Markdown>{content.text}</Markdown>
 							) : (
 								<p>{content.text}</p>
 							)}
@@ -80,7 +81,7 @@ export const ModernMessage = ({
 			return (
 				<div className="whitespace-pre-wrap break-words">
 					{isAssistant ? (
-						<Markdown content={message.content} />
+						<Markdown>{message.content}</Markdown>
 					) : (
 						<p>{message.content}</p>
 					)}
@@ -105,7 +106,6 @@ export const ModernMessage = ({
 			<div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
 				{status === "sending" && <ModernIcons.Clock size={12} />}
 				{status === "delivered" && <ModernIcons.Check size={12} />}
-				{status === "read" && <ModernIcons.CheckCheck size={12} />}
 			</div>
 		);
 	};
