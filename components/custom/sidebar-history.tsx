@@ -34,7 +34,7 @@ import {
 	SidebarMenuItem,
 	useSidebar,
 } from "@/components/ui/sidebar";
-import { getChatsByUserIdQuery } from "@/db/queries";
+import { getChatsByUserIdQuery } from "@/lib/database/queries";
 import { createClient } from "@/lib/supabase/client";
 import { Database } from "@/lib/supabase/types";
 

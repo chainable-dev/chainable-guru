@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 
-import { getUser } from "@/db/cached-queries";
+import { getUser } from "@/lib/database/cached-queries";
 import { createClient } from "@/lib/supabase/server";
 
 const authFormSchema = z.object({

@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { signUp, signInWithGitHub } from "@/db/auth";
+import { signUp, signInWithGitHub } from "@/lib/auth/client";
 
 export default function RegisterPage() {
 	const [isLoading, setIsLoading] = useState(false);

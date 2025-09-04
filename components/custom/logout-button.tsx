@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { signOut } from "@/db/auth";
+import { signOut } from "@/lib/auth/client";
 
 export function LogoutButton() {
 	const router = useRouter();

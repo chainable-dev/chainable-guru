@@ -1,6 +1,6 @@
 import Form from "next/form";
 
-import { signOut } from "@/db/auth";
+import { signOut } from "@/lib/auth/client";
 
 export const SignOutForm = () => {
 	return (

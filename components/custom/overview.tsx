@@ -4,11 +4,11 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 
 const quotes = [
-	"Building bridges in the Web3 ecosystem, one transaction at a time",
-	"Empowering developers with seamless blockchain integration",
-	"Simplifying complexity in the world of decentralized applications",
-	"Where innovation meets blockchain technology",
-	"Your trusted companion in the blockchain journey",
+	"Your intelligent AI assistant, ready to help with any task",
+	"Powered by advanced AI to provide accurate and helpful responses",
+	"Ask me anything - I'm here to assist and provide insights",
+	"Experience the future of conversational AI technology",
+	"Your trusted companion for productivity and knowledge",
 ];
 
 export const Overview = () => {
@@ -47,7 +47,7 @@ export const Overview = () => {
 						/>
 					</div>
 					<div className="flex flex-col text-left">
-						<h2 className="text-2xl font-bold tracking-tight">Elron</h2>
+						<h2 className="text-2xl font-bold tracking-tight">AI Assistant</h2>
 						<p className="text-sm text-muted-foreground">
 							Powered by{" "}
 							<Link
@@ -56,7 +56,7 @@ export const Overview = () => {
 								rel="noopener noreferrer"
 								className="font-medium hover:underline"
 							>
-								chainable.co
+								Chainable
 							</Link>
 						</p>
 					</div>
@@ -68,33 +68,16 @@ export const Overview = () => {
 
 				<div className="space-y-4">
 					<p>
-						Welcome to Chainable Chat Bot - your AI-powered assistant.
-						Built with Next.js and modern technologies, this chatbot
-						helps you with various tasks and provides intelligent responses.
+						Welcome to your AI-powered assistant! I'm here to help you with a wide range of tasks,
+						from answering questions to providing insights and assistance with your projects.
 					</p>
 					<p>
-						Get started by asking me anything! I can help with weather information,
-						cryptocurrency prices, document creation, and more.
+						I can help with document creation, weather information, research, coding assistance,
+						and much more. Simply start typing to begin our conversation!
 					</p>
-					<p>
-						Powered by{" "}
-						<Link
-							className="font-medium underline underline-offset-4"
-							href="https://base.org"
-							target="_blank"
-							rel="noopener noreferrer"
-						>
-							Base
-						</Link>{" "}
-						and secured with{" "}
-						<Link
-							className="font-medium underline underline-offset-4"
-							href="https://supabase.com"
-							target="_blank"
-							rel="noopener noreferrer"
-						>
-							Supabase
-						</Link>
+					<p className="text-sm text-muted-foreground">
+						Built with modern web technologies and powered by advanced AI models
+						for the best possible experience.
 					</p>
 				</div>
 

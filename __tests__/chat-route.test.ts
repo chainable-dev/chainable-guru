@@ -13,11 +13,11 @@ vi.mock("@/lib/supabase/server", () => ({
 	}),
 }));
 
-vi.mock("@/db/cached-queries", () => ({
+vi.mock("@/lib/database/cached-queries", () => ({
 	getChatById: vi.fn(),
 }));
 
-vi.mock("@/db/mutations", () => ({
+vi.mock("@/lib/database/mutations", () => ({
 	deleteChatById: vi.fn(),
 }));
 
@@ -32,7 +32,7 @@ describe("Chat API Routes", () => {
 		it("should handle successful deletion", async () => {
 			const request = new Request("http://localhost:3000/api/chat?id=test-id");
 
-			const { getChatById } = await import("@/db/cached-queries");
+			const { getChatById } = await import("@/lib/database/cached-queries");
 			vi.mocked(getChatById).mockResolvedValueOnce({
 				user_id: "test-user-id",
 			});
@@ -44,7 +44,7 @@ describe("Chat API Routes", () => {
 		it("should handle unauthorized deletion", async () => {
 			const request = new Request("http://localhost:3000/api/chat?id=test-id");
 
-			const { getChatById } = await import("@/db/cached-queries");
+			const { getChatById } = await import("@/lib/database/cached-queries");
 			vi.mocked(getChatById).mockResolvedValueOnce({
 				user_id: "different-user-id",
 			});

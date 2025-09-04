@@ -1,4 +1,4 @@
-import { getSession, getSuggestionsByDocumentId } from "@/db/cached-queries";
+import { getSession, getSuggestionsByDocumentId } from "@/lib/database/cached-queries";
 
 export async function GET(request: Request) {
 	const { searchParams } = new URL(request.url);

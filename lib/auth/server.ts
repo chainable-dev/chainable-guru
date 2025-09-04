@@ -1,4 +1,3 @@
-
 import { createClient } from '@/lib/supabase/server';
 
 export async function getUser() {
@@ -13,4 +12,4 @@ export async function getUser() {
   }
 
   return user;
-} 
+}
