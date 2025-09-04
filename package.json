@@ -13,6 +13,7 @@
 		"biome:clean": "npx biome format --write && npx biome lint --fix"
 	},
 	"dependencies": {
+		"@ai-sdk/google": "^2.0.12",
 		"@ai-sdk/openai": "^0.0.60",
 		"@coinbase/coinbase-sdk": "^0.10.0",
 		"@radix-ui/react-alert-dialog": "^1.1.2",
@@ -73,7 +74,7 @@
 		"tailwind-merge": "^2.5.4",
 		"tailwindcss-animate": "^1.0.7",
 		"usehooks-ts": "^3.1.0",
-		"zod": "^3.23.8",
+		"zod": "^3.25.76",
 		"zustand": "^5.0.1"
 	},
 	"devDependencies": {

@@ -3,20 +3,21 @@ import { createClient } from "@/lib/supabase/server";
 import {
 	handleDatabaseError,
 	PostgrestError,
-	type Client,
 	type Message,
 } from "@/lib/supabase/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/types";
 
 const getSupabase = async () => createClient();
 
 async function mutateQuery<T extends any[]>(
-	queryFn: (client: Client, ...args: T) => Promise<void>,
+	queryFn: (client: SupabaseClient<Database>, ...args: T) => Promise<void>,
 	args: T,
 	tags: string[],
 ) {
 	const supabase = await getSupabase();
 	try {
-		await queryFn(supabase, ...args);
+		await queryFn(supabase as unknown as SupabaseClient<Database>, ...args);
 		tags.forEach((tag) => revalidateTag(tag));
 	} catch (error) {
 		handleDatabaseError(error as PostgrestError);
