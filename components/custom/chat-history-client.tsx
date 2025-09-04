@@ -36,7 +36,7 @@ export function ChatHistoryClient({
 	if (error) {
 		return (
 			<Retry 
-				onRetry={() => mutate()}
+				onRetry={() => void mutate()}
 				error="Failed to load chat history"
 				className="p-2"
 			/>

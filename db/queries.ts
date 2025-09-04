@@ -1,9 +1,10 @@
 import { AuthError } from "@supabase/supabase-js";
-import type { Client, Database } from "../lib/supabase/types";
+import type { Database } from "../lib/supabase/types";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type Tables = Database["public"]["Tables"];
 
-export async function getSessionQuery(client: Client) {
+export async function getSessionQuery(client: SupabaseClient<Database>) {
 	const {
 		data: { user },
 		error,
@@ -19,7 +20,7 @@ export async function getSessionQuery(client: Client) {
 	return user;
 }
 
-export async function getUserByIdQuery(client: Client, id: string) {
+export async function getUserByIdQuery(client: SupabaseClient<Database>, id: string) {
 	const { data: user, error } = await client
 		.from("users")
 		.select()
@@ -36,7 +37,7 @@ export async function getUserByIdQuery(client: Client, id: string) {
 	return user;
 }
 
-export async function getUserQuery(client: Client, email: string) {
+export async function getUserQuery(client: SupabaseClient<Database>, email: string) {
 	const { data: users, error } = await client
 		.from("users")
 		.select()
@@ -48,7 +49,7 @@ export async function getUserQuery(client: Client, email: string) {
 }
 
 export async function saveChatQuery(
-	client: Client,
+	client: SupabaseClient<Database>,
 	{
 		id,
 		userId,
@@ -69,7 +70,7 @@ export async function saveChatQuery(
 }
 
 export async function getChatsByUserIdQuery(
-	client: Client,
+	client: SupabaseClient<Database>,
 	{ id }: { id: string },
 ) {
 	const { data: chats, error } = await client
@@ -82,7 +83,7 @@ export async function getChatsByUserIdQuery(
 	return chats;
 }
 
-export async function getChatByIdQuery(client: Client, { id }: { id: string }) {
+export async function getChatByIdQuery(client: SupabaseClient<Database>, { id }: { id: string }) {
 	const { data: chat, error } = await client
 		.from("chats")
 		.select()
@@ -99,7 +100,7 @@ export async function getChatByIdQuery(client: Client, { id }: { id: string }) {
 }
 
 export async function getMessagesByChatIdQuery(
-	client: Client,
+	client: SupabaseClient<Database>,
 	{ id }: { id: string },
 ) {
 	const { data: messages, error } = await client
@@ -113,7 +114,7 @@ export async function getMessagesByChatIdQuery(
 }
 
 export async function saveMessagesQuery(
-	client: Client,
+	client: SupabaseClient<Database>,
 	{
 		chatId,
 		messages,
@@ -133,7 +134,7 @@ export async function saveMessagesQuery(
 }
 
 export async function voteMessageQuery(
-	client: Client,
+	client: SupabaseClient<Database>,
 	{
 		chatId,
 		messageId,
@@ -170,7 +171,7 @@ export async function voteMessageQuery(
 }
 
 export async function getVotesByChatIdQuery(
-	client: Client,
+	client: SupabaseClient<Database>,
 	{ id }: { id: string },
 ) {
 	const { data: votes, error } = await client
@@ -183,7 +184,7 @@ export async function getVotesByChatIdQuery(
 }
 
 export async function getDocumentByIdQuery(
-	client: Client,
+	client: SupabaseClient<Database>,
 	{ id }: { id: string },
 ): Promise<Tables["documents"]["Row"] | null> {
 	const { data: documents, error } = await client
@@ -198,7 +199,7 @@ export async function getDocumentByIdQuery(
 }
 
 export async function saveDocumentQuery(
-	client: Client,
+	client: SupabaseClient<Database>,
 	{
 		id,
 		title,
@@ -222,7 +223,7 @@ export async function saveDocumentQuery(
 }
 
 export async function getSuggestionsByDocumentIdQuery(
-	client: Client,
+	client: SupabaseClient<Database>,
 	{ documentId }: { documentId: string },
 ) {
 	const { data: suggestions, error } = await client
@@ -235,7 +236,7 @@ export async function getSuggestionsByDocumentIdQuery(
 }
 
 export async function saveSuggestionsQuery(
-	client: Client,
+	client: SupabaseClient<Database>,
 	{
 		documentId,
 		documentCreatedAt,
@@ -265,7 +266,7 @@ export async function saveSuggestionsQuery(
 }
 
 export async function deleteDocumentsByIdAfterTimestampQuery(
-	client: Client,
+	client: SupabaseClient<Database>,
 	{ id, timestamp }: { id: string; timestamp: string },
 ) {
 	const { error } = await client
@@ -278,7 +279,7 @@ export async function deleteDocumentsByIdAfterTimestampQuery(
 }
 
 export async function getDocumentsByIdQuery(
-	client: Client,
+	client: SupabaseClient<Database>,
 	{ id }: { id: string },
 ) {
 	const { data: documents, error } = await client
@@ -292,7 +293,7 @@ export async function getDocumentsByIdQuery(
 }
 
 export async function getChatWithMessagesQuery(
-	client: Client,
+	client: SupabaseClient<Database>,
 	{ id }: { id: string },
 ) {
 	const { data: chat, error: chatError } = await client

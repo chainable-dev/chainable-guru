@@ -34,7 +34,7 @@ export class ErrorHandler {
     }
     
     if (typeof error === 'object' && error !== null) {
-      return this.handleObjectError(error, context);
+      return this.handleObjectError(error as Record<string, unknown>, context);
     }
     
     return {

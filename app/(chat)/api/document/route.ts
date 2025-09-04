@@ -21,7 +21,7 @@ export async function GET(req: Request) {
 			{
 				doc_id: id,
 				auth_user_id: user.id,
-			},
+			} as any,
 		);
 
 		if (error) throw error;
@@ -68,8 +68,8 @@ export async function POST(req: Request) {
 			const { error } = await supabase
 				.from("documents")
 				.update({
-					content,
-					title,
+					content: content as any,
+					title: title as any,
 				})
 				.eq("id", id)
 				.eq("user_id", user.id);
@@ -116,7 +116,7 @@ export async function PATCH(request: Request) {
 
 		const { error } = await supabase
 			.from("documents")
-			.update({ content, title })
+			.update({ content: content as any, title: title as any })
 			.eq("id", id)
 			.eq("user_id", user.id);
 
