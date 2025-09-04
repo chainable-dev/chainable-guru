@@ -7,5 +7,6 @@ export const customModel = (apiIdentifier: string) => {
 	return wrapLanguageModel({
 		model: google(apiIdentifier),
 		middleware: customMiddleware,
+		defaultObjectGenerationMode: "json",
 	});
 };
